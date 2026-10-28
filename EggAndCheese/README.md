@@ -127,7 +127,22 @@ code — please keep it.
 The duplicate protection (a runtime `LiveAdminEggIndex`, reconciliation on load, and
 removal of the old block when one is re-placed) exists for the same reason.
 
+## Note on the package name
+
+The Java package was renamed to `com.roicheese.eggandcheese` when the mod was
+published, so an older branch or jar will carry a different package root. Two inert
+mixin configurations declaring a `com.fromages.eggandcheese.mixin` package that never
+existed were removed at the same time — they were not referenced by
+`fabric.mod.json` and the mod has no mixin classes at all.
+
+None of this affects resources: the asset namespace is `eggandcheese`, derived from
+the mod id rather than the package, so advancement and datapack identifiers such as
+`eggandcheese:egg_found` are unchanged.
+
 ## Building
+
+The mod uses `splitEnvironmentSourceSets()`, so client-only code lives in
+`src/client/java` and server code in `src/main/java`.
 
 ```bash
 cd ../CheeseDash && ./gradlew build   # required first

@@ -14,7 +14,7 @@
   "environment": "server",
   "entrypoints": {
     "main": [
-      "com.example.scheduledrestart.ScheduledRestart"
+      "com.schedulerestart.ScheduledRestart"
     ]
   },
   "depends": {
