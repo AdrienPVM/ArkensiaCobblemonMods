@@ -71,6 +71,20 @@ test it on a server with real traffic.
 **A held-item mixin broke every Pokémon held-item swap, server-wide.** Also reverted.
 The `rusted_sword` consume behaviour it was trying to fix is deliberately unfixed.
 
+## Known non-fatal error on startup
+
+If CobbleSafari is not installed, the server log will carry:
+
+```
+Couldn't parse element minecraft:loot_table/cheesecompat:blocks/cobblesafari_portal_frame
+  - Unknown registry key ...: cheesecompat:cobblesafari_portal_frame
+```
+
+The portal-frame block is registered conditionally, but its loot table ships
+unconditionally, so the table is orphaned when the block is absent. It is harmless —
+the server starts normally — but it is noise in the log. Verified on a 475-mod test
+server.
+
 ## Arkensia specifics
 
 `CacademyMegaStoneRemapPatch` maps 42 custom mega stones from the `CacademyMons`
