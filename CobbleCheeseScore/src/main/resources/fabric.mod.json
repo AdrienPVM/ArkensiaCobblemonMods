@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "cobblecheesescore",
-  "version": "1.0.0",
+  "version": "${version}",
   "name": "CobbleCheeseScore",
   "description": "Advanced scoreboards for Cobblemon servers with multiple leaderboards",
   "authors": ["RoiCheese"],

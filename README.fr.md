@@ -118,8 +118,17 @@ cd ../CheeseItems && ./gradlew build   # requis par CheeseStore
 # puis n'importe quel autre mod, dans n'importe quel ordre
 ```
 
-Une erreur mentionnant un `cheesedash-1.0.0.jar` introuvable signifie que la première
-étape a été sautée.
+Une erreur de compilation sur des classes `com.cheesedash` absentes signifie que la
+première étape a été sautée. Un script parcourt aussi les trois paliers pour toi :
+
+```bash
+tools/build-all.sh            # tout construire, dans l'ordre
+tools/build-all.sh --clean    # vider build/libs d'abord — à faire avant une release
+```
+
+Les dépendances entre mods se résolvent par un glob sur `../<Mod>/build/libs/` :
+changer la version d'un mod ne casse donc jamais ceux qui en dépendent. Les jars sont
+nommés `<modid>-<version>+1.21.1.jar`, où `+1.21.1` est la version de Minecraft visée.
 
 ### Deux mods exigent des jars que tu dois fournir
 

@@ -22,9 +22,9 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
     // CheeseGuard — required (dimensions, managers). Present at runtime as a separate mod.
-    modCompileOnly files("../CheeseGuard/build/libs/cheeseguard-${project.mod_version}.jar")
+    modCompileOnly files(fileTree(dir: "../CheeseGuard/build/libs", includes: ["cheeseguard-*.jar"], excludes: ["*-sources.jar", "*-dev.jar"]))
     // CheeseDash — required for dashboard integration. Present at runtime.
-    modCompileOnly files("../CheeseDash/build/libs/cheesedash-${project.mod_version}.jar")
+    modCompileOnly files(fileTree(dir: "../CheeseDash/build/libs", includes: ["cheesedash-*.jar"], excludes: ["*-sources.jar", "*-dev.jar"]))
 
     // All other integrations (CobbleShift, CobbleCap, CobbleSafari/CheeseCompatModsFix,
     // CheeseItems, CheeseStore, Cobblemon, CobblemonRaidDens, EasyNPC) are accessed via

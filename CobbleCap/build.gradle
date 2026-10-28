@@ -29,7 +29,7 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
     // CheeseDash — required dependency for dashboard integration
-    modImplementation files("../CheeseDash/build/libs/cheesedash-1.0.0.jar")
+    modImplementation files(fileTree(dir: "../CheeseDash/build/libs", includes: ["cheesedash-*.jar"], excludes: ["*-sources.jar", "*-dev.jar"]))
 
     implementation 'com.google.code.gson:gson:2.10.1'
 

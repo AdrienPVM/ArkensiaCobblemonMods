@@ -115,7 +115,17 @@ cd ../CheeseItems && ./gradlew build   # needed by CheeseStore
 # then any other mod, in any order
 ```
 
-A failure mentioning a missing `cheesedash-1.0.0.jar` means you skipped step one.
+A compile error about missing `com.cheesedash` classes means you skipped step one.
+There is also a script that walks the three tiers for you:
+
+```bash
+tools/build-all.sh            # build everything, in order
+tools/build-all.sh --clean    # wipe build/libs first — do this before a release
+```
+
+Cross-mod dependencies resolve through a glob on `../<Mod>/build/libs/`, so bumping a
+mod's version never breaks whatever depends on it. Jars are named
+`<modid>-<version>+1.21.1.jar`, where `+1.21.1` is the Minecraft version they target.
 
 ### Two mods need jars you must supply
 

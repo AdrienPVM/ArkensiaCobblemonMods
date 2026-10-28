@@ -48,9 +48,18 @@ cd ../CheeseGuard && ./gradlew build   # needed by CheeseRaids, AetherialBridge
 cd ../CheeseItems && ./gradlew build   # needed by CheeseStore
 ```
 
-A failure about a missing `cheesedash-1.0.0.jar` means you skipped step one. Note
-those paths pin version `1.0.0` — if you bump a mod's version, update the paths in
-whatever depends on it.
+A compile error about missing `com.cheesedash` classes means you skipped step one.
+`tools/build-all.sh` does the whole walk in the right order.
+
+Those cross-mod dependencies are declared as a glob over `../<Mod>/build/libs/`, not
+as a pinned filename, so bumping one mod's version does not require touching its
+dependents. If you add a new cross-mod dependency, follow the same shape:
+
+```groovy
+modCompileOnly files(fileTree(dir: "../CheeseDash/build/libs",
+                              includes: ["cheesedash-*.jar"],
+                              excludes: ["*-sources.jar", "*-dev.jar"]))
+```
 
 **Two mods need jars you supply yourself.** CheeseFixQuests and CheeseCompatModsFix
 mix into FTB Quests, FTB Teams, FTB Library and StarAcademy, which are

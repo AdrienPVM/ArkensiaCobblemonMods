@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.sebastian"  // change to your namespace
-version = "1.1.147"
+version = "1.1.147+1.21.1"
 base.archivesName.set("cobblemon-dungeons")
 
 repositories {
@@ -46,7 +46,10 @@ dependencies {
     include("org.mariadb.jdbc:mariadb-java-client:3.4.1")
 
     // CheeseDash (required dependency for admin dashboard)
-    modImplementation(files("../CheeseDash/build/libs/cheesedash-1.0.0.jar"))
+    modImplementation(files(fileTree("../CheeseDash/build/libs") {
+        include("cheesedash-*.jar")
+        exclude("*-sources.jar", "*-dev.jar")
+    }))
 }
 
 java {

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "scheduledrestart",
-  "version": "1.0.0",
+  "version": "${version}",
   "name": "Scheduled Restart",
   "description": "Schedules server restarts and shutdowns with a player-facing countdown",
   "authors": ["RoiCheese"],

@@ -34,7 +34,7 @@ dependencies {
     compileOnly "maven.modrinth:easy-npc:PG3ZdKaC" // Easy NPC 6.2.0 (fabric)
 
     // CheeseDash — dashboard integration
-    compileOnly files("../CheeseDash/build/libs/cheesedash-1.0.0.jar")
+    compileOnly files(fileTree(dir: "../CheeseDash/build/libs", includes: ["cheesedash-*.jar"], excludes: ["*-sources.jar", "*-dev.jar"]))
 
     implementation 'com.google.code.gson:gson:2.10.1'
 }

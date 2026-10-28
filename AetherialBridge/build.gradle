@@ -22,7 +22,7 @@ dependencies {
 
     // CheeseGuard API — modCompileOnly so Loom remaps intermediary→yarn at compile time.
     // Runtime classes are provided by the cheeseguard mod jar in mods/.
-    modCompileOnly files("../CheeseGuard/build/libs/cheeseguard-1.0.0.jar")
+    modCompileOnly files(fileTree(dir: "../CheeseGuard/build/libs", includes: ["cheeseguard-*.jar"], excludes: ["*-sources.jar", "*-dev.jar"]))
 }
 
 processResources {

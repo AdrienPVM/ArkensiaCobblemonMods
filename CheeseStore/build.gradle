@@ -34,9 +34,9 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
     // CheeseDash — required dependency for dashboard integration
-    modImplementation files("../CheeseDash/build/libs/cheesedash-1.0.0.jar")
+    modImplementation files(fileTree(dir: "../CheeseDash/build/libs", includes: ["cheesedash-*.jar"], excludes: ["*-sources.jar", "*-dev.jar"]))
     // CheeseItems — required for morpho catalog + codex inter-mod calls
-    modImplementation files("../CheeseItems/build/libs/cheeseitems-1.0.0.jar")
+    modImplementation files(fileTree(dir: "../CheeseItems/build/libs", includes: ["cheeseitems-*.jar"], excludes: ["*-sources.jar", "*-dev.jar"]))
 
     // sgui — server-side chest GUI library (Patbox), powers the in-game /cosmetics menu.
     // modImplementation so Loom remaps intermediary → yarn for the sgui API;
