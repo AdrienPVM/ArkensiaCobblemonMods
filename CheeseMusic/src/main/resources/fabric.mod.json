@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "cheesemusic",
+  "version": "${version}",
+  "name": "CheeseMusic",
+  "description": "Zone-based ambient music for CheeseGuard regions",
+  "authors": ["RoiCheese"],
+  "contact": {
+    "homepage": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "sources": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "issues": "https://github.com/AdrienPVM/ArkensiaCobblemonMods/issues"
+  },
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.cheesemusic.CheeseMusicMod"
+    ],
+    "client": [
+      "com.cheesemusic.client.CheeseMusicClient"
+    ],
+    "cheesedash": [
+      "com.cheesemusic.dashboard.CheeseMusicDashboardModule"
+    ]
+  },
+  "mixins": [
+    "cheesemusic.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "cheeseguard": "*",
+    "cheesedash": "*"
+  }
+}

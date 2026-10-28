@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " X ",
+    " X ",
+    "XXX"
+  ],
+  "key": {
+    "X": { "item": "minecraft:stone_bricks" }
+  },
+  "result": {
+    "id": "eggandcheese:pedestal_stone",
+    "count": 1
+  }
+}

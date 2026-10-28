@@ -1,0 +1,10 @@
+{
+  "id": "cobblemon-party-forwarder",
+  "name": "Cobblemon Party Forwarder",
+  "version": "1.0.5",
+  "description": "Forwards Bungee Forward plugin messages to the target server for Cobblemon party sync.",
+  "authors": [
+    "Sebastian"
+  ],
+  "main": "com.sebastian.cobblemondungeons.velocity.PartyForwarder"
+}

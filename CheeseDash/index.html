@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html :lang="I18N.lang" data-theme="cg-dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ArkensiaAdmin</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- DaisyUI -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.1/dist/full.min.css" rel="stylesheet">
+
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="assets/style.css">
+
+  <!-- Alpine.js (defer so DOM is ready) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+
+  <script>
+    // Apply saved theme ASAP to prevent flash
+    (function() {
+      const saved = localStorage.getItem('cg-theme') || 'cg-dark';
+      document.documentElement.setAttribute('data-theme', saved);
+    })();
+
+    // Tailwind config — must be before Alpine
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans:  ['Geist', 'system-ui', 'sans-serif'],
+            mono:  ['Geist Mono', 'monospace'],
+          },
+          fontSize: {
+            '2xs': ['0.6875rem', { lineHeight: '1rem' }],
+            'xs':  ['0.8125rem', { lineHeight: '1.25rem' }],
+            'sm':  ['0.9375rem', { lineHeight: '1.375rem' }],
+            'base':['1rem',      { lineHeight: '1.5rem' }],
+            'lg':  ['1.125rem',  { lineHeight: '1.625rem' }],
+            'xl':  ['1.25rem',   { lineHeight: '1.75rem' }],
+            '2xl': ['1.5rem',    { lineHeight: '2rem' }],
+          },
+          colors: {
+            // Core palette — Tailwind utility classes still reference these for
+            // text-bg, bg-bg-card, etc. Keep synced with CSS variables in style.css.
+            bg:      { DEFAULT: 'var(--bg)', card: 'var(--bg-card)', elevated: 'var(--bg-elevated)', border: 'var(--bg-border)' },
+            amber:   { DEFAULT: 'var(--amber)', dim: 'var(--amber-dim)', glow: 'rgba(245,166,35,0.15)' },
+            cyan:    { DEFAULT: 'var(--cyan)', dim: '#0891b2' },
+            green:   { DEFAULT: 'var(--green)', dim: '#15803d' },
+            red:     { DEFAULT: 'var(--red)', dim: '#b91c1c' },
+            muted:   { DEFAULT: 'var(--muted)', light: 'var(--muted-light)' },
+            tx:      { DEFAULT: 'var(--text-primary)', dim: 'var(--text-secondary)', heading: 'var(--text-heading)' },
+          },
+        }
+      }
+    }
+  </script>
+</head>
+
+<body
+  class="font-sans text-tx bg-bg min-h-screen"
+  x-data="cgApp()"
+  x-init="init()"
+>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LOGIN SCREEN
+═══════════════════════════════════════════════════════════ -->
+<div
+  id="login-screen"
+  x-show="!authenticated"
+  x-transition:leave="transition duration-300"
+  x-transition:leave-start="opacity-100 scale-100"
+  x-transition:leave-end="opacity-0 scale-95"
+  class="fixed inset-0 z-50 flex items-center justify-center bg-bg"
+>
+  <!-- Animated grid background -->
+  <div class="absolute inset-0 grid-bg pointer-events-none"></div>
+  <!-- Amber glow top-left -->
+  <div class="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-amber/5 blur-3xl pointer-events-none"></div>
+  <!-- Cyan glow bottom-right -->
+  <div class="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-cyan/5 blur-3xl pointer-events-none"></div>
+
+  <div class="relative z-10 w-full max-w-sm px-6" x-data="loginForm()">
+    <!-- Logo -->
+    <div class="mb-10 text-center">
+      <div class="inline-flex items-center gap-3 mb-3">
+        <div class="w-10 h-10 rounded-lg bg-amber/10 border border-amber/30 flex items-center justify-center text-2xl">
+          🧀
+        </div>
+        <span class="font-mono font-semibold text-xl tracking-widest text-tx-heading">
+          ARKENSIA<span class="text-amber">ADMIN</span>
+        </span>
+      </div>
+      <p class="text-muted text-sm font-mono" x-text="t('login.version')"></p>
+    </div>
+
+    <!-- Login form -->
+    <div class="card bg-bg-card border border-bg-border shadow-2xl">
+      <div class="card-body gap-5 p-7">
+
+        <!-- Error message -->
+        <div
+          x-show="error"
+          x-transition
+          class="toast-notif toast-error text-sm font-mono py-2"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <span x-text="error"></span>
+        </div>
+
+        <!-- Token input -->
+        <div class="form-control gap-2">
+          <label class="label py-0">
+            <span class="label-text text-muted font-mono text-sm tracking-widest" x-text="t('login.tokenLabel')"></span>
+          </label>
+          <div class="relative">
+            <input
+              :type="showToken ? 'text' : 'password'"
+              class="input input-bordered w-full bg-bg-elevated border-bg-border font-mono text-sm pr-10 focus:border-amber focus:outline-none transition-colors"
+              placeholder="••••••••••••••••••••••••"
+              x-model="token"
+              autocomplete="current-password"
+              @keydown.enter="submit()"
+              :disabled="loading"
+              autofocus
+            />
+            <button
+              type="button"
+              @click="showToken = !showToken"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-tx-dim transition-colors"
+              tabindex="-1"
+            >
+              <svg x-show="!showToken" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              <svg x-show="showToken" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 4.411m0 0L21 21" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Remember -->
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" class="checkbox checkbox-xs" x-model="remember" />
+          <span class="text-muted text-sm font-mono" x-text="t('login.remember')"></span>
+        </label>
+
+        <!-- Submit -->
+        <button
+          @click="submit()"
+          :disabled="loading || !token.trim()"
+          class="btn-cg btn-cg-primary w-full font-mono font-semibold mt-1"
+          :class="loading ? 'loading' : ''"
+        >
+          <span x-show="!loading" x-text="t('login.submit')"></span>
+          <span x-show="loading" class="flex items-center gap-2">
+            <span class="loading loading-spinner loading-xs"></span>
+            <span x-text="t('login.verifying')"></span>
+          </span>
+        </button>
+
+      </div>
+    </div>
+
+    <!-- Port info -->
+    <p class="text-center text-muted text-xs font-mono mt-6">
+      <span x-text="t('login.portInfo')"></span>
+    </p>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     MAIN APP SHELL (visible once authenticated)
+═══════════════════════════════════════════════════════════ -->
+<div
+  x-show="authenticated"
+  x-transition:enter="transition duration-300"
+  x-transition:enter-start="opacity-0"
+  x-transition:enter-end="opacity-100"
+  class="flex h-screen overflow-hidden"
+>
+
+  <!-- ── MOBILE SIDEBAR BACKDROP ──────────────────────────────── -->
+  <div
+    class="sidebar-backdrop"
+    x-show="mobileMenuOpen"
+    @click="mobileMenuOpen = false"
+    x-transition:enter="transition duration-200"
+    x-transition:enter-start="opacity-0"
+    x-transition:enter-end="opacity-100"
+    x-transition:leave="transition duration-150"
+    x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0"
+  ></div>
+
+  <!-- ── SIDEBAR ────────────────────────────────────────────── -->
+  <aside
+    class="sidebar flex flex-col bg-bg-card border-r border-bg-border transition-all duration-300 z-40"
+    :class="[sidebarOpen ? 'w-56' : 'w-14', mobileMenuOpen ? 'mobile-open' : '']"
+  >
+    <!-- Logo / Brand -->
+    <div class="h-14 flex items-center px-3 border-b border-bg-border gap-3 shrink-0">
+      <div class="w-8 h-8 rounded-md bg-amber/10 border border-amber/30 flex items-center justify-center text-base shrink-0">
+        🧀
+      </div>
+      <span
+        class="font-mono font-semibold text-sm tracking-wider text-amber whitespace-nowrap overflow-hidden transition-all duration-300"
+        :class="sidebarOpen ? 'max-w-xs opacity-100' : 'max-w-0 opacity-0'"
+      >ARKENSIA</span>
+    </div>
+
+    <!-- Nav items -->
+    <nav class="flex-1 py-3 overflow-y-auto overflow-x-hidden">
+      <template x-for="section in navSections" :key="section.label">
+        <div class="mb-1">
+          <!-- Section label -->
+          <div
+            class="px-3 py-1 transition-all duration-300 overflow-hidden"
+            :class="sidebarOpen ? 'max-h-6 opacity-100 mb-1' : 'max-h-0 opacity-0'"
+          >
+            <span class="text-muted text-xs font-mono tracking-widest uppercase" x-text="section.label"></span>
+          </div>
+          <!-- Items -->
+          <template x-for="item in section.items" :key="item.id">
+            <button
+              @click="navigate(item.id)"
+              class="nav-item w-full flex items-center px-3 py-2 gap-3 rounded-lg mx-1 transition-all duration-150 group"
+              :class="{
+                'nav-item-active bg-amber/10 text-amber': currentView === item.id || currentView.startsWith(item.id + ':'),
+                'text-muted hover:text-tx hover:bg-bg-elevated': currentView !== item.id && !currentView.startsWith(item.id + ':'),
+              }"
+              :title="!sidebarOpen ? item.label : ''"
+              style="width: calc(100% - 0.5rem)"
+            >
+              <span class="text-lg shrink-0 leading-none" x-text="item.icon"></span>
+              <span
+                class="text-sm font-medium whitespace-nowrap overflow-hidden transition-all duration-300"
+                :class="sidebarOpen ? 'max-w-xs opacity-100' : 'max-w-0 opacity-0'"
+                x-text="item.label"
+              ></span>
+              <!-- Badge -->
+              <span
+                x-show="item.badge && sidebarOpen"
+                class="ml-auto badge badge-xs font-mono"
+                :class="item.badgeClass || 'badge-neutral'"
+                x-text="item.badge"
+              ></span>
+            </button>
+          </template>
+        </div>
+      </template>
+    </nav>
+
+    <!-- Bottom: toggle + logout -->
+    <div class="border-t border-bg-border p-2 flex flex-col gap-1 shrink-0">
+      <!-- Mobile-only: lang + theme (hidden on desktop, shown when sidebar is mobile-open) -->
+      <div class="mobile-sidebar-extras hidden">
+        <div class="flex items-center justify-between px-3 py-2">
+          <div class="lang-switcher">
+            <button @click="I18N.setLang('fr')" :class="I18N.lang === 'fr' ? 'active' : ''">FR</button>
+            <button @click="I18N.setLang('en')" :class="I18N.lang === 'en' ? 'active' : ''">EN</button>
+          </div>
+          <button
+            @click="toggleTheme()"
+            class="flex items-center justify-center w-8 h-8 rounded-md text-muted hover:text-amber hover:bg-bg-elevated transition-all"
+            :title="currentTheme === 'cg-dark' ? t('header.lightMode') : t('header.darkMode')"
+          >
+            <span x-text="currentTheme === 'cg-dark' ? '&#9788;' : '&#9790;'"></span>
+          </button>
+        </div>
+      </div>
+      <!-- Toggle sidebar -->
+      <button
+        @click="sidebarOpen = !sidebarOpen"
+        class="w-full flex items-center px-3 py-2 gap-3 text-muted hover:text-tx hover:bg-bg-elevated rounded-lg transition-all"
+      >
+        <span class="text-lg shrink-0" x-text="sidebarOpen ? '◀' : '▶'"></span>
+        <span
+          class="text-xs font-mono whitespace-nowrap overflow-hidden transition-all duration-300"
+          :class="sidebarOpen ? 'max-w-xs opacity-100' : 'max-w-0 opacity-0'"
+          x-text="t('header.collapse')"></span>
+      </button>
+      <!-- Logout -->
+      <button
+        @click="logout()"
+        class="w-full flex items-center px-3 py-2 gap-3 text-muted hover:text-red hover:bg-red/5 rounded-lg transition-all"
+      >
+        <span class="text-lg shrink-0">⏻</span>
+        <span
+          class="text-xs font-mono whitespace-nowrap overflow-hidden transition-all duration-300"
+          :class="sidebarOpen ? 'max-w-xs opacity-100' : 'max-w-0 opacity-0'"
+        x-text="t('header.logout')"></span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── MAIN CONTENT AREA ──────────────────────────────────── -->
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+    <!-- Top bar -->
+    <header class="h-14 bg-bg-card border-b border-bg-border flex items-center px-5 gap-4 shrink-0">
+      <!-- Hamburger (mobile only) -->
+      <button
+        @click="mobileMenuOpen = !mobileMenuOpen"
+        class="hamburger-btn items-center justify-center w-8 h-8 rounded-md text-muted hover:text-amber hover:bg-bg-elevated transition-all"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <!-- Page title -->
+      <div class="flex-1 flex items-center gap-3">
+        <span class="text-xl leading-none" x-text="currentNavItem?.icon || '⚙'"></span>
+        <div>
+          <h1 class="text-sm font-semibold text-tx-heading leading-tight" x-text="currentNavItem?.label || t('header.dashboard')"></h1>
+          <p class="header-page-desc text-sm text-muted font-mono leading-tight" x-text="currentNavItem?.description || ''"></p>
+        </div>
+        <button
+          x-show="getGuideModule()"
+          @click="openHeaderGuide()"
+          class="btn-cg btn-cg-ghost btn-cg-sm"
+          :title="t('guide.tabLabel')"
+        >📖</button>
+      </div>
+
+      <!-- Status pills -->
+      <div class="header-pills flex items-center gap-3">
+        <!-- Server TPS -->
+        <div class="header-stat-pill flex items-center gap-1.5 bg-bg-elevated rounded-full px-3 py-1 border border-bg-border">
+          <div class="w-1.5 h-1.5 rounded-full" :class="serverStatus.tps >= 18 ? 'bg-green' : serverStatus.tps >= 14 ? 'bg-amber' : 'bg-red'"></div>
+          <span class="text-xs font-mono text-muted">
+            <span :class="serverStatus.tps >= 18 ? 'text-green' : serverStatus.tps >= 14 ? 'text-amber' : 'text-red'" x-text="serverStatus.tps || '—'"></span>
+            TPS
+          </span>
+        </div>
+        <!-- Players online -->
+        <div class="header-stat-pill flex items-center gap-1.5 bg-bg-elevated rounded-full px-3 py-1 border border-bg-border">
+          <span class="text-xs font-mono text-muted">
+            👥 <span class="text-tx" x-text="serverStatus.playerCount ?? '—'"></span>
+            <span class="text-muted" x-text="serverStatus.maxPlayers ? '/' + serverStatus.maxPlayers : ''"></span>
+          </span>
+        </div>
+        <!-- Server connection indicator -->
+        <div
+          class="header-stat-pill flex items-center gap-1.5 bg-bg-elevated rounded-full px-3 py-1 border"
+          :class="serverOnline ? 'border-green/30' : 'border-red/30'"
+        >
+          <div
+            class="w-1.5 h-1.5 rounded-full"
+            :class="serverOnline ? 'bg-green animate-pulse-slow' : 'bg-red'"
+          ></div>
+          <span class="text-xs font-mono" :class="serverOnline ? 'text-green' : 'text-red'">
+            <span x-text="serverOnline ? t('common.online') : t('common.offline')"></span>
+          </span>
+        </div>
+        <!-- WS indicator -->
+        <div
+          class="header-ws-pill flex items-center gap-1 bg-bg-elevated rounded-full px-2 py-1 border border-bg-border"
+          :title="_wsConnected ? t('header.wsConnected') : t('header.wsDisconnected')"
+        >
+          <div class="w-1.5 h-1.5 rounded-full" :class="_wsConnected ? 'bg-cyan' : 'bg-muted'"></div>
+          <span class="text-xs font-mono" :class="_wsConnected ? 'text-cyan' : 'text-muted'">WS</span>
+        </div>
+        <!-- Notification bell -->
+        <div class="relative" x-data="{ notifOpen: false }">
+          <button
+            @click="notifOpen = !notifOpen; if(notifOpen) markAllNotifsRead()"
+            class="flex items-center justify-center w-8 h-8 rounded-full bg-bg-elevated border border-bg-border text-muted hover:text-amber transition-all relative"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+            <span
+              x-show="unreadNotifCount > 0"
+              x-text="unreadNotifCount"
+              class="absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center bg-red text-white text-2xs font-mono rounded-full px-1"
+            ></span>
+          </button>
+          <div
+            x-show="notifOpen"
+            @click.outside="notifOpen = false"
+            x-transition
+            class="notif-dropdown absolute right-0 top-10 w-80 max-h-96 overflow-y-auto bg-bg-card border border-bg-border rounded-lg shadow-2xl z-50"
+          >
+            <div class="p-2 border-b border-bg-border flex items-center justify-between">
+              <span class="text-xs font-mono text-muted" x-text="t('header.notifications')"></span>
+              <span class="text-xs font-mono text-muted" x-text="t('header.recentCount', {count: notifications.length})"></span>
+            </div>
+            <template x-if="notifications.length === 0">
+              <div class="p-4 text-center text-xs text-muted" x-text="t('header.noNotifications')"></div>
+            </template>
+            <template x-for="notif in notifications" :key="notif.id">
+              <div class="px-3 py-2 border-b border-bg-border/50 hover:bg-bg-elevated transition-colors">
+                <div class="flex items-start gap-2">
+                  <span class="text-xs mt-0.5" x-text="notif.icon"></span>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-xs font-mono text-tx truncate" x-text="notif.text"></div>
+                    <div x-show="notif.detail" class="text-2xs text-muted truncate" x-text="notif.detail"></div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+        <!-- Session info badge -->
+        <div
+          x-show="sessionRole"
+          class="header-role-pill flex items-center gap-1.5 bg-bg-elevated rounded-full px-3 py-1 border border-bg-border"
+          :class="{
+            'border-red/20': sessionRole === 'SUPER_ADMIN',
+            'border-amber/20': sessionRole === 'OPERATOR',
+            'border-muted/20': sessionRole === 'READ_ONLY',
+          }"
+        >
+          <span class="text-xs font-mono"
+            :class="{
+              'text-red': sessionRole === 'SUPER_ADMIN',
+              'text-amber': sessionRole === 'OPERATOR',
+              'text-muted-light': sessionRole === 'READ_ONLY',
+            }"
+            x-text="sessionUsername"></span>
+        </div>
+        <!-- Admin player badge -->
+        <button
+          x-show="adminPlayer"
+          @click="openAdminPlayerModal()"
+          class="header-admin-pill flex items-center gap-1.5 bg-bg-elevated rounded-full px-3 py-1 border border-amber/20 hover:border-amber/40 transition-all cursor-pointer"
+          :title="t('header.adminPlayer')"
+        >
+          <span class="text-xs">🎮</span>
+          <span class="text-xs font-mono text-amber" x-text="adminPlayer"></span>
+        </button>
+        <!-- Language switcher -->
+        <div class="lang-switcher">
+          <button @click="I18N.setLang('fr')" :class="I18N.lang === 'fr' ? 'active' : ''">FR</button>
+          <button @click="I18N.setLang('en')" :class="I18N.lang === 'en' ? 'active' : ''">EN</button>
+        </div>
+        <!-- Theme toggle -->
+        <button
+          @click="toggleTheme()"
+          class="theme-toggle"
+          :title="currentTheme === 'cg-dark' ? t('header.lightMode') : t('header.darkMode')"
+        >
+          <span x-text="currentTheme === 'cg-dark' ? '☀' : '☾'"></span>
+        </button>
+        <!-- Refresh -->
+        <button
+          @click="refreshStatus()"
+          class="flex items-center justify-center w-8 h-8 rounded-full text-muted hover:text-amber hover:bg-bg-elevated transition-all"
+          :class="refreshing ? 'loading' : ''"
+          :title="t('header.refreshStatus')"
+        >
+          <svg x-show="!refreshing" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- View container -->
+    <main class="flex-1 overflow-y-auto overflow-x-hidden bg-bg">
+      <!-- Loading indicator (top bar) -->
+      <div
+        x-show="viewLoading"
+        x-transition.opacity.duration.200ms
+        class="fixed top-0 left-0 right-0 z-30 h-0.5 bg-amber/30 overflow-hidden"
+      >
+        <div class="h-full bg-amber animate-progress-bar" style="width:40%"></div>
+      </div>
+
+      <!-- Toast notifications -->
+      <div class="toast toast-end toast-top z-50 pointer-events-none" style="top: 1rem; right: 1rem">
+        <template x-for="toast in toasts" :key="toast.id">
+          <div
+            x-show="toast.visible"
+            x-transition:enter="transition duration-200 ease-out"
+            x-transition:enter-start="opacity-0 translate-x-4"
+            x-transition:enter-end="opacity-100 translate-x-0"
+            x-transition:leave="transition duration-150 ease-in"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="toast-notif shadow-lg text-sm font-mono pointer-events-auto"
+            :class="'toast-' + toast.type"
+          >
+            <span x-text="toast.icon" class="shrink-0"></span>
+            <span x-text="toast.message" class="flex-1"></span>
+            <button @click="dismissToast(toast.id)" class="shrink-0 opacity-50 hover:opacity-100 transition-opacity ml-1" :title="t('common.close')">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </template>
+      </div>
+
+      <!-- WS disconnect banner -->
+      <div
+        x-show="authenticated && _wsDownSeconds > 5"
+        x-transition:enter="transition duration-300 ease-out"
+        x-transition:enter-start="opacity-0 -translate-y-2"
+        x-transition:enter-end="opacity-100 translate-y-0"
+        x-transition:leave="transition duration-200 ease-in"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0 -translate-y-2"
+        class="ws-disconnect-banner"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <span x-text="t('header.wsLostBanner')"></span>
+      </div>
+
+      <!-- ── BREADCRUMBS ─────────────────────────────────────── -->
+      <div x-show="breadcrumbs.length > 1" class="px-6 pt-3 pb-0 flex items-center gap-1 text-xs text-muted">
+        <template x-for="(crumb, idx) in breadcrumbs" :key="idx">
+          <span class="flex items-center gap-1">
+            <span x-show="idx > 0" class="mx-1 text-muted">/</span>
+            <button
+              x-text="crumb.label"
+              x-show="idx < breadcrumbs.length - 1"
+              @click="navigateBreadcrumb(idx)"
+              class="hover:text-amber transition-colors cursor-pointer"
+            ></button>
+            <span
+              x-text="crumb.label"
+              x-show="idx === breadcrumbs.length - 1"
+              class="text-tx-dim font-medium"
+            ></span>
+          </span>
+        </template>
+      </div>
+
+      <!-- ── VIEWS ──────────────────────────────────────────── -->
+      <!-- Single view container — x-html is unique, no duplicate IDs -->
+      <div class="p-6 view-content" x-html="viewHtml"></div>
+
+    </main>
+  </div>
+
+  <!-- ── ADMIN PLAYER CHANGE MODAL ─────────────────────── -->
+  <dialog id="admin-player-modal" class="modal">
+    <div class="modal-box bg-bg-card border border-bg-border max-w-sm">
+      <h3 class="font-mono font-bold text-sm text-amber" x-text="'🎮 ' + t('header.adminPlayerTitle')"></h3>
+      <p class="text-sm text-muted mt-1" x-text="t('header.adminPlayerDesc')"></p>
+      <div class="mt-3">
+        <input id="admin-player-input" type="text" class="input input-sm bg-bg-elevated border-bg-border text-sm w-full font-mono"
+          :placeholder="t('header.adminPlayerPlaceholder')" />
+      </div>
+      <div id="admin-player-suggestions" class="mt-2 max-h-40 overflow-y-auto"></div>
+      <div class="flex justify-end gap-2 mt-4">
+        <form method="dialog"><button class="btn-cg btn-cg-ghost" x-text="t('common.cancel')"></button></form>
+        <button id="admin-player-save" class="btn-cg btn-cg-primary" x-text="t('common.save')"></button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+  </dialog>
+
+  <!-- ── HEADER GUIDE MODAL ────────────────────────── -->
+  <dialog id="header-guide-modal" class="modal">
+    <div class="modal-box max-w-2xl" style="max-height:80vh;overflow-y:auto">
+      <button class="modal-close" onclick="this.closest('dialog').close()">✕</button>
+      <div id="header-guide-content"></div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+  </dialog>
+
+  <!-- ── PLAYER PICKER MODAL ──────────────────────────── -->
+  <dialog id="player-picker-modal" class="modal">
+    <div class="modal-box bg-bg-card border border-bg-border max-w-md">
+      <h3 class="font-mono font-bold text-sm text-tx" id="player-picker-title" x-text="t('common.selectPlayer')"></h3>
+      <div class="mt-3">
+        <input id="player-picker-search" type="text" class="input input-sm bg-bg-elevated border-bg-border text-sm w-full font-mono"
+          :placeholder="t('common.playerSearch')" />
+      </div>
+      <div id="player-picker-list" class="mt-2 max-h-64 overflow-y-auto flex flex-col gap-1"></div>
+      <div class="flex justify-end mt-3">
+        <form method="dialog"><button class="btn-cg btn-cg-ghost" x-text="t('common.cancel')"></button></form>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+  </dialog>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     SCRIPTS
+═══════════════════════════════════════════════════════════ -->
+<script src="assets/three.min.js"></script>
+<script src="assets/OrbitControls.js"></script>
+<script src="assets/egg-preview.js"></script>
+<script src="assets/i18n.js"></script>
+<script src="assets/lang-fr.js"></script>
+<script src="assets/lang-en.js"></script>
+<script src="assets/api.js"></script>
+<script src="assets/guides.js"></script>
+<script src="assets/app.js"></script>
+<script src="assets/view-overview.js"></script>
+<script src="assets/view-zones.js"></script>
+<script src="assets/view-dimensions.js"></script>
+<script src="assets/view-events.js"></script>
+<script src="assets/view-timeline.js"></script>
+<script src="assets/view-players.js"></script>
+<script src="assets/view-prison.js"></script>
+<script src="assets/view-chunks.js"></script>
+<script src="assets/view-server.js"></script>
+<script src="assets/view-market.js"></script>
+<script src="assets/view-eggs.js"></script>
+<script src="assets/view-scores.js"></script>
+<script src="assets/view-shift.js"></script>
+<script src="assets/view-dungeons.js"></script>
+<script src="assets/view-items.js"></script>
+<script src="assets/view-morphos.js"></script>
+<script src="assets/view-kart.js"></script>
+<script src="assets/view-patrol.js"></script>
+<script src="assets/view-store.js"></script>
+<script src="assets/view-raids.js"></script>
+<script src="assets/view-cobblecap.js"></script>
+<script src="assets/view-music.js"></script>
+<script src="assets/view-admin.js"></script>
+<script src="assets/view-factionwar.js"></script>
+<script src="assets/playcosmetics-viewer.js"></script>
+<script src="assets/view-playcosmetics.js"></script>
+<script src="assets/view-wizard.js"></script>
+
+</body>
+</html>

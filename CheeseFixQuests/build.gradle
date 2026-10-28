@@ -1,0 +1,64 @@
+plugins {
+    id 'fabric-loom' version '1.10.5'
+    id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'Fabric'
+        url = 'https://maven.fabricmc.net/'
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // FTB Quests + FTB Teams + FTB Library + Architectury — needed for Mixin targets
+    // Loom remaps these to Yarn for development
+    modCompileOnly files(
+        "../localdeps/ftb-quests-fabric-2101.1.13.jar",
+        "../localdeps/ftb-teams-fabric-2101.1.2.jar",
+        "../localdeps/ftb-library-fabric-2101.1.18.jar",
+        "../localdeps/architectury-13.0.8-fabric.jar"
+    )
+
+    // cobblemon_quests — compileOnly (NOT modCompileOnly) to avoid Cobblemon remap conflict.
+    // Mixin 3 uses remap=false with intermediary descriptors.
+    compileOnly files("../localdeps/cobblemon_quests-[1.21.1]-fabric-1.1.14.jar")
+
+    // ExtraQuests — compileOnly for Mixin 4 (timer reset redirect).
+    compileOnly files("../localdeps/ExtraQuests-1.5.3-1.21.1-Fabric.jar")
+
+    implementation 'com.google.code.gson:gson:2.10.1'
+}
+
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 21
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+    withSourcesJar()
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_${project.archivesBaseName}" }
+    }
+}

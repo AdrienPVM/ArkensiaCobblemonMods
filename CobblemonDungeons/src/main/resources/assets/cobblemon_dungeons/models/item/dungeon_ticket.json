@@ -1,0 +1,13 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "minecraft:item/paper"
+  },
+  "overrides": [
+    { "predicate": { "custom_model_data": 1 }, "model": "cobblemon_dungeons:item/dungeon_ticket_1" },
+    { "predicate": { "custom_model_data": 2 }, "model": "cobblemon_dungeons:item/dungeon_ticket_2" },
+    { "predicate": { "custom_model_data": 3 }, "model": "cobblemon_dungeons:item/dungeon_ticket_3" },
+    { "predicate": { "custom_model_data": 4 }, "model": "cobblemon_dungeons:item/dungeon_ticket_4" },
+    { "predicate": { "custom_model_data": 5 }, "model": "cobblemon_dungeons:item/dungeon_ticket_5" }
+  ]
+}

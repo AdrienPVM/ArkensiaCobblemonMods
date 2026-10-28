@@ -1,0 +1,52 @@
+{
+  "key.cobbleshift.sleep": "Dormir / Se r\u00e9veiller",
+  "key.cobbleshift.cry": "Jouer le cri",
+  "category.cobbleshift": "CobbleShift",
+
+  "cobbleshift.transform.success": "\u2726 %s transform\u00e9 en %s",
+  "cobbleshift.transform.failed": "\u00c9chec : esp\u00e8ce '%s' introuvable ou Cobblemon non disponible",
+  "cobbleshift.revert.success": "\u2726 %s \u2014 transformation annul\u00e9e",
+  "cobbleshift.revert.not_transformed": "%s n'est pas transform\u00e9",
+  "cobbleshift.revert_all.success": "\u2726 %s transformation(s) annul\u00e9e(s)",
+
+  "cobbleshift.ability.forced": "\u2726 Ability forc\u00e9e pour %s \u2192 %s",
+  "cobbleshift.ability.cleared": "\u2726 Ability forc\u00e9e retir\u00e9e pour %s \u2014 retour mode auto",
+  "cobbleshift.ability.global_toggle": "\u2726 Abilities globales %s",
+  "cobbleshift.ability.global_enabled": "activ\u00e9es",
+  "cobbleshift.ability.global_disabled": "d\u00e9sactiv\u00e9es",
+  "cobbleshift.ability.player_toggle": "\u2726 Abilities %s pour %s",
+  "cobbleshift.ability.player_enabled": "activ\u00e9es",
+  "cobbleshift.ability.player_disabled": "d\u00e9sactiv\u00e9es",
+
+  "cobbleshift.status.header": "CobbleShift Status",
+  "cobbleshift.status.transforms_active": "Transforms actives : %s",
+  "cobbleshift.status.abilities_active": "Abilities actives : %s",
+  "cobbleshift.status.global_abilities": "Abilities globales : %s",
+
+  "cobbleshift.species.not_found": "Esp\u00e8ce '%s' introuvable",
+  "cobbleshift.species.header": "%s",
+
+  "cobbleshift.npc.look_required": "Regardez un PNJ pour le transformer",
+  "cobbleshift.npc.not_easynpc": "Cette entit\u00e9 n'est pas un PNJ EasyNPC",
+  "cobbleshift.npc.transform_success": "\u2726 PNJ transform\u00e9 en %s",
+  "cobbleshift.npc.transform_failed": "\u00c9chec : esp\u00e8ce '%s' introuvable",
+  "cobbleshift.npc.revert_look_required": "Regardez un PNJ pour annuler sa transformation",
+  "cobbleshift.npc.revert_success": "\u2726 Transformation du PNJ annul\u00e9e",
+  "cobbleshift.npc.not_transformed": "Ce PNJ n'est pas transform\u00e9",
+  "cobbleshift.npc.revert_all": "\u2726 %s transformation(s) NPC annul\u00e9e(s)",
+  "cobbleshift.npc.look_required_scale": "Regardez un PNJ pour modifier son scale",
+  "cobbleshift.npc.scale_set": "\u2726 Scale du PNJ \u2192 %s",
+  "cobbleshift.npc.look_required_speed": "Regardez un PNJ pour modifier sa vitesse",
+  "cobbleshift.npc.speed_set": "\u2726 Vitesse du PNJ \u2192 %sx",
+
+  "cobbleshift.scale.not_transformed": "%s n'est pas transform\u00e9",
+  "cobbleshift.scale.set": "\u2726 Scale de %s \u2192 %s",
+  "cobbleshift.speed.set": "\u2726 Vitesse de %s \u2192 %sx",
+
+  "cobbleshift.player.cooldown": "\u26D4 Cooldown : encore %ss avant de pouvoir se transformer.",
+  "cobbleshift.player.transformed": "\u2726 Vous \u00eates transform\u00e9 en %s !",
+  "cobbleshift.player.reverted": "\u2726 Transformation annul\u00e9e.",
+  "cobbleshift.player.duration_expired": "\u23F0 Dur\u00e9e max de transformation atteinte !",
+
+  "cobbleshift.client.sleeping": "Zzz..."
+}

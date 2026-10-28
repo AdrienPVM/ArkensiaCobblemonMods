@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "cobblecheesescore",
+  "version": "1.0.0",
+  "name": "CobbleCheeseScore",
+  "description": "Advanced scoreboards for Cobblemon servers with multiple leaderboards",
+  "authors": ["RoiCheese"],
+  "contact": {
+    "homepage": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "sources": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "issues": "https://github.com/AdrienPVM/ArkensiaCobblemonMods/issues"
+  },
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "icon": "assets/cobblecheesescore/icon.png",
+  "environment": "server",
+  "entrypoints": {
+    "server": [
+      "com.cobblecheesescore.CobbleCheeseScore"
+    ],
+    "cheesedash": [
+      "com.cobblecheesescore.dashboard.CobbleCheeseScoreDashboardModule"
+    ]
+  },
+  "mixins": [],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "cheesedash": "*"
+  },
+  "suggests": {
+    "cobblemon": "*"
+  }
+}

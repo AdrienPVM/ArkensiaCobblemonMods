@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "aetherialbridge",
+  "version": "${version}",
+  "name": "AetherialBridge",
+  "description": "Bridges the Aetherial Islands (DimScope) datapack into CheeseGuard as a custom dimension generation type. The vanilla overworld is left untouched; only dimensions explicitly created with the 'Aetherial Islands' gen-type use the floating-island worldgen.",
+  "authors": ["RoiCheese"],
+  "contact": {
+    "homepage": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "sources": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "issues": "https://github.com/AdrienPVM/ArkensiaCobblemonMods/issues"
+  },
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.aetherialbridge.AetherialBridgeMod"],
+    "cheeseguard-gentype": ["com.aetherialbridge.FloatingIslandsProvider"]
+  },
+  "mixins": [
+    "aetherialbridge.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21",
+    "cheeseguard": "*",
+    "mr_aetherial_islands": "*"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "stake_present=false": { "model": "cobblemon_dungeons:block/stake_spawner" },
+    "stake_present=true": { "model": "cobblemon_dungeons:block/stake" }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "category.cheesedash": "CheeseDash",
+  "key.cheesedash.quick_menu": "Ouvrir le menu rapide CheeseDash",
+  "modmenu.summary.cheesedash": "Dashboard web d'administration pour les mods Arkensia",
+
+  "cheesedash.quickmenu.title": "CheeseDash \u2014 Menu Rapide",
+  "cheesedash.quickmenu.add_shortcut": "+ Ajouter un raccourci",
+  "cheesedash.quickmenu.name_placeholder": "Nom du raccourci...",
+  "cheesedash.quickmenu.command_placeholder": "/commande...",
+  "cheesedash.quickmenu.add": "Ajouter",
+  "cheesedash.quickmenu.cancel": "Annuler",
+  "cheesedash.quickmenu.empty": "Aucun raccourci configur\u00e9.",
+  "cheesedash.quickmenu.empty_hint": "Appuyez sur '+' pour en ajouter un.",
+
+  "cheesedash.scheduler.cancelled": "%s annul\u00e9.",
+  "cheesedash.scheduler.saving": "Sauvegarde en cours...",
+  "cheesedash.scheduler.save_done": "Sauvegarde termin\u00e9e.",
+  "cheesedash.scheduler.stopping": "Arr\u00eat du serveur...",
+  "cheesedash.scheduler.countdown": "%s dans %s...",
+  "cheesedash.scheduler.type.restart": "Red\u00e9marrage",
+  "cheesedash.scheduler.type.stop": "Arr\u00eat",
+  "cheesedash.scheduler.type.maintenance": "Maintenance"
+}

@@ -1,0 +1,31 @@
+﻿{
+  "schemaVersion": 1,
+  "id": "cheesevanity",
+  "version": "${version}",
+  "name": "CheeseVanity",
+  "description": "Toggle visibility of trinkets and armor on player models",
+  "authors": ["RoiCheese"],
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "contact": {
+    "homepage": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "sources": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "issues": "https://github.com/AdrienPVM/ArkensiaCobblemonMods/issues"
+  },
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.cheesevanity.CheeseVanityMod"],
+    "client": ["com.cheesevanity.CheeseVanityClient"]
+  },
+  "mixins": [
+    "cheesevanity.mixins.json",
+    "cheesevanity-trinkets.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "fabric-api": "*",
+    "minecraft": "1.21.1"
+  },
+  "suggests": {
+    "trinkets": "*"
+  }
+}

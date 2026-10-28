@@ -1,0 +1,32 @@
+﻿{
+  "schemaVersion": 1,
+  "id": "cheesepatrol",
+  "version": "${version}",
+  "name": "CheesePatrol",
+  "description": "Adds patrol waypoint system for EasyNPC entities. NPCs walk between waypoints in a loop, stopping to look at nearby players.",
+  "authors": ["RoiCheese"],
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "contact": {
+    "homepage": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "sources": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "issues": "https://github.com/AdrienPVM/ArkensiaCobblemonMods/issues"
+  },
+  "environment": "server",
+  "entrypoints": {
+    "main": ["com.cheesepatrol.CheesePatrolMod"],
+    "cheesedash": ["com.cheesepatrol.dashboard.CheesePatrolDashboardModule"]
+  },
+  "mixins": [
+    "cheesepatrol.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*",
+    "cheesedash": "*"
+  },
+  "suggests": {
+    "easy_npc": "*"
+  }
+}

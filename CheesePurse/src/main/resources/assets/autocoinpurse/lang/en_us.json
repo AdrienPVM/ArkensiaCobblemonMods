@@ -1,0 +1,4 @@
+{
+  "autocoinpurse.button.tooltip.enabled": "Auto-Collect: ON\nCoins picked up are automatically deposited into your purse.",
+  "autocoinpurse.button.tooltip.disabled": "Auto-Collect: OFF\nClick to automatically deposit picked-up coins into your purse."
+}

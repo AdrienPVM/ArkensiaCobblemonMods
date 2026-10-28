@@ -1,0 +1,42 @@
+{
+  "modmenu.summary.cheeseitems": "Custom quest items with effects, conditions, and hot-reload",
+
+  "cheeseitems.conditions_not_met": "Conditions not met.",
+  "cheeseitems.cooldown": "Cooldown: %ss",
+  "cheeseitems.endurance_depleted": "Endurance depleted!",
+  "cheeseitems.item_consumed": "The item has been consumed.",
+  "cheeseitems.cannot_drop": "This item cannot be dropped.",
+
+  "cheeseitems.cmd.item_not_found": "Item not found: %s",
+  "cheeseitems.cmd.player_not_found": "Player not found: %s",
+  "cheeseitems.cmd.item_given": "Gave %sx %s to %s",
+  "cheeseitems.cmd.no_items": "No items defined.",
+  "cheeseitems.cmd.items_header": "--- CheeseItems (%s) ---",
+  "cheeseitems.cmd.config_reloaded": "CheeseItems config reloaded.",
+  "cheeseitems.cmd.morpho_not_found": "Morpho not found in catalog: %s",
+  "cheeseitems.cmd.morpho_already_owned": "%s already owns this morpho.",
+  "cheeseitems.cmd.morpho_granted": "Morpho %s granted to %s.",
+
+  "cheeseitems.morpho.added": "%s added to your Morpho Codex!",
+  "cheeseitems.morpho.granted_to_you": "🧬 %s added to your Morpho Codex!",
+  "cheeseitems.morpho.transformed": "Transformation: %s",
+  "cheeseitems.morpho.reverted": "Transformation reverted.",
+  "cheeseitems.morpho.already_in_codex": "%s is already in your Codex — press [H] to activate it.",
+  "cheeseitems.morpho.no_active": "No active morpho selected. Open the Codex with [J].",
+  "cheeseitems.morpho.invalid_active": "Active morpho is invalid (item removed?).",
+  "cheeseitems.morpho.codex_title": "Morpho Codex",
+  "cheeseitems.morpho.codex_eyebrow": "ARKENSIA · COLLECTION",
+  "cheeseitems.morpho.codex_count": "%s morphos collected",
+  "cheeseitems.morpho.codex_empty": "Your Codex is empty. Visit the store to acquire your first morphos.",
+  "cheeseitems.morpho.codex_empty_hint": "Type /store in chat or talk to Métamorph to begin.",
+  "cheeseitems.morpho.codex_hint": "Click a morpho to set it active. Press [H] to toggle, [Esc] to close.",
+  "cheeseitems.morpho.toggle_btn": "Toggle active morpho [H]",
+  "cheeseitems.morpho.close_btn": "Close",
+  "cheeseitems.morpho.active": "ACTIVE",
+  "cheeseitems.morpho.credits_singular": "credit",
+  "cheeseitems.morpho.credits_plural": "credits",
+
+  "key.cheeseitems.morpho_toggle": "Toggle Morpho",
+  "key.cheeseitems.morpho_codex": "Open Morpho Codex",
+  "category.cheeseitems": "CheeseItems"
+}

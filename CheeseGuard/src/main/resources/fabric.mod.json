@@ -1,0 +1,33 @@
+﻿{
+  "schemaVersion": 1,
+  "id": "cheeseguard",
+  "version": "${version}",
+  "name": "CheeseGuard",
+  "description": "Region protection mod with GUI management",
+  "authors": ["RoiCheese"],
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "contact": {
+    "homepage": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "sources": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "issues": "https://github.com/AdrienPVM/ArkensiaCobblemonMods/issues"
+  },
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.cheeseguard.CheeseGuardMod"],
+    "client": ["com.cheeseguard.client.CheeseGuardClient"],
+    "cheesedash": ["com.cheeseguard.dashboard.CheeseGuardDashboardModule"]
+  },
+  "mixins": ["cheeseguard.mixins.json"],
+  "accessWidener": "cheeseguard.accesswidener",
+  "depends": {
+    "fabricloader": ">=0.15.11",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*",
+    "fabric-resource-loader-v0": "*",
+    "cheesedash": "*"
+  },
+  "suggests": {
+    "waystones": "*"
+  }
+}

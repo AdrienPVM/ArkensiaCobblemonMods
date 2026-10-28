@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "cobbleshift",
+  "version": "${version}",
+  "name": "CobbleShift",
+  "description": "Transform players into PokÃ©mon with passive abilities, plus mini-games (CobbleHunt, Hot Potato)",
+  "authors": ["RoiCheese"],
+  "contact": {
+    "homepage": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "sources": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "issues": "https://github.com/AdrienPVM/ArkensiaCobblemonMods/issues"
+  },
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "icon": "assets/cobbleshift/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.cobbleshift.CobbleShiftMod"
+    ],
+    "client": [
+      "com.cobbleshift.client.CobbleShiftClient"
+    ],
+    "cheesedash": [
+      "com.cobbleshift.dashboard.CobbleShiftDashboardModule"
+    ]
+  },
+  "mixins": [
+    "cobbleshift.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "cobblemon": "*",
+    "cheesedash": "*"
+  }
+}

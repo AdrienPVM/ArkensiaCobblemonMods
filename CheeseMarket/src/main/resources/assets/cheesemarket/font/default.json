@@ -1,0 +1,66 @@
+{
+  "providers": [
+    {
+      "type": "space",
+      "advances": {
+        "\uF801": -1,
+        "\uF802": -2,
+        "\uF803": -4,
+        "\uF804": -8,
+        "\uF805": -16,
+        "\uF806": -32,
+        "\uF807": -64,
+        "\uF808": -128
+      }
+    },
+    {
+      "type": "bitmap",
+      "file": "cheesemarket:gui/shop/generic_54.png",
+      "ascent": 19,
+      "height": 256,
+      "chars": ["\uE000"]
+    },
+    {
+      "type": "bitmap",
+      "file": "cheesemarket:gui/shop/theme_blue.png",
+      "ascent": 19,
+      "height": 256,
+      "chars": ["\uE010"]
+    },
+    {
+      "type": "bitmap",
+      "file": "cheesemarket:gui/shop/theme_green.png",
+      "ascent": 19,
+      "height": 256,
+      "chars": ["\uE011"]
+    },
+    {
+      "type": "bitmap",
+      "file": "cheesemarket:gui/shop/theme_red.png",
+      "ascent": 19,
+      "height": 256,
+      "chars": ["\uE012"]
+    },
+    {
+      "type": "bitmap",
+      "file": "cheesemarket:gui/shop/theme_purple.png",
+      "ascent": 19,
+      "height": 256,
+      "chars": ["\uE013"]
+    },
+    {
+      "type": "bitmap",
+      "file": "cheesemarket:gui/shop/theme_gold.png",
+      "ascent": 19,
+      "height": 256,
+      "chars": ["\uE014"]
+    },
+    {
+      "type": "bitmap",
+      "file": "cheesemarket:gui/shop/theme_grey.png",
+      "ascent": 19,
+      "height": 256,
+      "chars": ["\uE015"]
+    }
+  ]
+}

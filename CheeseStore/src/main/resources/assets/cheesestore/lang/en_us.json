@@ -1,0 +1,22 @@
+{
+  "cheesestore.cmd.player_only": "This command must be executed by a player.",
+  "cheesestore.cmd.player_not_found": "Player not found: %s",
+  "cheesestore.cmd.balance": "\uD83E\uDDC0 Credits: %s",
+  "cheesestore.cmd.no_fromage": "No player has any credits.",
+  "cheesestore.cmd.top_header": "=== Top Credits ===",
+  "cheesestore.cmd.top_entry": "%s. %s \u2014 %s",
+  "cheesestore.cmd.give": "+%s credits given to %s. New balance: %s",
+  "cheesestore.cmd.take": "-%s credits taken from %s. New balance: %s",
+  "cheesestore.cmd.set": "Credits of %s set to: %s",
+  "cheesestore.cmd.balance_other": "\uD83E\uDDC0 Credits of %s: %s",
+  "cheesestore.cmd.open_link": "\uD83D\uDED2 Click here to open the store",
+  "cheesestore.cmd.open_hover": "Open %s",
+  "cheesestore.notify.received": "\uD83E\uDDC0 +%s credits received! New balance: %s",
+  "cheesestore.notify.deducted": "\uD83E\uDDC0 -%s credits deducted. New balance: %s",
+  "cheesestore.cmd.link_invalid": "Invalid or expired link code. Generate a fresh one from the store.",
+  "cheesestore.cmd.link_rate_limited": "Too many link attempts. Wait a minute before trying again.",
+  "cheesestore.cmd.link_success": "Store session linked to %s. You can now see your balance and buy morphos from the website.",
+  "cheesestore.cmd.cosmetics_empty": "No cosmetics available right now.",
+  "cheesestore.cmd.cosmetics_header": "=== Cosmetics (credits) ===",
+  "cheesestore.cmd.cosmetics_entry": "%s [%s] — %s credits"
+}

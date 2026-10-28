@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "com.cheesekart.client.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "BoatRenderMixin",
+    "DismountMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

@@ -1,0 +1,8 @@
+accessWidener v2 named
+
+extendable class net/minecraft/world/gen/chunk/NoiseChunkGenerator
+
+# Per-dim WorldBorder independence: we strip vanilla's overworld→nether/end
+# WorldBorderListener.WorldBorderSyncer chain at boot so each dimension's
+# border can be configured independently. getListeners() is protected.
+accessible method net/minecraft/world/border/WorldBorder getListeners ()Ljava/util/List;

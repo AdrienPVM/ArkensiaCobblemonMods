@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "axis=x": {
+      "model": "cheesecompat:block/cobblesafari_portal_ns"
+    },
+    "axis=z": {
+      "model": "cheesecompat:block/cobblesafari_portal_ew"
+    }
+  }
+}

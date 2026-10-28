@@ -1,0 +1,15 @@
+{
+  "modmenu.summary.cheesekart": "Mode kart via OpenBoatUtils avec presets dashboard",
+
+  "cheesekart.cmd.player_not_found": "Joueur introuvable : %s",
+  "cheesekart.cmd.preset_not_found": "Preset introuvable : %s",
+  "cheesekart.cmd.kart_started": "Kart demarrer pour %s (preset=%s)",
+  "cheesekart.cmd.kart_start_failed": "Echec du demarrage kart pour %s",
+  "cheesekart.cmd.not_in_kart": "%s n'est pas en kart",
+  "cheesekart.cmd.kart_stopped": "Kart arrete pour %s",
+  "cheesekart.cmd.all_stopped": "Tous les karts arretes (%s)",
+  "cheesekart.cmd.no_active": "Aucun kart actif",
+  "cheesekart.cmd.active_header": "--- Karts actifs (%s) ---",
+  "cheesekart.cmd.no_presets": "Aucun preset configure",
+  "cheesekart.cmd.presets_header": "--- Presets (%s) ---"
+}

@@ -1,0 +1,11 @@
+{
+  "criteria": {
+    "find_egg": {
+      "trigger": "eggandcheese:egg_found",
+      "conditions": {
+        "egg_id": "*"
+      }
+    }
+  },
+  "rewards": {}
+}

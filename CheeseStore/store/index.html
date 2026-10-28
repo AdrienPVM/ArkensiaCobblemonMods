@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#140d09">
+  <title>Arkensia — Boutique Premium</title>
+  <meta name="description" content="Boutique premium Arkensia : achetez des crédits Stripe et débloquez des morphos Cobblemon directement dans votre Codex en jeu.">
+
+  <!-- Favicons -->
+  <link rel="icon" href="./favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="./favicon-192.png" sizes="192x192" type="image/png">
+  <link rel="apple-touch-icon" href="./favicon-180.png">
+
+  <!-- Open Graph (Discord, Facebook) -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Arkensia — Boutique Premium">
+  <meta property="og:description" content="Crédits Stripe + morphos Cobblemon débloquables dans le Codex en jeu.">
+  <meta property="og:image" content="./og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="fr_FR">
+  <meta property="og:site_name" content="Arkensia">
+
+  <!-- Twitter card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Arkensia — Boutique Premium">
+  <meta name="twitter:description" content="Crédits + morphos Cobblemon pour le serveur Arkensia.">
+  <meta name="twitter:image" content="./og-image.jpg">
+
+  <link rel="stylesheet" href="./tw-mini.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.14.1/dist/cdn.min.js" integrity="sha384-eA6+k1peuuIgxPHwWoQHx6OoDZ7hFJ+SKfMOhop5+zMV4SWR5OWBMatbIdoqA4lZ" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14/dist/cdn.min.js" integrity="sha384-9Ax3MmS9AClxJyd5/zafcXXjxmwFhZCdsT6HJoJjarvCaAkJlk5QDzjLJm+Wdx5F" crossorigin="anonymous"></script>
+  <script defer src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js" integrity="sha384-B2WBjDzEjJpYvhmi2UyEn7rektqkf5suS6sNoyyrf0EBAwBHdkiXxIlU0V5Ru2ed" crossorigin="anonymous"></script>
+  <!-- Three.js (aperçu 3D des cosmétiques) — UMD r128 + OrbitControls, chargés en ordre via defer -->
+  <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js" integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" integrity="sha384-wagZhIFgY4hD+7awjQjR4e2E294y6J2HSnd8eTNc15ZubTeQeVRZwhQJ+W6hnBsf" crossorigin="anonymous"></script>
+  <link rel="preload" href="./fonts/Inter-Variable-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="./fonts/Unbounded-800-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="./fonts.css">
+  <link rel="stylesheet" href="./store.css">
+</head>
+<body>
+
+  <!-- Custom cursor -->
+  <div class="cursor-dot" id="cursorDot"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
+  <!-- Reading progress bar -->
+  <div class="progress-bar" id="progressBar"></div>
+
+  <!-- Sticky mini-header -->
+  <div class="mini-header" id="miniHeader" x-data="window.__userBar = window.__userBar || {}">
+    <span class="mini-header-brand">Arkensia</span>
+    <nav class="mini-header-nav">
+      <a href="#packs"          class="mini-header-link">Packs</a>
+      <a href="#gallery"        class="mini-header-link">Morphos</a>
+      <a href="#play-cosmetics" class="mini-header-link">Cosmétiques</a>
+    </nav>
+    <a href="#packs" class="mini-header-cta">Acheter</a>
+  </div>
+
+  <!-- Ambient orbs -->
+  <div class="ambient-orbs" aria-hidden="true">
+    <div class="orb o1"></div>
+    <div class="orb o2"></div>
+    <div class="orb o3"></div>
+  </div>
+
+  <!-- Ambient embers — visible across the whole page -->
+  <div class="ambient-embers" aria-hidden="true">
+    <span class="s-md c-gold"></span>
+    <span class="s-sm c-crimson"></span>
+    <span class="s-md c-gold"></span>
+    <span class="s-lg c-warm"></span>
+    <span class="s-sm c-gold"></span>
+    <span class="s-md c-crimson"></span>
+    <span class="s-md c-gold"></span>
+    <span class="s-sm c-warm"></span>
+    <span class="s-lg c-gold"></span>
+    <span class="s-md c-crimson"></span>
+    <span class="s-sm c-gold"></span>
+    <span class="s-md c-warm"></span>
+    <span class="s-lg c-crimson"></span>
+    <span class="s-md c-gold"></span>
+    <span class="s-sm c-gold"></span>
+    <span class="s-md c-warm"></span>
+  </div>
+
+  <!-- Civil War ember glow (the full-page cw-bg backdrop replaces the old Ho-Oh watcher image) -->
+  <div class="hooh-glow" aria-hidden="true"></div>
+
+  <div x-data="storeApp()" x-init="init()" class="layer-content">
+
+    <!-- ══ USER BAR (top-right floating) ══ -->
+    <div x-show="oauthEnabled" class="user-bar" style="display:none">
+      <template x-if="!user">
+        <button type="button" class="user-pill user-pill-login" @click="openLinkCode()">
+          <svg viewBox="0 0 24 24" class="user-pill-icon" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+          </svg>
+          M'identifier
+        </button>
+      </template>
+      <template x-if="user && user.linkedUuid">
+        <div class="user-pill user-pill-linked">
+          <img :src="'https://mc-heads.net/avatar/' + user.linkedUuid + '/24'" width="24" height="24" alt="">
+          <span class="user-pill-name" x-text="user.playerName"></span>
+          <span class="user-pill-credits">
+            <strong x-text="(user.credits || 0).toLocaleString()"></strong>
+            <span x-text="(user.credits || 0) > 1 ? (currencyName + 's') : currencyName"></span>
+          </span>
+          <button type="button" class="user-pill-logout" @click="logout()" title="Déconnexion">⏻</button>
+        </div>
+      </template>
+    </div>
+
+    <!-- ══ HERO ══ -->
+    <header class="hero">
+      <div class="hero-vignette"></div>
+      <div class="hero-rays-mask">
+        <div class="hero-rays-spin"></div>
+      </div>
+
+      <picture>
+        <source srcset="./cw-logo.png" type="image/png">
+        <img src="./cw-logo.png" srcset="./cw-logo.png" alt="Arkensia — Civil War" class="hero-logo" width="500" height="270" fetchpriority="high" decoding="async">
+      </picture>
+
+      <p class="hero-tagline reveal reveal-2">Boutique Premium</p>
+
+      <p class="hero-sub reveal reveal-3">
+        Soutenez le serveur, débloquez des récompenses légendaires et entrez dans la chronique du phénix.
+      </p>
+
+      <div class="hero-ctas reveal reveal-4">
+        <a href="#packs" class="btn-primary magnetic">
+          Découvrir les packs
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+        </a>
+        <a href="#gallery" class="btn-ghost magnetic">Voir les morphos</a>
+      </div>
+
+      <div class="hero-scroll">
+        <span>Explorer</span>
+        <span class="hero-scroll-line"></span>
+      </div>
+    </header>
+
+    <!-- Loading -->
+    <template x-if="loading">
+      <div class="flex justify-center py-24" role="status" aria-live="polite" aria-label="Chargement de la boutique">
+        <div style="display:flex;gap:0.6rem">
+          <span style="width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,var(--gold-bright),var(--crimson));animation:phoenixBounce 1s ease-in-out infinite"></span>
+          <span style="width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,var(--gold-bright),var(--crimson));animation:phoenixBounce 1s ease-in-out 0.15s infinite"></span>
+          <span style="width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,var(--gold-bright),var(--crimson));animation:phoenixBounce 1s ease-in-out 0.3s infinite"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- Network / backend unreachable -->
+    <template x-if="!loading && loadError">
+      <div class="store-error" role="alert">
+        <div class="store-error-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+               class="store-error-icon" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M12 9v3.75m0 3.75h.008v-.008H12v.008zm9-3.75a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <h2 class="store-error-title">Boutique temporairement indisponible</h2>
+          <p class="store-error-msg">
+            Impossible de joindre le serveur. Cela peut être un problème de connexion
+            ou une maintenance en cours.
+          </p>
+          <button type="button" class="store-error-retry magnetic" @click="retryInit()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 class="w-4 h-4" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M16.023 9.348h4.992V4.356M2.985 19.644v-4.992h4.992m-4.993 0L8.5 9.348M19.5 14.652l-4.515 4.992"/>
+            </svg>
+            Réessayer
+          </button>
+        </div>
+      </div>
+    </template>
+
+    <!-- Trust strip (4 colonnes statiques, juste sous le hero) -->
+    <div x-show="!loading && storeEnabled && !returnStatus" class="trust-strip" aria-label="Garanties Arkensia">
+      <div class="trust-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="trust-icon"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        <div>
+          <div class="trust-title">Livraison instantanée</div>
+          <div class="trust-sub">Crédits crédités sous 30 secondes</div>
+        </div>
+      </div>
+      <div class="trust-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="trust-icon"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.6 2A9 9 0 113 12a9 9 0 0117.6-2z"/></svg>
+        <div>
+          <div class="trust-title">Paiement Stripe</div>
+          <div class="trust-sub">Sécurisé, certifié PCI-DSS</div>
+        </div>
+      </div>
+      <div class="trust-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="trust-icon"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3a6 6 0 11-12 0V9m6 9v3m-3 0h6M3 6h18"/></svg>
+        <div>
+          <div class="trust-title">Support 24/7</div>
+          <div class="trust-sub">Discord communautaire actif</div>
+        </div>
+      </div>
+      <div class="trust-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="trust-icon"><path stroke-linecap="round" stroke-linejoin="round" d="M11.05 3.05a1 1 0 011.9 0l2 5.7a1 1 0 00.95.69h6a1 1 0 01.6 1.8l-4.85 3.5a1 1 0 00-.36 1.12l1.85 5.7a1 1 0 01-1.54 1.12L12.6 19.2a1 1 0 00-1.18 0L6.4 22.7a1 1 0 01-1.54-1.12l1.85-5.7a1 1 0 00-.36-1.12L1.5 11.24a1 1 0 01.6-1.8h6a1 1 0 00.95-.69l2-5.7z"/></svg>
+        <div>
+          <div class="trust-title">Récompenses exclusives</div>
+          <div class="trust-sub">Items uniques au serveur</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SVG divider 1 — wave glyph -->
+    <div x-show="!loading && storeEnabled && !returnStatus" class="section-divider" aria-hidden="true">
+      <svg viewBox="0 0 1200 80" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="div-grad-1" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"   stop-color="#d99a3a" stop-opacity="0"/>
+            <stop offset="50%"  stop-color="#ff6a2a" stop-opacity="0.9"/>
+            <stop offset="100%" stop-color="#d99a3a" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d="M0 40 C 200 10, 400 70, 600 40 C 800 10, 1000 70, 1200 40"
+              stroke="url(#div-grad-1)" stroke-width="2" fill="none"/>
+        <circle cx="600" cy="40" r="3" fill="#f0a23c">
+          <animate attributeName="r" values="3;5;3" dur="2.4s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.6;1;0.6" dur="2.4s" repeatCount="indefinite"/>
+        </circle>
+      </svg>
+    </div>
+
+    <!-- Store disabled -->
+    <template x-if="!loading && !storeEnabled">
+      <div class="text-center py-20">
+        <div class="text-6xl mb-4 opacity-40">&#x1F6A7;</div>
+        <p class="text-gray-400 text-lg">La boutique est temporairement fermée.</p>
+      </div>
+    </template>
+
+    <!-- Return from Stripe -->
+    <template x-if="!loading && storeEnabled && returnStatus">
+      <div class="text-center py-20">
+        <template x-if="returnStatus === 'complete'">
+          <div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-20 h-20 mx-auto" style="color:var(--emerald-bright)"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <h2 class="font-display text-3xl mt-6 mb-3" style="color:var(--emerald-bright)">Merci pour votre achat !</h2>
+            <p class="text-gray-400 max-w-md mx-auto">Vos crédits arriveront dès votre prochaine connexion au serveur. Si vous êtes déjà connecté(e), ils arrivent instantanément !</p>
+            <button type="button" @click="returnStatus = null" class="btn-primary mt-8">Retour à la boutique</button>
+          </div>
+        </template>
+        <template x-if="returnStatus === 'open'">
+          <div>
+            <div class="text-5xl mb-4">&#x23F3;</div>
+            <p class="text-gray-400">Paiement en attente... Vous allez être redirigé(e).</p>
+          </div>
+        </template>
+      </div>
+    </template>
+
+    <!-- ══ PACKS ══ -->
+    <section x-show="!loading && storeEnabled && !returnStatus" id="packs" class="section scroll-reveal">
+      <div class="section-heading">
+        <div class="section-eyebrow">Boutique</div>
+        <h2 class="section-title">Packs Premium</h2>
+        <p class="section-sub">
+          Soutenez le serveur Arkensia et obtenez des crédits livrés instantanément en jeu.
+        </p>
+      </div>
+
+      <div class="products-grid">
+        <template x-for="product in products" :key="product.id">
+          <div :class="product.featured ? 'store-card group card-featured' : 'store-card group'"
+               role="button"
+               tabindex="0"
+               :aria-label="'Acheter ' + product.name + ' (' + product.credits + ' crédits) — ' + formatPrice(product.priceCents)"
+               @click="openPurchase(product)"
+               @keydown.enter="openPurchase(product)"
+               @keydown.space.prevent="openPurchase(product)"
+               @mousemove="handleCardMove($event)"
+               @mouseleave="resetCard($event)">
+            <span x-show="product.featured" class="card-tag">
+              <svg viewBox="0 0 24 24" fill="currentColor" class="w-3 h-3"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z"/></svg>
+              Populaire
+            </span>
+            <div class="card-inner">
+              <div class="card-glow"></div>
+              <div class="card-image">
+                <template x-if="product.hasImage">
+                  <img :src="'/store/api/products/' + product.id + '/image'" :alt="product.name"
+                       loading="lazy" decoding="async" width="400" height="400">
+                </template>
+                <template x-if="!product.hasImage">
+                  <div class="card-image-placeholder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="w-12 h-12 opacity-40"><path stroke-linecap="round" stroke-linejoin="round" d="M21 16V8a2 2 0 00-1-1.732l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.732l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+                  </div>
+                </template>
+                <div class="card-shine"></div>
+                <div x-show="product.credits > 0" class="card-credits-badge">
+                  <span class="card-credits-num" x-text="product.credits"></span>
+                  <span class="card-credits-unit" x-text="(product.credits || 0) > 1 ? (currencyName + 's') : currencyName"></span>
+                </div>
+              </div>
+              <div class="card-body">
+                <h3 class="card-title" x-text="product.name"></h3>
+                <p class="card-desc" x-text="product.description"></p>
+                <div class="card-footer">
+                  <div class="card-price-row">
+                    <span class="card-price" x-text="formatPrice(product.priceCents)"></span>
+                    <span class="card-price-tax">TTC</span>
+                  </div>
+                  <span class="card-cta">
+                    Acheter
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Empty -->
+      <div x-show="products.length === 0" class="text-center py-16 opacity-60">
+        <div class="text-5xl mb-4">&#x1F6D2;</div>
+        <p class="text-gray-500">Aucun pack disponible pour le moment.</p>
+      </div>
+    </section>
+
+    <!-- SVG divider 2 -->
+    <div x-show="!loading && storeEnabled && !returnStatus && morphos.length > 0" class="section-divider" aria-hidden="true">
+      <svg viewBox="0 0 1200 80" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="div-grad-2" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"   stop-color="#d99a3a" stop-opacity="0"/>
+            <stop offset="50%"  stop-color="#ff6a2a" stop-opacity="0.85"/>
+            <stop offset="100%" stop-color="#d99a3a" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <g transform="translate(600 40)">
+          <path d="M0 -12 L 6 0 L 0 12 L -6 0 Z" fill="url(#div-grad-2)" opacity="0.9">
+            <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="14s" repeatCount="indefinite"/>
+          </path>
+        </g>
+        <path d="M0 40 Q 250 30, 500 38" stroke="url(#div-grad-2)" stroke-width="1.5" fill="none"/>
+        <path d="M700 38 Q 950 30, 1200 40" stroke="url(#div-grad-2)" stroke-width="1.5" fill="none"/>
+      </svg>
+    </div>
+
+    <!-- ══ GALLERY (morphos achetables) ══ -->
+    <section x-show="!loading && storeEnabled && !returnStatus && morphos.length > 0" id="gallery" class="section scroll-reveal">
+      <div class="section-heading">
+        <div class="section-eyebrow">Récompenses</div>
+        <h2 class="section-title">Galerie des Morphos</h2>
+        <p class="section-sub">
+          Achetez vos morphos avec vos <span class="text-amber-400 font-medium" x-text="currencyName + 's'"></span> et débloquez la transformation directement dans votre Codex en jeu.
+        </p>
+      </div>
+
+      <!-- Filter chips: each is a toggle. Multiple actives = AND filter. -->
+      <div class="morpho-filters" role="toolbar" aria-label="Filtrer les morphos">
+        <button type="button" class="morpho-filter-chip"
+                :class="{ 'is-active': filters.terrestrial }"
+                @click="toggleFilter('terrestrial')"
+                :aria-pressed="filters.terrestrial">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="morpho-filter-icon"><path d="M3 20h18"/><path d="M5 20l2-7 3 4 2-9 3 7 2-4 2 9"/></svg>
+          <span>Terrestre</span>
+          <span class="morpho-filter-count" x-text="filterCounts.terrestrial"></span>
+        </button>
+        <button type="button" class="morpho-filter-chip"
+                :class="{ 'is-active': filters.aquatic }"
+                @click="toggleFilter('aquatic')"
+                :aria-pressed="filters.aquatic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="morpho-filter-icon"><path d="M2 16c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"/><path d="M2 11c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"/></svg>
+          <span>Aquatique</span>
+          <span class="morpho-filter-count" x-text="filterCounts.aquatic"></span>
+        </button>
+        <button type="button" class="morpho-filter-chip"
+                :class="{ 'is-active': filters.aerial }"
+                @click="toggleFilter('aerial')"
+                :aria-pressed="filters.aerial">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="morpho-filter-icon"><path d="M21 3c-3 6-9 9-15 9 0 4 3 8 8 8 0-3 2-6 5-7"/><path d="M12 12l3-3"/></svg>
+          <span>Volant</span>
+          <span class="morpho-filter-count" x-text="filterCounts.aerial"></span>
+        </button>
+        <span class="morpho-filter-divider" aria-hidden="true"></span>
+        <button type="button" class="morpho-filter-chip morpho-filter-chip--shiny"
+                :class="{ 'is-active': filters.shiny }"
+                @click="toggleFilter('shiny')"
+                :aria-pressed="filters.shiny">
+          <svg viewBox="0 0 24 24" fill="currentColor" class="morpho-filter-icon"><path d="M12 2l1.6 4.2L18 8l-4.2 1.6L12 14l-1.6-4.4L6 8l4.4-1.8z"/><path d="M19 14l.8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8z"/><path d="M5 16l.6 1.6L7 18l-1.4.4L5 20l-.6-1.6L3 18l1.4-.4z"/></svg>
+          <span>Shiny</span>
+          <span class="morpho-filter-count" x-text="filterCounts.shiny"></span>
+        </button>
+        <button type="button" class="morpho-filter-chip morpho-filter-chip--legendary"
+                :class="{ 'is-active': filters.legendary }"
+                @click="toggleFilter('legendary')"
+                :aria-pressed="filters.legendary">
+          <svg viewBox="0 0 24 24" fill="currentColor" class="morpho-filter-icon"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z"/></svg>
+          <span>Légendaire</span>
+          <span class="morpho-filter-count" x-text="filterCounts.legendary"></span>
+        </button>
+        <button type="button" class="morpho-filter-clear"
+                x-show="hasActiveFilter()"
+                @click="clearFilters()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          Effacer
+        </button>
+      </div>
+
+      <!-- Empty state when filters yield nothing -->
+      <div class="morpho-filter-empty" x-show="filteredMorphos().length === 0 && hasActiveFilter()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="w-10 h-10 opacity-40"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg>
+        <p>Aucune morpho ne correspond à ces filtres.</p>
+      </div>
+
+      <div class="gallery-grid" x-show="filteredMorphos().length > 0">
+        <template x-for="item in filteredMorphos()" :key="item.id">
+          <button type="button" class="gallery-card" @click="openLightbox(item)">
+            <div class="gallery-image">
+              <template x-if="item.hasImage">
+                <img :src="'/store/api/morpho/list/' + item.id + '/thumb'" :alt="item.title"
+                     loading="lazy" decoding="async" width="400" height="400">
+              </template>
+              <template x-if="!item.hasImage">
+                <div class="gallery-placeholder">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="w-10 h-10 opacity-40"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </div>
+              </template>
+              <div class="gallery-overlay">
+                <span class="gallery-overlay-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M11 8v6M8 11h6"/></svg>
+                </span>
+              </div>
+              <span x-show="item.isNew" class="gallery-new-badge">
+                <svg viewBox="0 0 24 24" fill="currentColor" class="w-3 h-3"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z"/></svg>
+                Nouveau
+              </span>
+              <div class="gallery-rarity-stack">
+                <span x-show="item.legendary" class="gallery-legendary-badge" title="Légendaire">
+                  <svg viewBox="0 0 24 24" fill="currentColor" class="w-3 h-3"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z"/></svg>
+                  Légendaire
+                </span>
+                <span x-show="item.shiny" class="gallery-shiny-badge" title="Shiny" aria-label="Shiny">
+                  <svg viewBox="0 0 24 24" fill="currentColor" class="w-3 h-3"><path d="M12 2l1.6 4.2L18 8l-4.2 1.6L12 14l-1.6-4.4L6 8l4.4-1.8z"/><path d="M19 14l.8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8z"/><path d="M5 16l.6 1.6L7 18l-1.4.4L5 20l-.6-1.6L3 18l1.4-.4z"/></svg>
+                </span>
+              </div>
+            </div>
+            <div class="gallery-info">
+              <h4 class="gallery-title" x-text="item.title"></h4>
+              <div class="gallery-meta-row">
+                <div class="gallery-price">
+                  <span x-text="(item.priceCredits || 0).toLocaleString()"></span>
+                  <span class="gallery-price-unit" x-text="(item.priceCredits || 0) > 1 ? (currencyName + 's') : currencyName"></span>
+                </div>
+                <div class="habitat-badges" x-show="item.terrestrial || item.aquatic || item.aerial">
+                  <span x-show="item.terrestrial" class="habitat-badge" title="Terrestre" aria-label="Terrestre">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5"><path d="M3 20h18"/><path d="M5 20l2-7 3 4 2-9 3 7 2-4 2 9"/></svg>
+                  </span>
+                  <span x-show="item.aquatic" class="habitat-badge" title="Aquatique" aria-label="Aquatique">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5"><path d="M2 16c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"/><path d="M2 11c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"/></svg>
+                  </span>
+                  <span x-show="item.aerial" class="habitat-badge" title="Volant" aria-label="Volant">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5"><path d="M21 3c-3 6-9 9-15 9 0 4 3 8 8 8 0-3 2-6 5-7"/><path d="M12 12l3-3"/></svg>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </button>
+        </template>
+      </div>
+    </section>
+
+    <!-- SVG divider 3 (avant cosmétiques) -->
+    <div x-show="!loading && storeEnabled && !returnStatus && cosmetics.length > 0" class="section-divider" aria-hidden="true">
+      <svg viewBox="0 0 1200 80" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="div-grad-3" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"   stop-color="#d99a3a" stop-opacity="0"/>
+            <stop offset="50%"  stop-color="#ff6a2a" stop-opacity="0.85"/>
+            <stop offset="100%" stop-color="#d99a3a" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d="M0 40 C 200 70, 400 10, 600 40 C 800 70, 1000 10, 1200 40"
+              stroke="url(#div-grad-3)" stroke-width="2" fill="none"/>
+        <circle cx="600" cy="40" r="3" fill="#f0a23c">
+          <animate attributeName="r" values="3;5;3" dur="2.4s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.6;1;0.6" dur="2.4s" repeatCount="indefinite"/>
+        </circle>
+      </svg>
+    </div>
+
+    <!-- ══ COSMÉTIQUES (achetables en crédits) ══ -->
+    <section x-show="!loading && storeEnabled && !returnStatus && cosmetics.length > 0" id="cosmetics" class="section scroll-reveal">
+      <div class="section-heading">
+        <div class="section-eyebrow">Personnalisation</div>
+        <h2 class="section-title">Cosmétiques</h2>
+        <p class="section-sub">
+          Achetez des cosmétiques avec vos <span class="text-amber-400 font-medium" x-text="currencyName + 's'"></span> :
+          chapeaux, items, traînées et effets, livrés directement en jeu. Cliquez sur une carte pour un aperçu 3D.
+        </p>
+      </div>
+
+      <div class="cosmetics-grid">
+        <template x-for="cos in cosmetics" :key="cos.id">
+          <div :class="cos.featured ? 'cosmetic-card group is-featured' : 'cosmetic-card group'"
+               role="button"
+               tabindex="0"
+               :aria-label="'Aperçu ' + cos.name + ' (' + (cos.priceCredits || 0) + ' ' + currencyName + 's)'"
+               @click="openCosmetic(cos)"
+               @keydown.enter="openCosmetic(cos)"
+               @keydown.space.prevent="openCosmetic(cos)">
+            <span x-show="cos.featured" class="cosmetic-featured-badge">
+              <svg viewBox="0 0 24 24" fill="currentColor" class="w-3 h-3"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z"/></svg>
+              En vedette
+            </span>
+            <div class="cosmetic-thumb">
+              <span class="cosmetic-type-chip" x-text="cosmeticTypeLabel(cos.type)"></span>
+              <template x-if="cos.hasImage">
+                <img :src="'/store/api/cosmetics/' + cos.id + '/image'" :alt="cos.name"
+                     loading="lazy" decoding="async" width="300" height="300">
+              </template>
+              <template x-if="!cos.hasImage">
+                <div class="cosmetic-thumb-placeholder">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" class="w-12 h-12 opacity-40"><path stroke-linecap="round" stroke-linejoin="round" d="M21 16V8a2 2 0 00-1-1.732l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.732l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+                </div>
+              </template>
+              <div class="cosmetic-thumb-overlay">
+                <span class="cosmetic-overlay-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1 1 0 010-.644C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178a1 1 0 010 .644C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                  Aperçu 3D
+                </span>
+              </div>
+            </div>
+            <div class="cosmetic-body">
+              <h3 class="cosmetic-name" x-text="cos.name"></h3>
+              <p class="cosmetic-desc" x-text="cos.description"></p>
+              <div class="cosmetic-footer">
+                <div class="cosmetic-price">
+                  <span x-text="(cos.priceCredits || 0).toLocaleString()"></span>
+                  <span class="cosmetic-price-unit" x-text="(cos.priceCredits || 0) > 1 ? (currencyName + 's') : currencyName"></span>
+                </div>
+                <span class="cosmetic-cta">
+                  Acheter
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                </span>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </section>
+
+    <!-- SVG divider 4 (avant cosmétiques jouables) -->
+    <div x-show="!loading && storeEnabled && !returnStatus && playCosmetics.length > 0" class="section-divider" aria-hidden="true">
+      <svg viewBox="0 0 1200 80" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="div-grad-4" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"   stop-color="#d99a3a" stop-opacity="0"/>
+            <stop offset="50%"  stop-color="#ff6a2a" stop-opacity="0.85"/>
+            <stop offset="100%" stop-color="#d99a3a" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <g transform="translate(600 40)">
+          <path d="M0 -12 L 6 0 L 0 12 L -6 0 Z" fill="url(#div-grad-4)" opacity="0.9">
+            <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="14s" repeatCount="indefinite"/>
+          </path>
+        </g>
+        <path d="M0 40 Q 250 30, 500 38" stroke="url(#div-grad-4)" stroke-width="1.5" fill="none"/>
+        <path d="M700 38 Q 950 30, 1200 40" stroke="url(#div-grad-4)" stroke-width="1.5" fill="none"/>
+      </svg>
+    </div>
+
+    <!-- ══ COSMÉTIQUES JOUABLES (playcosmetics — achetables en crédits) ══ -->
+    <section x-show="!loading && storeEnabled && !returnStatus && playCosmetics.length > 0" id="play-cosmetics" class="section scroll-reveal">
+      <div class="section-heading">
+        <div class="section-eyebrow">En jeu</div>
+        <h2 class="section-title">Cosmétiques</h2>
+        <p class="section-sub">
+          Traînées, effets de kill et de mort, tags de chat, couleurs de pseudo et familiers —
+          débloqués en jeu avec vos <span class="text-amber-400 font-medium" x-text="currencyName + 's'"></span>.
+          Cliquez sur une carte pour un aperçu 3D de l'icône.
+        </p>
+      </div>
+
+      <!-- Solde du joueur (si connecté) -->
+      <template x-if="user && user.linkedUuid">
+        <div class="play-cos-balance">
+          <img :src="'https://mc-heads.net/avatar/' + user.linkedUuid + '/28'" width="28" height="28" alt="">
+          <span>Connecté : <strong x-text="user.playerName"></strong></span>
+          <span class="play-cos-balance-credits">
+            <strong x-text="(user.credits || 0).toLocaleString()"></strong>
+            <span x-text="(user.credits || 0) > 1 ? (currencyName + 's') : currencyName"></span>
+          </span>
+        </div>
+      </template>
+
+      <!-- Filtres par catégorie (libellés FR) -->
+      <div class="morpho-filters" role="toolbar" aria-label="Filtrer les cosmétiques">
+        <button type="button" class="morpho-filter-chip"
+                :class="{ 'is-active': playCosCategory === '' }"
+                @click="setPlayCosCategory('')"
+                :aria-pressed="playCosCategory === ''">
+          <span>Tous</span>
+          <span class="morpho-filter-count" x-text="playCosCount('')"></span>
+        </button>
+        <template x-for="cat in playCosVisibleCategories()" :key="cat.code">
+          <button type="button" class="morpho-filter-chip"
+                  :class="{ 'is-active': playCosCategory === cat.code }"
+                  @click="setPlayCosCategory(cat.code)"
+                  :aria-pressed="playCosCategory === cat.code">
+            <span x-text="cat.label"></span>
+            <span class="morpho-filter-count" x-text="playCosCount(cat.code)"></span>
+          </button>
+        </template>
+      </div>
+
+      <div class="cosmetics-grid">
+        <template x-for="pc in filteredPlayCosmetics()" :key="pc.id">
+          <div class="cosmetic-card group"
+               role="button"
+               tabindex="0"
+               :aria-label="'Aperçu ' + pc.title + ' (' + (pc.price || 0) + ' ' + currencyName + 's)'"
+               @click="openPlayCosmetic(pc)"
+               @keydown.enter="openPlayCosmetic(pc)"
+               @keydown.space.prevent="openPlayCosmetic(pc)">
+            <span x-show="pc.isNew" class="play-cos-new-badge">
+              <svg viewBox="0 0 24 24" fill="currentColor" class="w-3 h-3"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z"/></svg>
+              Nouveau
+            </span>
+            <div class="cosmetic-thumb">
+              <span class="cosmetic-type-chip" x-text="playCosCategoryLabel(pc.category)"></span>
+              <img :src="playCosIconCandidates(pc.icon)[0]"
+                   data-candidate="0"
+                   :alt="pc.title"
+                   loading="lazy" decoding="async" width="64" height="64"
+                   class="play-cos-thumb-img"
+                   @error="onPlayCosIconError($event, pc.icon)">
+              <div class="cosmetic-thumb-placeholder play-cos-thumb-fallback" style="display:none">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" class="w-12 h-12 opacity-40"><path stroke-linecap="round" stroke-linejoin="round" d="M21 16V8a2 2 0 00-1-1.732l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.732l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+              </div>
+              <div class="cosmetic-thumb-overlay">
+                <span class="cosmetic-overlay-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1 1 0 010-.644C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178a1 1 0 010 .644C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                  Aperçu 3D
+                </span>
+              </div>
+            </div>
+            <div class="cosmetic-body">
+              <h3 class="cosmetic-name" x-text="pc.title"></h3>
+              <p class="cosmetic-desc" x-text="pc.description"></p>
+              <div class="cosmetic-footer">
+                <div class="cosmetic-price">
+                  <span x-text="(pc.price || 0).toLocaleString()"></span>
+                  <span class="cosmetic-price-unit" x-text="(pc.price || 0) > 1 ? (currencyName + 's') : currencyName"></span>
+                </div>
+                <span class="cosmetic-cta">
+                  Acheter
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                </span>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </section>
+
+    <!-- ══ PLAYABLE COSMETIC PREVIEW + BUY MODAL ══ -->
+    <div x-show="playCos.open" x-transition.opacity class="lightbox-overlay" style="display:none" @keydown.escape.window="closePlayCosmetic()">
+      <div class="lightbox-backdrop" @click="closePlayCosmetic()"></div>
+      <div class="lightbox-panel" @click.stop>
+        <button type="button" class="lightbox-close" @click="closePlayCosmetic()" aria-label="Fermer">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+        <template x-if="playCos.item">
+          <div class="lightbox-content">
+            <!-- Viewer 3D de l'icône (monté par mc-cosmetic-viewer.js) -->
+            <div class="lightbox-image-wrap cosmetic-viewer-wrap">
+              <div class="cosmetic-viewer" x-ref="playCosViewer"></div>
+              <template x-if="playCos.showFallbackImage">
+                <img class="cosmetic-fallback-img"
+                     :src="playCosIconCandidates(playCos.item.icon)[0]"
+                     data-candidate="0"
+                     :alt="playCos.item.title"
+                     decoding="async"
+                     @error="onPlayCosIconError($event, playCos.item.icon)">
+              </template>
+              <span class="cosmetic-viewer-hint" x-show="!playCos.showFallbackImage">Glissez pour pivoter</span>
+            </div>
+
+            <div class="lightbox-info">
+              <h3 class="lightbox-title" x-text="playCos.item.title"></h3>
+              <div class="lightbox-habitats">
+                <span class="lightbox-habitat-pill" x-text="playCosCategoryLabel(playCos.item.category)"></span>
+                <span x-show="playCos.item.isNew" class="lightbox-habitat-pill is-shiny">
+                  <svg viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z"/></svg>
+                  Nouveau
+                </span>
+              </div>
+              <p x-show="playCos.item.description" class="lightbox-desc" x-text="playCos.item.description"></p>
+              <div class="lightbox-price">
+                <span class="lightbox-price-value" x-text="(playCos.item.price || 0).toLocaleString()"></span>
+                <span class="lightbox-price-unit" x-text="(playCos.item.price || 0) > 1 ? (currencyName + 's') : currencyName"></span>
+              </div>
+
+              <!-- Solde / statut -->
+              <template x-if="user && user.linkedUuid">
+                <p class="lightbox-hint">
+                  Connecté en tant que <strong x-text="user.playerName"></strong> —
+                  solde
+                  <strong x-text="(user.credits || 0).toLocaleString()"></strong>
+                  <span x-text="(user.credits || 0) > 1 ? (currencyName + 's') : currencyName"></span>
+                  <template x-if="(user.credits || 0) < (playCos.item.price || 0)">
+                    <span style="color:var(--crimson-bright);margin-left:.4rem;font-weight:600">
+                      (solde insuffisant — il vous manque
+                      <span x-text="((playCos.item.price || 0) - (user.credits || 0)).toLocaleString()"></span>
+                      <span x-text="((playCos.item.price || 0) - (user.credits || 0)) > 1 ? (currencyName + 's') : currencyName"></span>)
+                    </span>
+                  </template>
+                </p>
+              </template>
+              <template x-if="!user">
+                <p class="lightbox-hint">Identifiez-vous (un code à taper en jeu) pour acheter avec vos crédits.</p>
+              </template>
+
+              <!-- CTA état-dépendant -->
+              <template x-if="!user">
+                <button type="button" class="lightbox-cta" @click="closePlayCosmetic(); openLinkCode()">
+                  M'identifier
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                </button>
+              </template>
+              <template x-if="user && user.linkedUuid && (user.credits || 0) < (playCos.item.price || 0)">
+                <button type="button" class="lightbox-cta"
+                        @click="closePlayCosmetic(); document.getElementById('packs')?.scrollIntoView({behavior:'smooth'})">
+                  <span style="display:inline-flex;align-items:center;gap:0.5rem">
+                    Acheter des
+                    <span x-text="currencyName + 's'"></span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                  </span>
+                </button>
+              </template>
+              <template x-if="user && user.linkedUuid && (user.credits || 0) >= (playCos.item.price || 0)">
+                <button type="button" class="lightbox-cta"
+                        :disabled="playCos.loading"
+                        @click="buyPlayCosmetic()">
+                  <template x-if="!playCos.loading">
+                    <span style="display:inline-flex;align-items:center;gap:0.5rem">
+                      Acheter pour
+                      <span x-text="(playCos.item.price || 0).toLocaleString()"></span>
+                      <span x-text="(playCos.item.price || 0) > 1 ? (currencyName + 's') : currencyName"></span>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </span>
+                  </template>
+                  <template x-if="playCos.loading">
+                    <span style="display:inline-flex;align-items:center;gap:0.5rem">
+                      <span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,0.3);border-top-color:#000;border-radius:50%;animation:spin 0.8s linear infinite"></span>
+                      Achat en cours...
+                    </span>
+                  </template>
+                </button>
+              </template>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- ══ COSMETIC PREVIEW + BUY MODAL ══ -->
+    <div x-show="cosmetic.open" x-transition.opacity class="lightbox-overlay" style="display:none" @keydown.escape.window="closeCosmetic()">
+      <div class="lightbox-backdrop" @click="closeCosmetic()"></div>
+      <div class="lightbox-panel" @click.stop>
+        <button type="button" class="lightbox-close" @click="closeCosmetic()" aria-label="Fermer">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+        <template x-if="cosmetic.item">
+          <div class="lightbox-content">
+            <!-- Viewer 3D / vignette FX (monté par mc-cosmetic-viewer.js) -->
+            <div class="lightbox-image-wrap cosmetic-viewer-wrap">
+              <div class="cosmetic-viewer" x-ref="cosmeticViewer"></div>
+              <!-- Fallback <img> si pas de 3D (noTexture) — masqué tant que le viewer 3D tourne. -->
+              <template x-if="cosmetic.showFallbackImage && cosmetic.item.hasImage">
+                <img class="cosmetic-fallback-img"
+                     :src="'/store/api/cosmetics/' + cosmetic.item.id + '/image'" :alt="cosmetic.item.name"
+                     decoding="async" fetchpriority="high">
+              </template>
+              <template x-if="cosmetic.showFallbackImage && !cosmetic.item.hasImage">
+                <div class="lightbox-placeholder">Aperçu indisponible</div>
+              </template>
+              <span class="cosmetic-viewer-hint" x-show="!cosmetic.showFallbackImage" x-text="cosmeticViewerHint()"></span>
+            </div>
+
+            <div class="lightbox-info">
+              <h3 class="lightbox-title" x-text="cosmetic.item.name"></h3>
+              <div class="lightbox-habitats">
+                <span class="lightbox-habitat-pill" x-text="cosmeticTypeLabel(cosmetic.item.type)"></span>
+                <span x-show="cosmetic.item.featured" class="lightbox-habitat-pill is-shiny">
+                  <svg viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z"/></svg>
+                  En vedette
+                </span>
+              </div>
+              <p x-show="cosmetic.item.description" class="lightbox-desc" x-text="cosmetic.item.description"></p>
+              <div class="lightbox-price">
+                <span class="lightbox-price-value" x-text="(cosmetic.item.priceCredits || 0).toLocaleString()"></span>
+                <span class="lightbox-price-unit" x-text="(cosmetic.item.priceCredits || 0) > 1 ? (currencyName + 's') : currencyName"></span>
+              </div>
+
+              <!-- Status / solde (réutilise le flux d'auth du site) -->
+              <template x-if="user && user.linkedUuid">
+                <p class="lightbox-hint">
+                  Connecté en tant que <strong x-text="user.playerName"></strong> —
+                  solde
+                  <strong x-text="(user.credits || 0).toLocaleString()"></strong>
+                  <span x-text="(user.credits || 0) > 1 ? (currencyName + 's') : currencyName"></span>
+                  <template x-if="(user.credits || 0) < (cosmetic.item.priceCredits || 0)">
+                    <span style="color:var(--crimson-bright);margin-left:.4rem;font-weight:600">
+                      (solde insuffisant — il vous manque
+                      <span x-text="((cosmetic.item.priceCredits || 0) - (user.credits || 0)).toLocaleString()"></span>
+                      <span x-text="((cosmetic.item.priceCredits || 0) - (user.credits || 0)) > 1 ? (currencyName + 's') : currencyName"></span>)
+                    </span>
+                  </template>
+                </p>
+              </template>
+              <template x-if="!user">
+                <p class="lightbox-hint">Identifiez-vous (un code à taper en jeu) pour acheter avec vos crédits.</p>
+              </template>
+
+              <!-- CTA état-dépendant (même logique que la lightbox morpho) -->
+              <template x-if="!user">
+                <button type="button" class="lightbox-cta" @click="closeCosmetic(); openLinkCode()">
+                  M'identifier
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                </button>
+              </template>
+              <template x-if="user && user.linkedUuid && (user.credits || 0) < (cosmetic.item.priceCredits || 0)">
+                <button type="button" class="lightbox-cta"
+                        @click="closeCosmetic(); document.getElementById('packs')?.scrollIntoView({behavior:'smooth'})">
+                  <span style="display:inline-flex;align-items:center;gap:0.5rem">
+                    Acheter des
+                    <span x-text="currencyName + 's'"></span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                  </span>
+                </button>
+              </template>
+              <template x-if="user && user.linkedUuid && (user.credits || 0) >= (cosmetic.item.priceCredits || 0)">
+                <button type="button" class="lightbox-cta"
+                        :disabled="cosmetic.loading"
+                        @click="buyCosmetic()">
+                  <template x-if="!cosmetic.loading">
+                    <span style="display:inline-flex;align-items:center;gap:0.5rem">
+                      Acheter pour
+                      <span x-text="(cosmetic.item.priceCredits || 0).toLocaleString()"></span>
+                      <span x-text="(cosmetic.item.priceCredits || 0) > 1 ? (currencyName + 's') : currencyName"></span>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </span>
+                  </template>
+                  <template x-if="cosmetic.loading">
+                    <span style="display:inline-flex;align-items:center;gap:0.5rem">
+                      <span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,0.3);border-top-color:#000;border-radius:50%;animation:spin 0.8s linear infinite"></span>
+                      Achat en cours...
+                    </span>
+                  </template>
+                </button>
+              </template>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- ══ PURCHASE MODAL ══ -->
+    <div x-show="purchase.open" x-transition.opacity class="purchase-overlay" style="display:none" @keydown.escape.window="closePurchase()">
+      <div class="purchase-backdrop" @click="closePurchase()"></div>
+      <div class="purchase-panel" @click.stop>
+        <template x-if="purchase.product">
+          <div>
+            <div class="pm-header">
+              <div class="pm-thumb">
+                <template x-if="purchase.product.hasImage">
+                  <img :src="'/store/api/products/' + purchase.product.id + '/image'" :alt="purchase.product.name">
+                </template>
+                <template x-if="!purchase.product.hasImage">
+                  <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;opacity:0.4">&#x1F4E6;</div>
+                </template>
+              </div>
+              <div class="pm-title-block">
+                <h3 class="pm-title" x-text="purchase.product.name"></h3>
+                <p class="pm-desc" x-text="purchase.product.description"></p>
+              </div>
+              <button type="button" class="pm-close" @click="closePurchase()" aria-label="Fermer">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+            <div class="pm-body">
+              <div class="pm-warning">
+                <span class="pm-warning-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="w-5 h-5"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 8v4M12 16.01V16"/></svg>
+                </span>
+                <div class="pm-warning-text">
+                  <strong>Confirmation de livraison</strong>
+                  <p>Les crédits seront livrés au pseudo sélectionné. Achats non remboursables conformément aux CGV.</p>
+                </div>
+              </div>
+
+              <div>
+                <label class="pm-field-label">Pseudo Minecraft (recevra les crédits)</label>
+                <div class="pm-search-wrap">
+                  <input type="text" class="pm-input"
+                         x-model="purchase.search"
+                         @input="filterPlayers()"
+                         @focus="purchase.dropdownOpen = true"
+                         placeholder="Rechercher un joueur..."
+                         autocomplete="off">
+                  <svg class="pm-search-icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </div>
+                <div x-show="purchase.dropdownOpen" @click.outside="purchase.dropdownOpen = false" class="pm-dropdown" data-lenis-prevent>
+                  <template x-if="purchase.filteredPlayers.length > 0">
+                    <div>
+                      <template x-for="p in purchase.filteredPlayers" :key="p.uuid">
+                        <button type="button" class="pm-player" @click="selectPlayer(p)">
+                          <img :src="'https://mc-heads.net/avatar/' + p.uuid + '/28'" width="28" height="28" loading="lazy">
+                          <span x-text="p.name"></span>
+                        </button>
+                      </template>
+                    </div>
+                  </template>
+                  <template x-if="purchase.filteredPlayers.length === 0">
+                    <div class="pm-no-results">
+                      <p class="pm-no-results-title">Aucun joueur trouvé</p>
+                      <p class="pm-no-results-sub">Le pseudo doit s'être déjà connecté au serveur Arkensia au moins une fois.</p>
+                    </div>
+                  </template>
+                </div>
+                <div x-show="purchase.selected" class="pm-selected">
+                  <img x-show="purchase.selected" :src="'https://mc-heads.net/avatar/' + (purchase.selected?.uuid || '') + '/22'" width="22" height="22">
+                  <span class="pm-selected-name" x-text="purchase.selected?.name"></span>
+                  <button type="button" class="pm-selected-x" @click="purchase.selected = null; purchase.search = ''" aria-label="Désélectionner">✕</button>
+                </div>
+              </div>
+
+              <div class="pm-total">
+                <span class="pm-total-label">Total à payer</span>
+                <div class="pm-total-value" x-text="formatPrice(purchase.product.priceCents)"></div>
+              </div>
+            </div>
+
+            <div class="pm-footer">
+              <button type="button" class="pm-cancel" @click="closePurchase()">Annuler</button>
+              <button type="button" class="pm-confirm"
+                      :disabled="!purchase.selected || purchase.loading"
+                      @click="startCheckout()">
+                <template x-if="!purchase.loading">
+                  <span style="display:inline-flex;align-items:center;gap:0.7rem">
+                    Confirmer et payer
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                  </span>
+                </template>
+                <template x-if="purchase.loading">
+                  <span style="display:inline-flex;align-items:center;gap:0.6rem">
+                    <span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,0.3);border-top-color:#000;border-radius:50%;animation:spin 0.8s linear infinite"></span>
+                    Redirection sécurisée...
+                  </span>
+                </template>
+              </button>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- ══ LINK CODE MODAL ══ -->
+    <div x-show="linkModalOpen" x-transition.opacity class="purchase-overlay" style="display:none" @keydown.escape.window="closeLinkCode()">
+      <div class="purchase-backdrop" @click="closeLinkCode()"></div>
+      <div class="purchase-panel" @click.stop>
+        <div class="pm-header">
+          <div class="pm-title-block">
+            <h3 class="pm-title">Lier votre compte Minecraft</h3>
+            <p class="pm-desc">Connectez-vous au serveur et tapez la commande ci-dessous pour lier cette session à votre pseudo.</p>
+          </div>
+          <button type="button" class="pm-close" @click="closeLinkCode()" aria-label="Fermer">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="pm-body" style="text-align:center">
+          <p style="color:var(--text-muted);margin-bottom:1.25rem">Connectez-vous au serveur Arkensia et tapez :</p>
+          <div style="background:var(--bg-card);border:1px solid var(--bg-border);border-radius:12px;padding:1.25rem;font-family:ui-monospace,Menlo,monospace;font-size:1.4rem;letter-spacing:0.05em;color:var(--gold-bright);user-select:all">
+            <span>/store link </span><strong x-text="linkCode?.code || ''"></strong>
+          </div>
+          <p style="color:var(--text-muted);font-size:0.85rem;margin-top:1rem">Ce code est valable 5 minutes. Une fois lié, fermez cette fenêtre.</p>
+        </div>
+        <div class="pm-footer">
+          <button type="button" class="pm-cancel" @click="closeLinkCode()">Plus tard</button>
+          <button type="button" class="pm-confirm" @click="closeLinkCode()">J'ai lié mon compte</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ LIGHTBOX (morpho purchase) ══ -->
+    <div x-show="lightbox.open" x-transition.opacity class="lightbox-overlay" style="display:none" @keydown.escape.window="closeLightbox()">
+      <div class="lightbox-backdrop" @click="closeLightbox()"></div>
+      <div class="lightbox-panel" @click.stop>
+        <button type="button" class="lightbox-close" @click="closeLightbox()" aria-label="Fermer">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+        <template x-if="lightbox.item">
+          <div class="lightbox-content">
+            <div class="lightbox-image-wrap">
+              <template x-if="lightbox.item.hasImage">
+                <img :src="'/store/api/morpho/list/' + lightbox.item.id + '/image'" :alt="lightbox.item.title"
+                     decoding="async" fetchpriority="high">
+              </template>
+              <template x-if="!lightbox.item.hasImage">
+                <div class="lightbox-placeholder">Aucune image</div>
+              </template>
+              <span x-show="lightbox.item.isNew" class="lightbox-new-badge">
+                <svg viewBox="0 0 24 24" fill="currentColor" class="w-3.5 h-3.5"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z"/></svg>
+                Nouveau
+              </span>
+            </div>
+            <div class="lightbox-info">
+              <h3 class="lightbox-title" x-text="lightbox.item.title"></h3>
+              <div class="lightbox-habitats" x-show="lightbox.item.terrestrial || lightbox.item.aquatic || lightbox.item.aerial || lightbox.item.legendary || lightbox.item.shiny">
+                <span x-show="lightbox.item.legendary" class="lightbox-habitat-pill is-legendary">
+                  <svg viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z"/></svg>
+                  Légendaire
+                </span>
+                <span x-show="lightbox.item.shiny" class="lightbox-habitat-pill is-shiny">
+                  <svg viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path d="M12 2l1.6 4.2L18 8l-4.2 1.6L12 14l-1.6-4.4L6 8l4.4-1.8z"/><path d="M19 14l.8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8z"/><path d="M5 16l.6 1.6L7 18l-1.4.4L5 20l-.6-1.6L3 18l1.4-.4z"/></svg>
+                  Shiny
+                </span>
+                <span x-show="lightbox.item.terrestrial" class="lightbox-habitat-pill">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M3 20h18"/><path d="M5 20l2-7 3 4 2-9 3 7 2-4 2 9"/></svg>
+                  Terrestre
+                </span>
+                <span x-show="lightbox.item.aquatic" class="lightbox-habitat-pill">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M2 16c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"/><path d="M2 11c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"/></svg>
+                  Aquatique
+                </span>
+                <span x-show="lightbox.item.aerial" class="lightbox-habitat-pill">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M21 3c-3 6-9 9-15 9 0 4 3 8 8 8 0-3 2-6 5-7"/><path d="M12 12l3-3"/></svg>
+                  Volant
+                </span>
+              </div>
+              <p x-show="lightbox.item.description" class="lightbox-desc" x-text="lightbox.item.description"></p>
+              <div class="lightbox-price">
+                <span class="lightbox-price-value" x-text="(lightbox.item.priceCredits || 0).toLocaleString()"></span>
+                <span class="lightbox-price-unit" x-text="(lightbox.item.priceCredits || 0) > 1 ? (currencyName + 's') : currencyName"></span>
+              </div>
+
+              <!-- Status line for the current user -->
+              <template x-if="user && user.linkedUuid">
+                <p class="lightbox-hint">
+                  Connecté en tant que <strong x-text="user.playerName"></strong> —
+                  solde
+                  <strong x-text="(user.credits || 0).toLocaleString()"></strong>
+                  <span x-text="(user.credits || 0) > 1 ? (currencyName + 's') : currencyName"></span>
+                  <template x-if="(user.credits || 0) < (lightbox.item.priceCredits || 0)">
+                    <span style="color:var(--crimson-bright);margin-left:.4rem;font-weight:600">
+                      (solde insuffisant — il vous manque
+                      <span x-text="((lightbox.item.priceCredits || 0) - (user.credits || 0)).toLocaleString()"></span>
+                      <span x-text="((lightbox.item.priceCredits || 0) - (user.credits || 0)) > 1 ? (currencyName + 's') : currencyName"></span>)
+                    </span>
+                  </template>
+                </p>
+              </template>
+              <template x-if="!user">
+                <p class="lightbox-hint">Identifiez-vous (un code à taper en jeu) pour acheter avec vos crédits.</p>
+              </template>
+
+              <!-- CTA: state-dependent button -->
+              <template x-if="!user">
+                <button type="button" class="lightbox-cta" @click="closeLightbox(); openLinkCode()">
+                  M'identifier
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                </button>
+              </template>
+              <!-- Linked but not enough credits → CTA points to the credit packs section. -->
+              <template x-if="user && user.linkedUuid && (user.credits || 0) < (lightbox.item.priceCredits || 0)">
+                <button type="button" class="lightbox-cta"
+                        @click="closeLightbox(); document.getElementById('packs')?.scrollIntoView({behavior:'smooth'})">
+                  <span style="display:inline-flex;align-items:center;gap:0.5rem">
+                    Acheter des
+                    <span x-text="currencyName + 's'"></span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                  </span>
+                </button>
+              </template>
+              <!-- Linked and balance is sufficient → buy button. -->
+              <template x-if="user && user.linkedUuid && (user.credits || 0) >= (lightbox.item.priceCredits || 0)">
+                <button type="button" class="lightbox-cta"
+                        :disabled="lightbox.loading"
+                        @click="buyMorpho()">
+                  <template x-if="!lightbox.loading">
+                    <span style="display:inline-flex;align-items:center;gap:0.5rem">
+                      Acheter pour
+                      <span x-text="(lightbox.item.priceCredits || 0).toLocaleString()"></span>
+                      <span x-text="(lightbox.item.priceCredits || 0) > 1 ? (currencyName + 's') : currencyName"></span>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </span>
+                  </template>
+                  <template x-if="lightbox.loading">
+                    <span style="display:inline-flex;align-items:center;gap:0.5rem">
+                      <span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,0.3);border-top-color:#000;border-radius:50%;animation:spin 0.8s linear infinite"></span>
+                      Achat en cours...
+                    </span>
+                  </template>
+                </button>
+              </template>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- ══ FOOTER ══ -->
+    <footer class="footer">
+      <div class="footer-divider-glow"></div>
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h3 class="footer-brand-name" x-text="storeName">Arkensia</h3>
+          <p class="footer-brand-tag">
+            Serveur Minecraft Cobblemon premium. Plongez dans une aventure dirigée par le phénix légendaire Ho-oh.
+          </p>
+        </div>
+        <div>
+          <h4 class="footer-col-title">Boutique</h4>
+          <a href="#packs"          class="footer-link">Packs Premium</a><br>
+          <a href="#gallery"        class="footer-link">Galerie des Morphos</a><br>
+          <a href="#play-cosmetics" class="footer-link">Cosmétiques</a>
+        </div>
+        <div>
+          <h4 class="footer-col-title">Communauté</h4>
+          <a href="https://discord.com/invite/fYmPwMBjdB" target="_blank" rel="noopener" class="footer-link">Discord</a>
+        </div>
+        <div>
+          <h4 class="footer-col-title">Légal</h4>
+          <a href="./cgv.html" class="footer-link">Conditions Générales de Vente</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 <span x-text="storeName">Arkensia</span> &mdash; Tous droits réservés.</span>
+        <span>Paiements sécurisés par <span class="text-gray-300">Stripe</span></span>
+      </div>
+    </footer>
+
+  </div>
+
+  <script defer src="./mc-cosmetic-viewer.js"></script>
+  <script src="./store.js"></script>
+</body>
+</html>

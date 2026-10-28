@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "com.cheesevanity.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "client.HandledScreenMixin",
+    "client.ArmorFeatureRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

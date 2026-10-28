@@ -1,0 +1,66 @@
+plugins {
+    id 'fabric-loom' version '1.6.12'
+    id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'Fabric'
+        url = 'https://maven.fabricmc.net/'
+    }
+    // Local flat-dir for bundled (JiJ) mod jars that aren't on a Maven repo (sgui).
+    // flatDir gives Loom the group:name:version metadata it needs to nest the jar.
+    flatDir { dirs 'libs' }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // CheeseDash — required dependency for dashboard integration
+    modImplementation files("../CheeseDash/build/libs/cheesedash-1.0.0.jar")
+    // CheeseItems — required for morpho catalog + codex inter-mod calls
+    modImplementation files("../CheeseItems/build/libs/cheeseitems-1.0.0.jar")
+
+    // sgui — server-side chest GUI library (Patbox), powers the in-game /cosmetics menu.
+    // modImplementation so Loom remaps intermediary → yarn for the sgui API;
+    // include(...) (JiJ) so it ships bundled inside the CheeseStore jar (no separate install).
+    // Resolved from the flatDir repo above (coordinate notation gives Loom JiJ metadata).
+    modImplementation(group: '', name: 'sgui', version: '1.6.1')
+    include(group: '', name: 'sgui', version: '1.6.1')
+
+    implementation 'com.google.code.gson:gson:2.10.1'
+}
+
+processResources {
+    inputs.property "version", project.version
+    filesMatching("fabric.mod.json") { expand "version": project.version }
+
+    // Copy public storefront files into resources/store/
+    from("${projectDir}/store") { into "store" }
+
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 21
+    it.options.encoding = 'UTF-8'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+    withSourcesJar()
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_${project.archivesBaseName}" }
+    }
+}

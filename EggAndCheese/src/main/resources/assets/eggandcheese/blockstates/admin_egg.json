@@ -1,0 +1,1 @@
+{"variants":{"facing=north":{"model":"eggandcheese:block/admin_egg"},"facing=south":{"model":"eggandcheese:block/admin_egg","y":180},"facing=west":{"model":"eggandcheese:block/admin_egg","y":270},"facing=east":{"model":"eggandcheese:block/admin_egg","y":90}}}

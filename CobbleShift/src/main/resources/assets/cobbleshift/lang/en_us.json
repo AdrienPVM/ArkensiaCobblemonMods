@@ -1,0 +1,52 @@
+{
+  "key.cobbleshift.sleep": "Toggle Sleep Pose",
+  "key.cobbleshift.cry": "Play Cry",
+  "category.cobbleshift": "CobbleShift",
+
+  "cobbleshift.transform.success": "\u2726 %s transformed into %s",
+  "cobbleshift.transform.failed": "Failed: species '%s' not found or Cobblemon not available",
+  "cobbleshift.revert.success": "\u2726 %s \u2014 transformation reverted",
+  "cobbleshift.revert.not_transformed": "%s is not transformed",
+  "cobbleshift.revert_all.success": "\u2726 %s transformation(s) reverted",
+
+  "cobbleshift.ability.forced": "\u2726 Ability forced for %s \u2192 %s",
+  "cobbleshift.ability.cleared": "\u2726 Forced ability removed for %s \u2014 back to auto mode",
+  "cobbleshift.ability.global_toggle": "\u2726 Global abilities %s",
+  "cobbleshift.ability.global_enabled": "enabled",
+  "cobbleshift.ability.global_disabled": "disabled",
+  "cobbleshift.ability.player_toggle": "\u2726 Abilities %s for %s",
+  "cobbleshift.ability.player_enabled": "enabled",
+  "cobbleshift.ability.player_disabled": "disabled",
+
+  "cobbleshift.status.header": "CobbleShift Status",
+  "cobbleshift.status.transforms_active": "Active transforms: %s",
+  "cobbleshift.status.abilities_active": "Active abilities: %s",
+  "cobbleshift.status.global_abilities": "Global abilities: %s",
+
+  "cobbleshift.species.not_found": "Species '%s' not found",
+  "cobbleshift.species.header": "%s",
+
+  "cobbleshift.npc.look_required": "Look at an NPC to transform it",
+  "cobbleshift.npc.not_easynpc": "This entity is not an EasyNPC",
+  "cobbleshift.npc.transform_success": "\u2726 NPC transformed into %s",
+  "cobbleshift.npc.transform_failed": "Failed: species '%s' not found",
+  "cobbleshift.npc.revert_look_required": "Look at an NPC to revert its transformation",
+  "cobbleshift.npc.revert_success": "\u2726 NPC transformation reverted",
+  "cobbleshift.npc.not_transformed": "This NPC is not transformed",
+  "cobbleshift.npc.revert_all": "\u2726 %s NPC transformation(s) reverted",
+  "cobbleshift.npc.look_required_scale": "Look at an NPC to change its scale",
+  "cobbleshift.npc.scale_set": "\u2726 NPC scale \u2192 %s",
+  "cobbleshift.npc.look_required_speed": "Look at an NPC to change its speed",
+  "cobbleshift.npc.speed_set": "\u2726 NPC speed \u2192 %sx",
+
+  "cobbleshift.scale.not_transformed": "%s is not transformed",
+  "cobbleshift.scale.set": "\u2726 Scale of %s \u2192 %s",
+  "cobbleshift.speed.set": "\u2726 Speed of %s \u2192 %sx",
+
+  "cobbleshift.player.cooldown": "\u26D4 Cooldown: %ss before transforming again.",
+  "cobbleshift.player.transformed": "\u2726 You are transformed into %s!",
+  "cobbleshift.player.reverted": "\u2726 Transformation reverted.",
+  "cobbleshift.player.duration_expired": "\u23F0 Max transformation duration reached!",
+
+  "cobbleshift.client.sleeping": "Zzz..."
+}

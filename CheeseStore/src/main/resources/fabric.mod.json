@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "cheesestore",
+  "version": "${version}",
+  "name": "CheeseStore",
+  "description": "Premium store with Stripe payments and CheeseDash admin panel",
+  "authors": ["RoiCheese"],
+  "contact": {
+    "homepage": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "sources": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "issues": "https://github.com/AdrienPVM/ArkensiaCobblemonMods/issues"
+  },
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.cheesestore.CheeseStoreMod"
+    ],
+    "cheesedash": [
+      "com.cheesestore.dashboard.CheeseStoreDashboardModule"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*",
+    "cheesedash": "*",
+    "cheeseitems": "*"
+  }
+}

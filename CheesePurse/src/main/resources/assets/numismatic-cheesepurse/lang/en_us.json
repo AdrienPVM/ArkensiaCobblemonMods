@@ -1,0 +1,4 @@
+{
+  "numismaticheesepurse.button.tooltip.enabled": "Cheesepurse: ON\nCoins picked up are automatically deposited into your purse.",
+  "numismaticheesepurse.button.tooltip.disabled": "Cheesepurse: OFF\nClick to automatically deposit picked-up coins into your purse."
+}

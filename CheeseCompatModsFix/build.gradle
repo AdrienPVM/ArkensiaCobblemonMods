@@ -1,0 +1,92 @@
+plugins {
+    id 'fabric-loom' version '1.10.5'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'Fabric'
+        url = 'https://maven.fabricmc.net/'
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+    // Fabric API — commands, events, networking
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // Battle Tower + Cobblemon — modCompileOnly so Loom remaps intermediary->yarn for hierarchy resolution
+    compileOnly files("../localdeps/cobblemon_battle_tower-fabric-1.7.11+1.6.1.jar")
+    compileOnly files("../localdeps/Cobblemon-fabric-1.6.1+1.21.1.jar")
+
+    // Legendary Monuments — modCompileOnly so Loom remaps intermediary->yarn for hierarchy resolution
+    modCompileOnly files("../localdeps/LegendaryMonuments-7.2.jar")
+
+    // Minerally — for OrePile mixin (JustHammers crash fix)
+    modCompileOnly files("../localdeps/minerally-1.21-1.21.jar")
+
+    // CobbleSafari — modCompileOnly so Loom remaps intermediary for hierarchy resolution
+    modCompileOnly files("../localdeps/cobblesafari-fabric-1.21.1-0.1.5.jar")
+
+    // CobblemonTrialsEdition — for Natures static method bridge (Cobblemon 1.6.x compat)
+    compileOnly files("../localdeps/CobblemonTrialsEdition-fabric-1.2.2.jar")
+
+    // CobblemonRaidDens — modCompileOnly so Loom remaps intermediary for hierarchy resolution
+    modCompileOnly files("../localdeps/cobblemonraiddens-fabric-0.4.7+1.21.1.jar")
+
+    // Academy (StarAcademy) — for SlingshotEntity mixin (uncatchable boss protection)
+    modCompileOnly files("../localdeps/academy-mc1.21.1-v1.4.0+build.467-fabric.jar")
+
+    // EnhancedCelestials — for the lunar fallback mixin (cheeseguard:* dims inherit arkensia settings)
+    modCompileOnly files("../localdeps/Enhanced-Celestials-Fabric-1.21.1-6.0.2.5.jar")
+    // DataAnchor — superclass of EnhancedCelestialsLunarForecastWorldData (SyncedLevelTrackedData)
+    modCompileOnly files("../localdeps/Data_Anchor-fabric-1.21.1-2.0.0.12.jar")
+
+    // DaycarePlus — for IV inheritance mixin (competitive mode vanilla IVs)
+    compileOnly files("../localdeps/daycareplus-1.1.0+1.21.1.jar")
+
+    // fightorflight — modCompileOnly so Loom remaps intermediary→yarn for hierarchy
+    modCompileOnly files("../localdeps/fightorflight-fabric-0.9.0.jar")
+
+    // ExtraQuests + FTB Quests — modCompileOnly for hierarchy resolution
+    modCompileOnly files("../localdeps/ExtraQuests-1.5.3-1.21.1-Fabric.jar")
+    modCompileOnly files("../localdeps/ftb-quests-fabric-2101.1.13.jar")
+
+    // sgui — extracted from DaycarePlus JiJ, needed for DaycareGUIToggleMixin
+    // modCompileOnly so Loom remaps intermediary → yarn (sgui API uses Item/ItemStack)
+    modCompileOnly files("libs/sgui-1.6.1+1.21.1.jar")
+
+    // JourneyMap (client-only) — for EntityHelper getIconData mixin to fix Seavlian fakemon icons
+    modCompileOnly files("libs/journeymap-fabric-1.21.1-6.0.0-beta.47.jar")
+
+    // numismatic-overhaul — for the ShopBlockEntityRender distance-cull mixin (client-only FPS opt)
+    compileOnly files("../localdeps/numismatic-overhaul-0.3.4+1.21.jar")
+
+    // Kotlin stdlib — needed to compile against Cobblemon's Kotlin classes
+    compileOnly "org.jetbrains.kotlin:kotlin-stdlib:2.0.21"
+
+    implementation 'com.google.code.gson:gson:2.10.1'
+}
+
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 21
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}

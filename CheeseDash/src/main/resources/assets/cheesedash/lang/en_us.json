@@ -1,0 +1,23 @@
+{
+  "category.cheesedash": "CheeseDash",
+  "key.cheesedash.quick_menu": "Open CheeseDash Quick Menu",
+  "modmenu.summary.cheesedash": "Web administration dashboard for Arkensia mods",
+
+  "cheesedash.quickmenu.title": "CheeseDash \u2014 Quick Menu",
+  "cheesedash.quickmenu.add_shortcut": "+ Add a shortcut",
+  "cheesedash.quickmenu.name_placeholder": "Shortcut name...",
+  "cheesedash.quickmenu.command_placeholder": "/command...",
+  "cheesedash.quickmenu.add": "Add",
+  "cheesedash.quickmenu.cancel": "Cancel",
+  "cheesedash.quickmenu.empty": "No shortcuts configured.",
+  "cheesedash.quickmenu.empty_hint": "Press '+' to add one.",
+
+  "cheesedash.scheduler.cancelled": "%s cancelled.",
+  "cheesedash.scheduler.saving": "Saving worlds...",
+  "cheesedash.scheduler.save_done": "Save complete.",
+  "cheesedash.scheduler.stopping": "Server stopping...",
+  "cheesedash.scheduler.countdown": "%s in %s...",
+  "cheesedash.scheduler.type.restart": "Restart",
+  "cheesedash.scheduler.type.stop": "Shutdown",
+  "cheesedash.scheduler.type.maintenance": "Maintenance"
+}

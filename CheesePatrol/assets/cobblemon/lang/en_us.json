@@ -1,0 +1,1240 @@
+{
+###species###
+
+#tuligant#
+  "cobblemon.species.tuligant.name": "Tuligant",
+  "cobblemon.species.tuligant.desc": "An alternate evolution of Petilil, and a counterpart of Lilligant. It uses the flower atop its head to absorb moonlight to help it grow. It is said that a Tuligant's petals can revive people from their deathbeds... But at the cost of a terrible curse.",
+
+#papersol#
+  "cobblemon.ui.pokedex.info.form.papersol": "Red",
+  "cobblemon.ui.pokedex.info.form.papersol-yellow": "Yellow",
+  "cobblemon.ui.pokedex.info.form.papersol-green": "Green",
+  "cobblemon.ui.pokedex.info.form.papersol-blue": "Blue",
+  "cobblemon.ui.pokedex.info.form.papersol-light_blue": "Light Blue",
+  "cobblemon.ui.pokedex.info.form.papersol-pink": "Pink",
+  "cobblemon.species.papersol.name": "Papersol",
+  "cobblemon.species.papersol.desc": "The parasol on its head protects its paper body from wrinkling in the harsh sunlight. Despite resembling an umbrella this Pokémon is made of paper so it avoids the rain at all costs.",
+
+#umbrelligant#
+  "cobblemon.ui.pokedex.info.form.umbrelligant": "Red",
+  "cobblemon.ui.pokedex.info.form.umbrelligant-yellow": "Yellow",
+  "cobblemon.ui.pokedex.info.form.umbrelligant-green": "Green",
+  "cobblemon.ui.pokedex.info.form.umbrelligant-blue": "Blue",
+  "cobblemon.ui.pokedex.info.form.umbrelligant-light_blue": "Light Blue",
+  "cobblemon.ui.pokedex.info.form.umbrelligant-pink": "Pink",
+  "cobblemon.species.umbrelligant.name": "Umbrelligant",
+  "cobblemon.species.umbrelligant.desc": "Using its stilt-like legs, this Pokémon walks across rivers and ponds to keep cool without risk of its paper body touching the water. The parasol on its head protects it from the harsh summer sun.",
+
+#pillowisp#
+  "cobblemon.ui.pokedex.info.form.pillowisp": "Sweet Dreams",
+  "cobblemon.ui.pokedex.info.form.pillowisp-baddreams": "Bad Dreams",
+  "cobblemon.species.pillowisp.name": "Pillowisp",
+  "cobblemon.species.pillowisp.desc": "When a pillow is inhabited by a wandering spirit laying to rest, it becomes this Pokémon. Its pillowcase body is filled with magic sand that inherits the Pokemon’s dreams. It is said that if you lay your head on this Pokémon’s pillow-like body, you will dream happy dreams.",
+  "cobblemon.species.pillowisp_bad.desc": "When a pillow is inhabited by a wandering spirit laying to rest, it becomes this Pokémon. Its pillowcase body is filled with magic sand that inherits the Pokémon’s dreams. It is said that if you lay your head on this Pokémon’s pillow-like body, you will be tormented by nightmares.",
+
+#dreaneuma#
+  "cobblemon.species.dreaneuma.name": "Dreaneuma",
+  "cobblemon.species.dreaneuma.desc": "After being imbued with positive thoughts, this Pokémon has evolved. Under the light of the full moon, it enters into people’s homes to sprinkle its magic sand around their beds. The sand that makes up its body is said to fill people’s dreams with peace and happiness.",
+
+#phantasmare#
+  "cobblemon.species.phantasmare.name": "Phantasmare",
+  "cobblemon.species.phantasmare.desc": "After being imbued with negative thoughts, this Pokémon has evolved. In the darkness of the New Moon, this Pokémon sneaks into people’s bedrooms to sprinkle their beds with its magic sand. The sand that makes up its body induces terrifying nightmares.",
+
+#slugrit#
+  "cobblemon.species.slugrit.name": "Slugrit",
+  "cobblemon.species.slugrit.desc": "A convergent evolution that resembles Slugma. Its body is made entirely of sand and rock. It lays flat in the sun to keep itself heated, blending in with the desert terrain.",
+
+#dunecargo#
+  "cobblemon.species.dunecargo.name": "Dunecargo",
+  "cobblemon.species.dunecargo.desc": "A convergent evolution that resembles Magcargo. The large rock shell on its back is full of the sand that makes up its body. It travels with the wind, wandering slowly across the dunes. When confronted, it throws burning hot sand at its foes.",
+
+#lucario#
+  "cobblemon.species.lucario-midnight.name": "Lucario",
+  "cobblemon.ui.pokedex.info.form.lucario-midnight": "Midnight",
+  "cobblemon.ui.pokedex.info.form.lucario-megamidnight": "Mega Midnight",
+  "cobblemon.species.lucario-midnight.desc": "Its fighting style is ruthless and brutal, and it shows its opponents no mercy. Its aura is overflowing, allowing it to sense its opponent's moves before they even make them. When the eyes on its hands open, it launches bursts of aura that can turn steel into dust.",
+  "cobblemon.species.lucario-mega-midnight.desc": "It radiates a powerful aura due to the power of Mega Evolution. Using this power, it can fire off pulses of aura that can shatter solid diamond. It has no mercy in its heart.",
+
+#ralts#
+  "cobblemon.ui.pokedex.info.form.ralts": " ",
+  "cobblemon.ui.pokedex.info.form.ralts-midnight": "Midnight",
+  "cobblemon.species.ralts-midnight.name": "Ralts",
+  "cobblemon.species.ralts-midnight.desc": "Ralts senses the emotions of people using the horns on its head, and feeds off of the fear of others... Unfortunately, its also a scaredy-cat itself. It will often jump out to scare people, only to get spooked when they scream.",
+
+#kirlia#
+  "cobblemon.ui.pokedex.info.form.kirlia": " ",
+  "cobblemon.ui.pokedex.info.form.kirlia-midnight": "Midnight",
+  "cobblemon.species.kirlia-midnight.name": "Kirlia",
+  "cobblemon.species.kirlia-midnight.desc": "It is said that a Kirlia will absorb the negative emotions of its trainer. This Pokémon prefers to keep to itself, picking petals off of flowers and thinking melancholy thoughts.",
+
+#gardevoir#
+  "cobblemon.ui.pokedex.info.form.gardevoir-midnight": "Midnight",
+  "cobblemon.ui.pokedex.info.form.gardevoir-megamidnight": "Mega Midnight",
+  "cobblemon.species.gardevoir-midnight.name": "Gardevoir",
+  "cobblemon.species.gardevoir-midnight.desc": "It uses its elegant appearance to lure people in, giving them a false sense of security before biting their neck and draining them of their vitality. Despite being known for its vanity, many folktales claim that this Pokémon has no reflection.",
+  "cobblemon.species.gardevoir-mega-midnight.desc": "The immense energy brought upon by Mega Evolution grants it immense power, but at a cost of triggering its appetite. If its trainer isn't careful, Gardevoir may try to sneak a bite to drain some of their vitality.",
+
+#gallade#
+  "cobblemon.ui.pokedex.info.form.gallade-midnight": "Midnight",
+  "cobblemon.ui.pokedex.info.form.gallade-megamidnight": "Mega Midnight",
+  "cobblemon.species.gallade-midnight.name": "Gallade",
+  "cobblemon.species.gallade-midnight.desc": "This Pokémon has the ability to disappear into shadows. It uses this skill to ambush people and Pokémon, incapacitating them with its blades before draining them of their vitality. People who live near its territory caution to stay away from shady locations.",
+  "cobblemon.species.gallade-mega-midnight.desc": "By channeling the power of Mega Evolution, it can cast the area around it in shadows even under the brightest sunlight.",
+
+#pumpkaboom#
+  "cobblemon.ui.pokedex.info.form.pumpkaboom": "Average Size",
+  "cobblemon.ui.pokedex.info.form.pumpkaboom-small": "Small Size",
+  "cobblemon.ui.pokedex.info.form.pumpkaboom-large": "Large Size",
+  "cobblemon.ui.pokedex.info.form.pumpkaboom-super": "Super Size",
+  "cobblemon.species.pumpkaboom.name": "Pumpkaboom",
+  "cobblemon.species.pumpkaboom.desc": "Kaboom! This convergent evolution of Pumpkaboo is full of explosive energy. Its internal flame is bursting with heat, and it loves to sneak up on people before frightening them with a huge explosion.",
+
+#gourgrenade#
+  "cobblemon.ui.pokedex.info.form.gourgrenade": "Average Size",
+  "cobblemon.ui.pokedex.info.form.gourgrenade-small": "Small Size",
+  "cobblemon.ui.pokedex.info.form.gourgrenade-large": "Large Size",
+  "cobblemon.ui.pokedex.info.form.gourgrenade-super": "Super Size",
+  "cobblemon.species.gourgrenade.name": "Gourgrenade",
+  "cobblemon.species.gourgrenade.desc": "Gourgrenade is a convergent evolution of Gourgeist. In the dark of night, it awakens from its pumpkin patch searching for unsuspecting victims. When it finds one, it showers pumpkin grenades around them in an attempt to scare them.",
+
+#norstar#
+  "cobblemon.species.norstar.name": "Norstar",
+  "cobblemon.species.norstar.desc": "Despite looking like a starfish, it's actually made entirely of magnetic metals. The magnetic pull of the planet allows it to balance perfectly straight on the tip of its bottom leg.",
+
+#starstellar#
+  "cobblemon.ui.pokedex.info.form.starstellation": " ",
+  "cobblemon.ui.pokedex.info.form.starstellation-mega": "Mega",
+  "cobblemon.species.starstellation.name": "Starstellar",
+  "cobblemon.species.starstellation.desc": "It uses its six legs to redirect magnetic fields. Some say they are even able to direct the stars with this power.",
+  "cobblemon.species.starstellation-mega.desc": "Mega Starstellar is seemingly designed for spcae travel, being able to withstand the cold darkness of the cosmos. Some theorize this is the form it had before it came to this planet.",
+
+#hatenna#
+  "cobblemon.ui.pokedex.info.form.hatenna": " ",
+  "cobblemon.ui.pokedex.info.form.hatenna-midnight": "Midnight",
+  "cobblemon.species.hatenna-midnight.desc": "This Pokémon is sensitive to human emotions. Because of this, it does everything it can to keep people happy. It uses its hat to perform all sorts of tricks to impress others.",
+
+#hattrix#
+  "cobblemon.species.hattrix.name": "Hattrix",
+  "cobblemon.species.hattrix.desc": "Hattrix uses the braids on its head to juggle fireballs. It puts on performances to cheer people up when they're sad, because its sensitive to negative emotion.",
+
+#hattertainer#
+  "cobblemon.ui.pokedex.info.form.hattertainer": " ",
+  "cobblemon.ui.pokedex.info.form.hattertainer-gmax": "Gigantamax",
+  "cobblemon.species.hattertainer.name": "Hattertainer",
+  "cobblemon.species.hattertainer.desc": "It can't stand long periods of silence, so it often goes out of its way to be around others. In an attempt to keep people happy, it likes to put on grand and over-the-top performances to wow the audience. If it senses negative emotions like anger, jealousy, or annoyance, it adopts those emotions and retaliate with a flaming whip.",
+  "cobblemon.species.hattertainer-gmax.desc": "It hides inside of its hat waiting for someone to approach. Because of its size, its not very discrete... When it bursts out in a fiery explosion, it gets confused as to why people are running in fear instead of cheering.",
+
+#goodra#
+  "cobblemon.ui.pokedex.info.form.goodra-bogland": "Boglands",
+  "cobblemon.ui.pokedex.info.form.goodra-wetland": "Wetlands",
+  "cobblemon.species.goodra-bogland.desc": "To survive in the muddy boglands, Goodra developed more potent toxins within its slime. It lays down in the mud all day long to keep its skin from drying out, and to conserve its energy. Its metabolism is slow but efficient, allowing it survive longer off of less food. This is what gives it its sluggish demeanor.",
+  "cobblemon.species.goodra-wetland.desc": "To survive in flooded wetlands, Goodra's body adapted to a more aquatic lifestyle. Its blubber allows it to float on top of the water with ease. It is often seen drifting down river rapids at high speeds, seemingly as a form of play.",
+
+#fomantis#
+  "cobblemon.ui.pokedex.info.form.fomantis": " ",
+  "cobblemon.ui.pokedex.info.form.lurantis": " ",
+  "cobblemon.species.fomantis_lunar.name": "Fomantis",
+  "cobblemon.species.fomantis_lunar.desc": "Unlike its tropical counterpart, this form of Fomantis is nocturnal. It awakens from its slumber to bask in the full moon's light, using this energy for photosynthesis. The light of the moon strengthens its psychic powers.",
+
+#lurantis#
+  "cobblemon.ui.pokedex.info.form.fomantis-lunar": "Lunar",
+  "cobblemon.ui.pokedex.info.form.lurantis-lunar": "Lunar",
+  "cobblemon.species.lurantis_lunar.desc": "This Pokémon uses its orchid-like appearance to blend into its surrounding as it soaks in moonlight. Although it resembles a bug, its actually a flower. It goes into a mantis-like stance and attacks with psychic blades when threatened by bug types drawn to its scent.",
+
+#falinks#
+  "cobblemon.ui.pokedex.info.form.falinks": " ",
+  "cobblemon.ui.pokedex.info.form.falinks-lastsoldier": "The Last Soldier",
+  "cobblemon.ui.pokedex.info.form.falinks-gunslinger": "Gunslinger",
+  "cobblemon.ui.pokedex.info.form.falinks-megalastsoldier": "Mega Last Soldier",
+  "cobblemon.ui.pokedex.info.form.falinks-megagunslinger": "Mega Gunslinger",
+  "cobblemon.species.falinks-last-soldier.desc": "Even after losing its five troopers in battle, the Last Soldier refuses to retreat. Its fallen comrades continue to fight alongside their leader, empowering them with ghostly aura. This power allows it to face even the strongest armies without faltering.",
+  "cobblemon.species.falinks-gunslinger.desc": "The five individuals stack on top of each other, acting as one. Their towering position allows them to more easily aim and fire with the cannons on their heads, with less risk of friendly fire. The brass on the top of the stack commands the bottom-most trooper and directs them in the direction it wants to go.",
+  "cobblemon.species.falinks-last-soldier-mega.desc": "Through the power of Mega Evolution, the Last Soldier becomes one with its fallen troops. Theirs souls link together to form an unstoppable force able to topple a thousand armies.",
+  "cobblemon.species.falinks-gunslinger-mega.desc": "Through the power of Mega Evolution, all five troops combined together to form a tank. They work in unison to pilot the machine that is their body. The brass that make up the wheels of the treads get dizzy from rotating after long journeys.",
+
+#nosepyre#
+  "cobblemon.species.nosepyre.name": "Nosepyre",
+  "cobblemon.species.nosepyre.desc": "There is a perpetual motion machine within the body of this Pokémon. It is said that as long as the machine keeps moving, the flame on its head will continue to spin. When its flame stops spinning, so does its life.",
+
+#gildenose#
+  "cobblemon.species.gildenose.name": "Gildenose",
+  "cobblemon.species.gildenose.desc": "The raging fire within this Pokémon has been quenched, granting it an enlightened peace of mind. Gildenose has mastered regeneration, it is said that if you perform an age-old dance of generations, you will be gifted with life-giving flowers.",
+
+#noseferatu#
+  "cobblemon.species.noseferatu.name": "Noseferatu",
+  "cobblemon.species.noseferatu.desc": "After being exposed to the power of amethyst, this Pokémon was imbued with dark energy allowing it to evolve. It uses its crystal pendent to control the floating amethyst around it. These amethyst crystals can fire beams of energy to attack its foes.",
+
+#djinnferno#
+  "cobblemon.species.djinnferno.name": "Djinnferno",
+  "cobblemon.species.djinnferno.desc": "The infinite flames within its stone body have burst out, granting it immense power. Its body is made entirely of spiritual flames, causing its appearance to resemble that of a genie... Some say that its fire can burn away the impurities of the soul, but none who have attempted have survived.",
+
+#regisculk#
+  "cobblemon.species.regisculk.name": "Regisculk",
+  "cobblemon.species.regisculk.desc": "Its entire body is comprised of Sculk. The Pokémon's origins are a complete mystery, all that is known about it is that it was hidden away in the Ancient Cities long ago. It is unclear if this Pokémon has any connection to Regigigas, or if the resemblence has a more sinister explanation.",
+
+#carbink#
+  "cobblemon.ui.pokedex.info.form.carbink": " ",
+  "cobblemon.ui.pokedex.info.form.carbink-amethystcrystal": "Amethyst Crystal",
+  "cobblemon.ui.pokedex.info.form.carbink-emeraldcrystal": "Emerald Crystal",
+  "cobblemon.ui.pokedex.info.form.carbink-echoshardcrystal": "Echo Shard Crystal",
+  "cobblemon.ui.pokedex.info.form.carbink-quartz": "Quartz Crystal",
+  "cobblemon.species.carbink-amethyst.desc": "This form of Carbink is born during the formation of underground geodes. When light refracts through its amethyst crystals, its psychic powers awaken.",
+  "cobblemon.species.carbink-emerald.desc": "This form of Carbink is born from the high pressure when mountains form. Its emerald-green glow makes it a favorite of the Villagers.",
+  "cobblemon.species.carbink-echo.desc": "This form of Carbink is only found in the deepest darkest depths of the caves. It is unknown how it came into being... Its body reverberates with sound, said to be echoes of the past.",
+  "cobblemon.species.carbink-quartz.desc": "This form of Carbink is born from sediment that was compressed and heated from the Nether's volcanic activity. Its crystals have a glass-like structure, making them very sharp.",
+
+#clarissie#
+  "cobblemon.species.clarissie.name": "Clarissie",
+  "cobblemon.species.clarissie.desc": "By exerting its psychic powers, Clarissie has to power to create amethyst crystals between its hands. It can shoot beams of light through its crystals to amplify their power.",
+
+#beryllius#
+  "cobblemon.species.beryllius.name": "Beryllius",
+  "cobblemon.species.beryllius.desc": "Beryllius is able to channel the energy of the earth to create emeralds between its hands. Because of this, it sees no value in traditional wealth, rather it gifts its gemstones to young children who better appreciate their splendor.",
+
+#echolyte#
+  "cobblemon.species.echolyte.name": "Echolyte",
+  "cobblemon.species.echolyte.desc": "This Pokémon is so rarely seen that many scientists debate whether or not its truly alive. The shards that encircle its body protect its soft spirit-like core. Few people have seen it without its outer shell.",
+
+#velvettia#
+  "cobblemon.species.velvettia.name": "Velvettia",
+  "cobblemon.species.velvettia.desc": "This Pokémon is meticulous in keeping its crystals pristine. If it gets so much as a scratch, it will retaliate by piercing its foe using its own body as a spear. It makes sure to clean and sharpen its crystals after every battle.",
+
+#phantump#
+  "cobblemon.ui.pokedex.info.form.phantump": " ",
+  "cobblemon.ui.pokedex.info.form.phantump-pale": "Pale Garden",
+  "cobblemon.species.phantump-pale.name": "Phantump",
+  "cobblemon.species.phantump-pale.desc": "The spirit of a deceased Phantump. Its wooden body has long-since petrified, becoming hard as stone. During the day it remains as still as a statue, but at night it stirs from its slumber to wander the pale forest it calls home.",
+
+#trevenant#
+  "cobblemon.ui.pokedex.info.form.trevenant": " ",
+  "cobblemon.ui.pokedex.info.form.trevenant-pale": "Pale Garden",
+  "cobblemon.species.trevenant-pale.name": "Trevenant",
+  "cobblemon.species.trevenant-pale.desc": "In the dark of the night, it lurks through the dead and decaying forest it used to live in when it was alive. It unleashes the forest's rage on those who tarnished its homeland, and brutally attacks any intruders who enter its domain. Its body is made of petrified wood.",
+
+#flabebe#
+  "cobblemon.ui.pokedex.info.form.flabebe-allay": "Allay",
+  "cobblemon.species.flabebe-allay.name": "Flabébé",
+  "cobblemon.species.flabebe-allay.desc": "Its body is as light as a feather, letting its wings guide it through wind currents to travel the world. As it flies it hums a beautiful tune.",
+
+#alloette#
+  "cobblemon.ui.pokedex.info.form.alloette": " ",
+  "cobblemon.ui.pokedex.info.form.alloette-vex": "Vex",
+  "cobblemon.ui.pokedex.info.form.alloette-mega": "Mega",
+  "cobblemon.ui.pokedex.info.form.alloette-megavex": "Mega Vex",
+  "cobblemon.species.alloette.name": "Alloette",
+  "cobblemon.species.alloette-vex.name": "Alloette",
+  "cobblemon.species.alloette.desc": "It glides through the meadows singing a graceful lullaby. If it hears music, it can't help but be drawn to it and dance around. They say that if you give an Alloette a gift, it will be loyal to you for the rest of its life.",
+  "cobblemon.species.alloette-vex.desc": "An Alloette corrupted and changed by dark magic. Its once cheerful demeanor has been replaced with that of a malicious prankster. It fights expertly using an iron sword, swinging and slashing its foes to pieces as it giggles with mischievous glee.",
+  "cobblemon.species.alloette-mega.desc": "Through the power of Mega Evolution, Alloette's soul has split into two. The two halves work together in unison, bound together by the amethyst crystal they carry between them.",
+  "cobblemon.species.alloette-vex-mega.desc": "The hatred in its heart has grown strong, bursting from its chest and taking complete control over its soul. The bond it has with its trainer is the only thing keeping it alive.",
+
+#tangela#
+  "cobblemon.ui.pokedex.info.form.tangela": " ",
+  "cobblemon.ui.pokedex.info.form.tangela-lushcave": "Lush Cave",
+  "cobblemon.species.tangela-lush.name": "Tangela",
+  "cobblemon.species.tangela-lush.desc": "Thick moss and vines cover its whole body, preventing anyone from seeing its true appearance. It has an intense fear of the dark, but fears showing its face even more. Because of this, it will stubbornly hide in the shadows if anyone approaches, even despite its fear.",
+
+#tanglare#
+  "cobblemon.ui.pokedex.info.form.tanglare": " ",
+  "cobblemon.ui.pokedex.info.form.tanglare-mega": "Mega",
+  "cobblemon.species.tanglare.name": "Tanglare",
+  "cobblemon.species.tanglare.desc": "Because its entire body is obscured by moss and vines, scientists are unsure how it propels itself through the air. When threatened, it will shake its body to create a cloud of spores before disapearing into the shadows.",
+  "cobblemon.species.tanglare-mega.desc": "Mega Evolution has caused its flowers to bloom much larger and brighter than before. Using the vine on its head its able to hang down from cave ceilings, letting its spores drift down below.",
+
+#golett#
+  "cobblemon.ui.pokedex.info.form.golett": " ",
+  "cobblemon.ui.pokedex.info.form.golett-copper": "Copper",
+  "cobblemon.ui.pokedex.info.form.golett-exposedcopper": "Exposed Copper",
+  "cobblemon.ui.pokedex.info.form.golett-weatheredcopper": "Weathered Copper",
+  "cobblemon.ui.pokedex.info.form.golett-oxidizedcopper": "Oxidized Copper",
+  "cobblemon.species.golett-copper.name": "Golett",
+  "cobblemon.species.golett-copper.desc": "Its been alive for thousands of years, recharging its power by standing in lightning storms. If it doesn't stay active enough, it will slowly oxidize over time. The more oxidization it has, the slower it moves.",
+
+#golurk#
+  "cobblemon.ui.pokedex.info.form.golurk": " ",
+  "cobblemon.ui.pokedex.info.form.golurk-copper": "Copper",
+  "cobblemon.ui.pokedex.info.form.golurk-exposedcopper": "Exposed Copper",
+  "cobblemon.ui.pokedex.info.form.golurk-weatheredcopper": "Weathered Copper",
+  "cobblemon.ui.pokedex.info.form.golurk-oxidizedcopper": "Oxidized Copper",
+  "cobblemon.ui.pokedex.info.form.golurk-megacopper": "Mega Copper",
+  "cobblemon.ui.pokedex.info.form.golurk-megaexposedcopper": "Mega Exposed Copper",
+  "cobblemon.ui.pokedex.info.form.golurk-megaweatheredcopper": "Mega Weathered Copper",
+  "cobblemon.ui.pokedex.info.form.golurk-megaoxidizedcopper": "Mega Oxidized Copper",
+  "cobblemon.species.golurk-copper.name": "Golurk",
+  "cobblemon.species.golurk-copper.desc": "The mechanism within its body is said to produce never-ending lightning storms. It patrols the ancient chambers from which it was created. The only thing that stops it from its mission is its copper body aging with time. Once its oxidization reaches critical levels, it stops moving.",
+  "cobblemon.species.golurk-copper-mega.desc": "The massive copper chest it carries is filled with pure Infinity Energy. If opened even a crack, the energy that spills out is enough to power an entire city.",
+
+#clawviathan#
+  "cobblemon.species.clawviathan.name": "Clawviathan",
+  "cobblemon.species.clawviathan.desc": "Clawviathan lives in the deepest trenches of the ocean, propelling itself through the depths by shooting water through its claws. When threatened it blasts its opponent to shreds with draconic energy. Though rare, it has been recorded to sometimes blast holes in the bottom of ships crossing over its territory.",
+
+#spiritube#
+  "cobblemon.species.spiritube.name": "Spiritube",
+  "cobblemon.species.spiritube.desc": "This Pokémon was born when 108 spirits became trapped within a television broadcast. It remains dormant within its CRT Television, waiting for an unsuspecting person to turn on the TV.",
+
+#dhelmise#
+  "cobblemon.ui.pokedex.info.form.dhelmise": " ",
+  "cobblemon.ui.pokedex.info.form.dhelmise-sculk": "Sculk",
+  "cobblemon.species.dhelmise-sculk.name": "Dhelmise",
+  "cobblemon.species.dhelmise-sculk.desc": "When reanimated Sculk wrapped around a large ancient pickaxe this Pokémon was born. The Sculk covering the pickaxe is actually its body, and it uses the tool to dig through the caves looking for unsuspecting individuals lost in the mines. If it finds its prey, it wraps their bodies in Sculk before leeching away their vitality.",
+
+#meloetta#
+  "cobblemon.ui.pokedex.info.form.meloetta-soprano": "Soprano Forme",
+  "cobblemon.ui.pokedex.info.form.meloetta-acoustic": "Acoustic Forme",
+  "cobblemon.species.meloetta-soprano.name": "Meloetta",
+  "cobblemon.species.meloetta-acoustic.name": "Meloetta",
+  "cobblemon.species.meloetta-soprano.desc": "Because it is blind, this Pokémon is not afraid of the dark. It lives deep below in the Ancient Cities that remind it of its home. Its soft soprano voice echoes through the caves as it sings and plays its violin, filling the silence with an eerie yet beautiful song. Legends say its music can calm restless spirits.",
+  "cobblemon.species.meloetta-acoustic.desc": "Meloetta has been empowered by lively spirits roused by its song, blessing it with electric energy. Its mood has brightened, filling it with furvor. Though its still blind, the power of its ancestors has heightened its senses. Because of this, it has removed the bandages covering its eyes, using it to tie its hair in a ponytail.",
+
+#melofly#
+  "cobblemon.species.melofly.name": "Melofly",
+  "cobblemon.species.melofly.desc": "Its florescent glow makes a buzzing noise that sounds like a melody, which is where it gets its name from... Be warned, however, because the Melofly emits poisonous dust that can be fatal within seconds of touching your skin. If you come into contact with it, its melodic buzzing may be the last thing you hear.",
+
+#frillish#
+  "cobblemon.ui.pokedex.info.form.frillish": " ",
+  "cobblemon.ui.pokedex.info.form.frillish-ghast": "Ghast",
+  "cobblemon.species.frillish-ghast.name": "Frillish",
+  "cobblemon.species.frillish-ghast.desc": "This Pokémon propels itself through the air by filling its balloon-like body with gas. Though it lives in the Nether, its body can adapt to the amount of moisture in its environment. The more moisture it has, the happier and healthier it is.",
+
+#jellicent#
+  "cobblemon.ui.pokedex.info.form.jellicent": " ",
+  "cobblemon.ui.pokedex.info.form.jellicent-grumpyghast": "Grumpy Ghast",
+  "cobblemon.ui.pokedex.info.form.jellicent-happyghast": "Happy Ghast",
+  "cobblemon.ui.pokedex.info.form.jellicent-apathyghast": "Apathy Ghast",
+  "cobblemon.species.jellicent-grumpy-ghast.name": "Jellicent",
+  "cobblemon.species.jellicent-grumpy-ghast.desc": "Although normally suited for a more humid environment, this Pokémon has evolved and adapted to survive in the burning hot temperatures of the Nether. Its body is full of super-heated gas, which it uses to shoot flaming rocks down at its opponents.",
+  "cobblemon.species.jellicent-happy-ghast.name": "Jellicent",
+  "cobblemon.species.jellicent-happy-ghast.desc": "A fully hydrated Jellicent is a happy Jellicent. After being rescued from the Nether, this Pokémon has evolved and adapted for a more humid environment. Its body is filled with heated gas that it uses to fly. It eats snowballs to keep its body from overheating, and loves to give children rides atop its head.",
+  "cobblemon.species.jellicent-apathy-ghast.name": "Jellicent",
+  "cobblemon.species.jellicent-apathy-ghast.desc": "After facing the vast empty expanse of the End, this Pokémon has evolved and adapted to life in the void. It rarely shows emotion, taking on an almost nihilistic personality. It does, however, love the taste of Nomel Berry flavored Poképuffs.",
+
+#galecadet#
+  "cobblemon.species.galecadet.name": "Galecadet",
+  "cobblemon.species.galecadet.desc": "This Pokémon trains day in and day out within the Trial Chambers, hoping to become strong enough to wield a powerful weapon and finally evolve. Its body contains a never-ending whirlwind.",
+
+#zephyrouge#
+  "cobblemon.species.zephyrouge.name": "Zephyrouge",
+  "cobblemon.species.zephyrouge.desc": "The armor worn upon Zephyrouge's shoulders is made of the heaviest material in the world, yet despite this it lifts it with ease. In battle, its shoulder pads connect together to form a large mace. By jumping high into the sky and slamming down, it lets out a burst of wind strong enough to topple an entire forest.",
+
+#ceruclone#
+  "cobblemon.species.ceruclone.name": "Ceruclone",
+  "cobblemon.species.ceruclone.desc": "Ceruclone's trident crackles with the power of a thousand tempests. It channels electrical energy through the trident to shoot beams of lightning at its foe. By twirling it above its head, it is said to be able to call down thunderstorms.",
+
+#stonjourner#
+  "cobblemon.ui.pokedex.info.form.stonjourner": " ",
+  "cobblemon.ui.pokedex.info.form.stonjourner-sandstone": "Sandstone",
+  "cobblemon.ui.pokedex.info.form.stonjourner-megasandstone": "Mega Sandstone",
+  "cobblemon.species.stonjourner-sandstone.desc": "This Pokémon's body is made of thick slabs of sandstone. Once every full moon, they gather around the ancient desert pyramids in a circle to summon forth a sandstorm.",
+  "cobblemon.species.stonjourner-mega-sandstone.desc": "It stands in the middle of the desert as a monument of safety. Its body acts as shelter for wild Pokémon caught amidst raging sandstorms.",
+
+#snowygast#
+  "cobblemon.species.snowygast.name": "Snowygast",
+  "cobblemon.species.snowygast.desc": "The remains of a melted snowman possessed by the grudges of the dead. Anyone who puts on its hat will be forced to do its bidding, piling up snow to make its body bigger.",
+
+#palossnow#
+  "cobblemon.species.palossnow.name": "Palossnow",
+  "cobblemon.species.palossnow.desc": "Possessed people controlled by this Pokémon transformed its snow mound into a fortress. It fires barrages of snowballs from the hollows in its arms, attempting to bury its prey in snow so it can trap them and drain their vitality.",
+
+#wimpod#
+  "cobblemon.ui.pokedex.info.form.wimpod": " ",
+  "cobblemon.ui.pokedex.info.form.wimpod-silverfish": "Silverfish",
+  "cobblemon.ui.pokedex.info.form.wimpod-swarm": "Silverfish Swarm",
+  "cobblemon.species.wimpod-silverfish.name": "Wimpod",
+  "cobblemon.species.wimpod-silverfish.desc": "Swarms of this Pokémon patrol the underground Strongholds. They inhabit the bricks and stone around the structure, lying in wait and multiplying their numbers. When threatened, they will all attack at once, calling upon their allies for help... But alone, they are defenseless and weak.",
+  "cobblemon.species.wimpod-silverfish-swarm.desc": "When threatened, this Pokémon will call upon its allies for help. Alone they are defenseless and weak, but together they become a formidable force to be reckoned with.",
+
+#golisopede#
+  "cobblemon.ui.pokedex.info.form.golisopede": " ",
+  "cobblemon.ui.pokedex.info.form.golisopede-mega": "Mega",
+  "cobblemon.species.golisopede.name": "Golisopede",
+  "cobblemon.species.golisopede.desc": "When the Wimpod swarm is threatened, they call upon the largest Golisopede for help. It burrows through the ground at high speeds, using vibrations to sense its prey. When it locates its foe, it bursts from the floor to strike them with deadly efficiency. Its armor is powerful enough to burrow through solid stone bricks.",
+  "cobblemon.species.golisopede-mega.desc": "Mega Evolution has heightened its burrowing tendencies, causing it to cover its body in stone bricks to recreate the feeling of being underground. This doubles as armor, which it uses to bash any foe who challenges the swarm.",
+
+#seedlin#
+  "cobblemon.ui.pokedex.info.form.seedlin": "Torchflower",
+  "cobblemon.ui.pokedex.info.form.seedlin-pitcherplant": "Pitcher Plant",
+  "cobblemon.species.seedlin.name": "Seedlin",
+  "cobblemon.species.seedlin.desc": "An ancient ancestor of Applin. It spends its entire life inside of a hard protective seed. The type of seed it inhabits determines its evolution, but its impossible to tell at this stage of developement.",
+
+#torchlin#
+  "cobblemon.species.torchlin.name": "Torchlin",
+  "cobblemon.species.torchlin.desc": "The seed has finally sprouted, revealing a bright Torchflower. Torchlin's latent fire has awakened, allowing it to shoot bursts of flames from its petals.",
+
+#podlin#
+  "cobblemon.species.podlin.name": "Podlin",
+  "cobblemon.species.podlin.desc": "The pod has finally sprouted, revealing a bulbous Pitcher Plant. Podlin's ability to grow has strengthened, allowing it to nurse any plant back to life no matter how wilted.",
+
+#torchflyer#
+  "cobblemon.species.torchflyer.name": "Torchflyer",
+  "cobblemon.species.torchflyer.desc": "The seed that it lived in has fully grown, becoming part of its body. Its sprouted vine-like wings that it uses to soar through the sky, spewing flames to burn down shrubbery to make the soil more suitable for planting.",
+
+#pitchertun#
+  "cobblemon.species.pitchertun.name": "Pitchertun",
+  "cobblemon.species.pitchertun.desc": "The seed that it lived in has fully grown, becoming part of its body. Its back is covered in lush moss and blooming pitcher plants. The sweet scent of its flowers attracts bugs, causing them to get trapped in the liquid within the pods. Once this liquid dissolves its catch, Pitchertun pours it onto plants to help them grow.",
+
+#sephiredge#
+  "cobblemon.species.sephiredge.name": "Sephiredge",
+  "cobblemon.species.sephiredge.desc": "This powerful Pokémon is rumored to be an evolution of Honedge from an alternate timeline. Its true origins are unknown, many debate whether it is a Paradox Pokémon, a Mythical Pokémon, or something else entirely... What is known is that it emanates a malicious aura and can cut through solid steel with ease.",
+
+#roselia#
+  "cobblemon.ui.pokedex.info.form.roselia": " ",
+  "cobblemon.ui.pokedex.info.form.roselia-witherrose": "Wither Rose",
+  "cobblemon.species.roselia-wither-rose.name": "Roselia",
+  "cobblemon.species.roselia-wither-rose.desc": "This Pokémon's roses have withered and turned black. Its pollen is highly poisonous, causing severe pain and anguish for anyone who inhales it... Prolonged exposure to this pollen will lead to a slow and painful death.",
+
+#roserade#
+  "cobblemon.ui.pokedex.info.form.roserade": " ",
+  "cobblemon.ui.pokedex.info.form.roserade-witherrose": "Wither Rose",
+  "cobblemon.species.roserade-wither-rose.name": "Roserade",
+  "cobblemon.species.roserade-wither-rose.desc": "Its petals emit a toxin so powerful it can stop a man's heart with a single touch. When it encounters another living being, it mindlessly attacks them with sharp thorns coated in these same toxins.",
+
+#stygipede#
+  "cobblemon.species.stygipede.name": "Stygipede",
+  "cobblemon.species.stygipede.desc": "This Pokémon is a close relative of Sizzlipede that evolved and adapted to living in the Deep Dark. It burrows through Sculk to eat up impurities, forming a symbiotic relationship with the Sculk. Due to the darkness of the caves, it has lost its eyes and become blind. Instead it uses vibrations in the ground to sense its surroundings.",
+
+#centisculk#
+  "cobblemon.species.centisculk.name": "Centisculk",
+  "cobblemon.species.centisculk.desc": "Centisculk lives within patches of Sculk, burrowing through it to eat up decaying matter. When it sense vibrations, it bursts from the ground to viciously attack its prey. This prey then gets absorbed into the Sculk, from which Centisculk gets its nutrients.",
+
+#morelull#
+  "cobblemon.ui.pokedex.info.form.morelull": " ",
+  "cobblemon.ui.pokedex.info.form.morelull-crimson": "Crimson",
+  "cobblemon.ui.pokedex.info.form.morelull-warped": "Warped",
+  "cobblemon.species.morelull-crimson.name": "Morelull",
+  "cobblemon.species.morelull-warped.name": "Morelull",
+  "cobblemon.species.morelull-crimson.desc": "This form of Morelull is adapted to live in the Crimson Forest biome. It absorbs heat from the ground using its mycelium, and uses that energy to light its mushroom cap. When eaten, its cap is said to have an extremely spicy flavor.",
+  "cobblemon.species.morelull-warped.desc": "This form of Morelull is adapted to live in the Warped Forest biome. It flashes its lights in a rythmic pulse to hypnotize its prey, then latches onto them to drain their vitality. When eaten, its cap is said to have an extremely sour flavor.",
+
+#shiinotic#
+  "cobblemon.ui.pokedex.info.form.shiinotic": " ",
+  "cobblemon.ui.pokedex.info.form.shiinotic-crimson": "Crimson",
+  "cobblemon.ui.pokedex.info.form.shiinotic-warped": "Warped",
+  "cobblemon.species.shiinotic-crimson.name": "Shiinotic",
+  "cobblemon.species.shiinotic-warped.name": "Shiinotic",
+  "cobblemon.species.shiinotic-crimson.desc": "This Shiinotic has evolved to match the Crimson Forest it lives in. The vines hanging from its mushroom cap are specialized to absorb heat from the Nether air, powering the Pokémon's inner light. It fires beams of light from its mushroom cap to burn its foes.",
+  "cobblemon.species.shiinotic-warped.desc": "This Shiinotic has evolved to match the Warped Forest it lives in. It lures in prey with its hypnotic lights, before coating them in mind-controlling spores.",
+
+#breezior#
+  "cobblemon.species.breezior.name": "Breezior",
+  "cobblemon.species.breezior.desc": "A distant relative of Minior. Although most of Breezior's body is made of wind, at the very center of its core is a small meteorite. It lives in Trial Chambers, and its origins are theorized to be directly linked to the Breeze.",
+
+#porytron#
+  "cobblemon.species.porytron.name": "Porytron",
+  "cobblemon.species.porytron.desc": "Though artificial, it is unknown who or what created Porytron. Some people theorize that it was an advanced version of Porygon sent back in time from the future, but such ideas are merely speculation.",
+
+#porytron2#
+  "cobblemon.species.porytron2.name": "Porytron2",
+  "cobblemon.species.porytron2.desc": "It was upgraded to have even greater artificial intelligence. With its abilities, it is able to travel across power grids through electrical currents by turning itself into data.",
+
+#porytronZ#
+  "cobblemon.species.porytronz.name": "Porytron-Z",
+  "cobblemon.species.porytronz.desc": "A strange disc has upgraded this Pokémon, transforming its body to resemble a motorbike. Though sometimes erratic, Porytron-Z can fly at high speeds, driving across electrical currents. Its even able to travel through Cyberspace.",
+
+#typecast#
+  "cobblemon.ui.pokedex.info.form.typecast": "Normal",
+  "cobblemon.ui.pokedex.info.form.typecast-fire": "Fire",
+  "cobblemon.ui.pokedex.info.form.typecast-water": "Water",
+  "cobblemon.ui.pokedex.info.form.typecast-grass": "Grass",
+  "cobblemon.ui.pokedex.info.form.typecast-ice": "Ice",
+  "cobblemon.ui.pokedex.info.form.typecast-electric": "Electric",
+  "cobblemon.ui.pokedex.info.form.typecast-psychic": "Psychic",
+  "cobblemon.ui.pokedex.info.form.typecast-dark": "Dark",
+  "cobblemon.ui.pokedex.info.form.typecast-dragon": "Dragon",
+  "cobblemon.ui.pokedex.info.form.typecast-fairy": "Fairy",
+  "cobblemon.ui.pokedex.info.form.typecast-fighting": "Fighting",
+  "cobblemon.ui.pokedex.info.form.typecast-flying": "Flying",
+  "cobblemon.ui.pokedex.info.form.typecast-poison": "Poison",
+  "cobblemon.ui.pokedex.info.form.typecast-ground": "Ground",
+  "cobblemon.ui.pokedex.info.form.typecast-rock": "Rock",
+  "cobblemon.ui.pokedex.info.form.typecast-bug": "Bug",
+  "cobblemon.ui.pokedex.info.form.typecast-ghost": "Ghost",
+  "cobblemon.ui.pokedex.info.form.typecast-steel": "Steel",
+  "cobblemon.species.typecast.name": "Typecast",
+  "cobblemon.species.typecast.desc": "This Pokémon takes on a unique form depending on its type, becoming the perfect embodiment of its element of choice, doubling both its weaknesses and its strengths. Its body is malleable and adaptable, allowing it to take any shape it needs to perform any attack of its respective type. The form is born as can never be changed.",
+
+#shade#
+  "cobblemon.species.shade.name": "Shade",
+  "cobblemon.species.shade.desc": "What even is this thing?",
+
+#tomledger#
+  "cobblemon.species.tomledger.name": "Tomledger",
+  "cobblemon.species.tomledger.desc": "This Pokémon is said to be born from the spirit of a sorcerer who sealed away their power inside of a book. The words on its pages are seemingly indecipherable, but allow it to cast numerous spells.",
+
+#twinledger#
+  "cobblemon.species.twinledger.name": "Twinledger",
+  "cobblemon.species.twinledger.desc": "The two sheathes act together in unison, combining their minds together to cast spells. If one gets distract and the two aren't in sync, their spells will missfire.",
+
+#wizledger#
+  "cobblemon.ui.pokedex.info.form.wizledger": "Fire Spell",
+  "cobblemon.ui.pokedex.info.form.wizledger-firespell": "Fire Spell",
+  "cobblemon.ui.pokedex.info.form.wizledger-icespell": "Ice Spell",
+  "cobblemon.ui.pokedex.info.form.wizledger-lightningspell": "Lightning Spell",
+  "cobblemon.species.wizledger.name": "Wizledger",
+  "cobblemon.species.wizledger-fire-spell.desc": "The seal containing it has split open, releasing the spirit that resides within. The flame of its magic burns bright, returning the magic it once had in life.",
+  "cobblemon.species.wizledger-ice-spell.desc": "The seal containing it has split open, releasing the spirit that resides within. Its ice magic radiates from it, allowing it to freeze opponents with its spells.",
+  "cobblemon.species.wizledger-lightning-spell.desc": "The seal containing it has split open, releasing the spirit that resides within. Its body cracks with magical electricity, calling down lightning strikes by speaking incantations.",
+
+#petilil#
+  "cobblemon.ui.pokedex.info.form.petilil-winter": "Winter",
+  "cobblemon.species.petilil-winter.name": "Petilil",
+  "cobblemon.species.petilil-winter.desc": "This form of Petilil is adapted to thrive in frigid cold climates.",
+
+#lilligant#
+  "cobblemon.ui.pokedex.info.form.lilligant-winter": "Winter",
+  "cobblemon.species.lilligant-winter.name": "Lilligant",
+  "cobblemon.species.lilligant-winter.desc": "The garland on its head is often mistaken for a flower. In reality its red petals are actually leaves. They turn a bright shade of red during winter, making it very popular during the holidays.",
+
+#klinklang#
+  "cobblemon.ui.pokedex.info.form.klinklang": " ",
+  "cobblemon.ui.pokedex.info.form.klinklang-mega": "Mega",
+  "cobblemon.species.klinklang-mega.desc": "Mega Evolution has converted its body into a living engine. The gears that make up its body act in unison to propel it across the ground at high speeds. It can reach speeds of over 230 mph.",
+
+#darmanitan#
+  "cobblemon.ui.pokedex.info.form.darmanitan-megazen": "Mega Z",
+  "cobblemon.species.darmanitan-mega-z.desc": "Although it appears to be asleep, its mind is awake. Mega Evolution has allowed this Pokémon to open its third eye, granting it a deep sense of understanding. It uses its control over its own mind to unleash its latent psychic power.",
+
+#gimmibread#
+ "cobblemon.species.gimmibread.name": "Gimmibread",
+  "cobblemon.ui.pokedex.info.form.gimmibread": "Present Form",
+  "cobblemon.species.gimmibread.desc": "This Pokémon was baked in an ancient oven about 1,500 years ago. In some regions there is a tradition of giving Gimmibread to loved ones during the holidays, which is said to bring good luck.",
+  "cobblemon.ui.pokedex.info.form.gimmibread-roaming": "Roaming Form",
+  "cobblemon.species.gimmibread-roaming.desc": "This Pokémon was born from passion that seeped into a cookie. It runs runs runs as fast as it can to escape from wild Pokémon who might try to eat it.",
+
+#gholdendough#
+  "cobblemon.species.gholdendough.name": "Gholdendough",
+  "cobblemon.species.gholdendough.desc": "Its body seems to be made up of 1,000 cookies. This Pokémon is a favorite during the holidays, and is always eager to help bake gingerbread cookies.",
+
+#electrode#
+  "cobblemon.ui.pokedex.info.form.electrode": " ",
+  "cobblemon.ui.pokedex.info.form.electrode-mega": "Mega",
+  "cobblemon.species.electrode-mega.desc": "Through Mega Evolution its appearance has changed to resemble a Master Ball. Contained within its body is a large quantity of Infinity Energy, which it releases to cause cataclysmic explosions.",
+
+#dudunsparce#
+  "cobblemon.ui.pokedex.info.form.dudunsparce-megax": "Mega X Two-Segment Form",
+  "cobblemon.ui.pokedex.info.form.dudunsparce-megaxthreesegment": "Mega X Three-Segment Form",
+  "cobblemon.ui.pokedex.info.form.dudunsparce-megay": "Mega Y Two-Segment Form",
+  "cobblemon.ui.pokedex.info.form.dudunsparce-megaythreesegment": "Mega Y Three-Segment Form",
+  "cobblemon.species.dudunsparce-mega-x.desc": "Mega Evolution has awakened its dormant genes, elongating its body into a serpent-like form. Using its tiny wings, it flies through the air as if pretending to be a majestic dragon.",
+  "cobblemon.species.dudunsparce-mega-y.desc": "Mega Evolution has awakened its dormant genes, causing its wings to grow large allowing it to take flight. By flapping its wings it can stir up hurricanes to attack its foes.",
+
+#sewaddle#
+  "cobblemon.ui.pokedex.info.form.sewaddle": " ",
+  "cobblemon.ui.pokedex.info.form.sewaddle-clockwork": "Clockwork",
+  "cobblemon.species.sewaddle-clockwork.desc": "A robotic recreation that resembles the Pokémon Sewaddle. This robotic Pokémon flutters around, using its little claws to scratch off dust and decay. It continues this task even centuries after it was created.",
+
+#swadloon#
+  "cobblemon.ui.pokedex.info.form.swadloon": " ",
+  "cobblemon.ui.pokedex.info.form.swadloon-clockwork": "Clockwork",
+  "cobblemon.species.swadloon-clockwork.desc": "A robotic recreation that resembles the Pokémon Swadloon. It was built to withstand intense heat, carrying out its task in spite of harsh conditions. Over time, however, its heatproofing has become less reliable than it once was.",
+
+#leavanny#
+  "cobblemon.ui.pokedex.info.form.leavanny": " ",
+  "cobblemon.ui.pokedex.info.form.leavanny-clockwork": "Clockwork",
+  "cobblemon.ui.pokedex.info.form.leavanny-megaclockwork": "Mega Clockwork",
+  "cobblemon.species.leavanny-clockwork.desc": "A robotic recreation that resembles the Pokémon Leavanny. Though its exact origin is unknown, it appears to have been built long ago. It dances a perpetual dance, a novelty considering how archaic the technology is.",
+  "cobblemon.species.leavanny-mega-clockwork.desc": "The spool of silk that powers the machine has split open, causing the silk to pour out uncontrollably. Its unclear how it still functions, some believe its only able to sustain itself in this form by using Mega Energy as its power source.",
+
+###ui###
+
+  "cobblemon.ui.pokedex.region.laserdex": "Laserdex",
+  "cobblemon.ui.stash.bone_meal": "Bone Meal",
+  "cobblemon.ui.stash.amethyst_shards": "Amethyst Shards",
+  "cobblemon.ui.stash.enchanted_golden_apple": "Enchanted Apples",
+  "cobblemon.ui.stash.cookies": "Cookies",
+
+###items###
+
+  "item.mega_showdown.lucarionite_midnight": "Lucarionite Midnight",
+  "tooltip.mega_showdown.lucarionite_midnight.tooltip": "Allows Lucario Midnight to Mega Evolve into Mega Lucario Midnight",
+
+  "item.mega_showdown.alloettite_vex": "Alloettite Vex",
+  "tooltip.mega_showdown.alloettite_vex.tooltip": "Allows Alloette Vex to Mega Evolve into Mega Alloette Vex",
+
+  "item.mega_showdown.alloettite": "Alloettite",
+  "tooltip.mega_showdown.alloettite.tooltip": "Allows Alloette to Mega Evolve into Mega Alloette",
+
+  "item.mega_showdown.starstellarite": "Starstellarite",
+  "tooltip.mega_showdown.starstellarite.tooltip": "Allows Starstellar to Mega Evolve into Mega Starstellar",
+
+  "item.mega_showdown.gardevoirite_midnight": "Gardevoirite Midnight",
+  "tooltip.mega_showdown.gardevoirite_midnight.tooltip": "Allows Gardevoir Midnight to Mega Evolve into Mega Gardevoir Midnight",
+
+  "item.mega_showdown.galladite_midnight": "Galladite Midnight",
+  "tooltip.mega_showdown.galladite_midnight.tooltip": "Allows Gallade Midnight to Mega Evolve into Mega Gallade Midnight",
+
+  "item.mega_showdown.klinklanite": "Klinklanite",
+  "tooltip.mega_showdown.klinklanite.tooltip": "Allows Klinklang to Mega Evolve into Mega Klinklang",
+
+  "item.mega_showdown.copper_golurkite": "Copper Golurkite",
+  "tooltip.mega_showdown.copper_golurkite.tooltip": "Allows Copper Golurk to Mega Evolve into Mega Copper Golurk",
+
+  "item.mega_showdown.darmanitanite_z": "Darmanitanite Z",
+  "tooltip.mega_showdown.darmanitanite_z.tooltip": "Allows Darmanitan Zen to Mega Evolve into Mega Darmanitan Z",
+
+  "item.mega_showdown.falinksite_y": "Falinksite Y",
+  "tooltip.mega_showdown.falinksite_y.tooltip": "Allows Falinks Last Soldier to Mega Evolve into Mega Falinks Last Soldier",
+
+  "item.mega_showdown.falinksite_x": "Falinksite X",
+  "tooltip.mega_showdown.falinksite_x.tooltip": "Allows Falinks Gunslinger to Mega Evolve into Mega Falinks Gunslinger",
+
+  "item.mega_showdown.golisopedite": "Golisopedite",
+  "tooltip.mega_showdown.golisopedite.tooltip": "Allows Golisopede to Mega Evolve into Mega Golisopede",
+
+  "item.mega_showdown.tanglarite": "Tanglarite",
+  "tooltip.mega_showdown.tanglarite.tooltip": "Allows Tanglare to Mega Evolve into Mega Tanglare",
+
+  "item.mega_showdown.electrodite": "Electrodite",
+  "tooltip.mega_showdown.electrodite.tooltip": "Allows Electrode to Mega Evolve into Mega Electrode",
+
+  "item.mega_showdown.dudunsparcite_x": "Dudunsparcite X",
+  "tooltip.mega_showdown.dudunsparcite_x.tooltip": "Allows Dudunsparce to Mega Evolve into Mega Dudunsparce X",
+
+  "item.mega_showdown.dudunsparcite_y": "Dudunsparcite Y",
+  "tooltip.mega_showdown.dudunsparcite_y.tooltip": "Allows Dudunsparce to Mega Evolve into Mega Dudunsparce Y",
+
+  "item.mega_showdown.clockwork_leavannite": "Clockwork Leavannite",
+  "tooltip.mega_showdown.clockwork_leavannite.tooltip": "Allows Clockwork Leavanny to Mega Evolve into Mega Clockwork Leavanny",
+
+  "item.mega_showdown.sandstone_stonjournite": "Sandstone Stonjournite",
+  "tooltip.mega_showdown.sandstone_stonjournite.tooltip": "Allows Sandstone Stonjourner to Mega Evolve into Mega Sandstone Stonjourner",
+
+  "item.mega_showdown.djinnferniumz": "Djinnfernium Z",
+  "tooltip.mega_showdown.djinnferniumz.tooltip": "Z-Crystal associated with Djinnferno and allows it to upgrade its Bygone Bash into the special Z Move Vengeance of Generations",
+
+  "item.mega_showdown.copper_coat": "Copper Coat",
+  "tooltip.mega_showdown.copper_coat.tooltip": "Changes Golett or Golurk's Copper state",
+
+  "item.mega_showdown.exposed_copper_coat": "Exposed Copper Coat",
+  "tooltip.mega_showdown.exposed_copper_coat.tooltip": "Changes Golett or Golurk's Copper state",
+
+  "item.mega_showdown.weathered_copper_coat": "Weathered Copper Coat",
+  "tooltip.mega_showdown.weathered_copper_coat.tooltip": "Changes Golett or Golurk's Copper state",
+
+  "item.mega_showdown.oxidized_copper_coat": "Oxidized Copper Coat",
+  "tooltip.mega_showdown.oxidized_copper_coat.tooltip": "Changes Golett or Golurk's Copper state",
+
+###abilities###
+
+  "cobblemon.ability.normalmastery": "Normal Mastery",
+  "cobblemon.ability.normalmastery.desc": "The Pokémon can hit Normal-immune Pokémon with Normal-type moves. It also takes no damage when hit by Normal-type moves. Instead, its Attack stat is boosted. This Pokémon's attacks ignore the target's ability.",
+
+  "cobblemon.ability.firemastery": "Fire Mastery",
+  "cobblemon.ability.firemastery.desc": "The Pokémon can hit Fire-immune Pokémon with Fire-type moves. It also takes no damage when hit by Fire-type moves. Instead, its Attack stat is boosted. This Pokémon's attacks ignore the target's ability.",
+
+  "cobblemon.ability.watermastery": "Water Mastery",
+  "cobblemon.ability.watermastery.desc": "The Pokémon can hit Water-immune Pokémon with Water-type moves. It also takes no damage when hit by Water-type moves. Instead, its Sp. Atk stat is boosted. This Pokémon's attacks ignore the target's ability.",
+
+  "cobblemon.ability.grassmastery": "Grass Mastery",
+  "cobblemon.ability.grassmastery.desc": "The Pokémon can hit Fire-immune Pokémon with Grass-type moves. It also takes no damage when hit by Grass-type moves. Instead, its Sp. Atk stat is boosted. This Pokémon's attacks ignore the target's ability.",
+
+  "cobblemon.ability.icemastery": "Ice Mastery",
+  "cobblemon.ability.icemastery.desc": "The Pokémon can hit Ice-immune Pokémon with Ice-type moves. It also takes no damage when hit by Ice-type moves. Instead, its Sp. Atk stat is boosted. This Pokémon's attacks ignore the target's ability.",
+
+  "cobblemon.ability.electricmastery": "Electric Mastery",
+  "cobblemon.ability.electricmastery.desc": "The Pokémon can hit Electric-immune Pokémon with Electric-type moves. It also takes no damage when hit by Electric-type moves. Instead, its Speed stat is boosted. This Pokémon's attacks ignore the target's ability.",
+
+  "cobblemon.ability.psychicmastery": "Psychic Mastery",
+  "cobblemon.ability.psychicmastery.desc": "The Pokémon can hit Psychic-immune Pokémon with Psychic-type moves. It also takes no damage when hit by Psychic-type moves. Instead, its Sp. Atk stat is boosted. This Pokémon's attacks ignore the target's ability.",
+
+  "cobblemon.ability.dragonmastery": "Dragon Mastery",
+  "cobblemon.ability.dragonmastery.desc": "The Pokémon can hit Dragon-immune Pokémon with Dragon-type moves. It also takes no damage when hit by Dragon-type moves. Instead, its Sp. Atk stat is boosted. This Pokémon's attacks ignore the target's ability.",
+
+  "cobblemon.ability.fairymastery": "Fairy Mastery",
+  "cobblemon.ability.fairymastery.desc": "The Pokémon can hit Fairy-immune Pokémon with Fairy-type moves. It also takes no damage when hit by Fairy-type moves. Instead, its Sp. Def stat is boosted. This Pokémon's attacks ignore the target's ability.",
+
+  "cobblemon.ability.ghostmastery": "Ghost Mastery",
+  "cobblemon.ability.ghostmastery.desc": "The Pokémon can hit Ghost-immune Pokémon with Ghost-type moves. It also takes no damage when hit by Ghost-type moves. Instead, its Sp. Atk stat is boosted. This Pokémon's attacks ignore the target's ability.",
+
+  "cobblemon.ability.fightingmastery": "Fighting Mastery",
+  "cobblemon.ability.fightingmastery.desc": "The Pokémon can hit Fighting-immune Pokémon with Fighting-type moves. It also takes no damage when hit by Fighting-type moves. Instead, its Attack stat is boosted. This Pokémon's attacks ignore the target's ability.",
+
+  "cobblemon.ability.flyingmastery": "Flying Mastery",
+  "cobblemon.ability.flyingmastery.desc": "The Pokémon can hit Flying-immune Pokémon with Flying-type moves. It also takes no damage when hit by Flying-type moves. Instead, its Speed stat is boosted. This Pokémon's attacks ignore the target's ability.",
+
+  "cobblemon.ability.poisonmastery": "Poison Mastery",
+  "cobblemon.ability.poisonmastery.desc": "The Pokémon can hit Poison-immune Pokémon with Poison-type moves. It also takes no damage when hit by Poison-type moves. Instead, its Sp. Def stat is boosted. This Pokémon's attacks ignore the target's ability.",
+
+  "cobblemon.ability.groundmastery": "Ground Mastery",
+  "cobblemon.ability.groundmastery.desc": "The Pokémon can hit Ground-immune Pokémon with Ground-type moves. It also takes no damage when hit by Ground-type moves. Instead, its Attack stat is boosted. This Pokémon's attacks ignore the target's ability.",
+
+  "cobblemon.ability.rockmastery": "Rock Mastery",
+  "cobblemon.ability.rockmastery.desc": "The Pokémon can hit Rock-immune Pokémon with Rock-type moves. It also takes no damage when hit by Rock-type moves. Instead, its Defense stat is boosted. This Pokémon's attacks ignore the target's ability.",
+
+  "cobblemon.ability.steelmastery": "Steel Mastery",
+  "cobblemon.ability.steelmastery.desc": "The Pokémon can hit Steel-immune Pokémon with Steel-type moves. It also takes no damage when hit by Steel-type moves. Instead, its Defense stat is boosted. This Pokémon's attacks ignore the target's ability.",
+
+  "cobblemon.ability.bugmastery": "Bug Mastery",
+  "cobblemon.ability.bugmastery.desc": "The Pokémon can hit Bug-immune Pokémon with Bug-type moves. It also takes no damage when hit by Bug-type moves. Instead, its Attack stat is boosted. This Pokémon's attacks ignore the target's ability.",
+
+  "cobblemon.ability.darkmastery": "Dark Mastery",
+  "cobblemon.ability.darkmastery.desc": "The Pokémon can hit Dark-immune Pokémon with Dark-type moves. It also takes no damage when hit by Dark-type moves. Instead, its Attack stat is boosted. This Pokémon's attacks ignore the target's ability.",
+
+  "cobblemon.ability.sweetdreams": "Sweet Dreams",
+  "cobblemon.ability.sweetdreams.desc": "Heals ally Pokémon that are asleep.",
+  "cobblemon.battle.heal.sweetdreams":"%1$s restored a little HP from Sweet Dreams!",
+
+  "cobblemon.ability.lifesteal": "Lifesteal",
+  "cobblemon.ability.lifesteal.desc": "Powers up HP-draining moves.",
+
+  "cobblemon.ability.bombard": "Bombard",
+  "cobblemon.ability.bombard.desc": "Powers up ball and bomb moves.",
+
+  "cobblemon.ability.hotsand": "Hot Sand",
+  "cobblemon.ability.hotsand.desc": "The Pokémon body is made of hot sand that prevents it from being burned. Contact with the Pokémon may burn the attacker.",
+
+  "cobblemon.ability.forestspirit": "Forest Spirit",
+  "cobblemon.ability.forestspirit.desc": "Powers up the Grass-type moves of the Pokémon and its allies.",
+
+  "cobblemon.ability.shrieker": "Shrieker",
+  "cobblemon.ability.shrieker.desc": "Boosts the power of sound-based moves. The Pokémon is also immune to these kinds of moves.",
+
+  "cobblemon.ability.windcharge": "Wind Charge",
+  "cobblemon.ability.windcharge.desc": "Boosts the Pokémon's Sp. Atk stat if Tailwind takes effect or if the Pokémon is hit by a wind move. The Pokémon also takes no damage from wind moves.",
+
+  "cobblemon.ability.darklord": "Dark Lord",
+  "cobblemon.ability.darklord.desc": "Powers up Dark-type moves. Also halves damage taken from Dark-type moves.",
+
+  "cobblemon.ability.intellectual": "Intellectual",
+  "cobblemon.ability.intellectual.desc": "Powers up Psychic-type moves. Also halves damage taken from Psychic-type moves.",
+
+  "cobblemon.ability.paperthin": "Paper Thin",
+  "cobblemon.ability.paperthin.desc": "The Pokémon is made of paper, causing it to catch fire when hit by Fire-type moves, and soaked when hit by Water-type moves.",
+  "cobblemon.battle.start.burning": "%1$s burst into flames!",
+  "cobblemon.battle.end.burning": "%1$s's flames were extinguised!",
+  "cobblemon.battle.start.soggy": "%1$s became soaked!",
+  "cobblemon.battle.end.soggy": "%1$s dried out!",
+  "cobblemon.battle.end.typeadd": "Its typing returned to normal!",
+
+  "cobblemon.ability.misdirection": "Misdirection",
+  "cobblemon.ability.misdirection.desc": "The user draws attention to itself, making all opposing Pokémon take aim only at the user. This however prevents the use of protecting moves.",
+  "cobblemon.battle.activate.misdirection": "%1$s became the center of attention!",
+
+  "cobblemon.ability.snowguard": "Snow Guard",
+  "cobblemon.ability.snowguard.desc": "Prevents status conditions, boosts the user's Sp. Def, and reduces damage taken from Fire-type moves in snow or hail.",
+
+  "cobblemon.ability.turbocharge": "Turbocharge",
+  "cobblemon.ability.turbocharge.desc": "The Pokémon is turbocharged with electricity, which powers up Electric-type moves and halves the damage taken from Electric-type moves. When hit by an electric type move, its speed stat is boosted.",
+
+  "cobblemon.ability.recluse": "Recluse",
+  "cobblemon.ability.recluse.desc": "The Pokémon is reclusive, keeping it from or falling for taunt, torment, or encore. This also lowers the Pokémon's Speed stat if intimidated.",
+  "cobblemon.battle.block.recluse": "But it failed to affect %1$s!",
+
+  "cobblemon.ability.zendomain": "Zen Domain",
+  "cobblemon.ability.zendomain.desc": "Turns the ground into Psychic Terrain when the Pokémon enters a battle. The Pokémon also gradually regains HP in Psychic Terrain.",
+"cobblemon.battle.heal.zendomain": "%1$s's Zen Domain restored its HP!",
+
+  "cobblemon.ability.mastermind": "Mastermind",
+  "cobblemon.ability.mastermind.desc": "Normal-type moves become Psychic-type moves. The power of those moves is boosted a little.",
+
+  "cobblemon.ability.swarming": "Swarming",
+  "cobblemon.ability.swarming.desc": "When it has a lot of HP, the Pokémon forms a powerful swarm. It stops swarming when its HP is low.",
+
+  "cobblemon.ability.hivemind": "Hivemind",
+  "cobblemon.ability.hivemind.desc": "Powers up the Bug-type and Steel-type moves of the Pokémon and its allies.",
+
+  "cobblemon.ability.snowforce": "Snow Force",
+  "cobblemon.ability.snowforce.desc": "Boosts the power of Ice-type moves in snow.",
+
+  "cobblemon.ability.striker": "Striker",
+  "cobblemon.ability.striker.desc": "Powers up kicking moves.",
+
+  "cobblemon.ability.megablaster": "Mega Blaster",
+  "cobblemon.ability.megablaster.desc": "Powers up beam attacks.",
+
+  "cobblemon.ability.blindfold": "Blindfold",
+  "cobblemon.ability.blindfold.desc": "The Pokémon is blind. Because of this, it takes no damage from light moves.",
+
+  "cobblemon.ability.lifelight": "Lifelight",
+  "cobblemon.ability.lifelight.desc": "The Pokémon's body absorbs all light. If hit by a light move, the Pokémon has its HP restored instead of taking damage.",
+
+  "cobblemon.ability.lightforce": "Lightforce",
+  "cobblemon.ability.lightforce.desc": "The Pokémon's body emits a blinding aura that powers up the user's light moves.",
+
+  "cobblemon.ability.greathunger": "Great Hunger",
+  "cobblemon.ability.greathunger.desc": "The Pokémon restores a little HP every time it inflicts damage on others using biting moves.",
+"cobblemon.battle.heal.greathunger": "%1$s's Great Hunger drained their HP!",
+
+  "cobblemon.ability.mistrider": "Mist Rider",
+  "cobblemon.ability.mistrider.desc": "Doubles the Pokémon's Speed stat on Misty Terrain.",
+
+  "cobblemon.ability.liquify": "Liquify",
+  "cobblemon.ability.liquify.desc": "Normal-type moves become Water-type moves. The power of those moves is boosted a little.",
+
+  "cobblemon.ability.ignition": "Ignition",
+  "cobblemon.ability.ignition.desc": "Normal-type moves become Fire-type moves. The power of those moves is boosted a little.",
+
+  "cobblemon.ability.cultivate": "Cultivate",
+  "cobblemon.ability.cultivate.desc": "Normal-type moves become Grass-type moves. The power of those moves is boosted a little.",
+
+  "cobblemon.ability.hammertime": "Hammer Time",
+  "cobblemon.ability.hammertime.desc": "Powers up hammer moves.",
+
+  "cobblemon.ability.tinkerer": "Tinkerer",
+  "cobblemon.ability.tinkerer.desc": "Lowers the Defense stats of all opposing Steel-type Pokémon.",
+
+  "cobblemon.ability.aeroforce": "Aeroforce",
+  "cobblemon.ability.aeroforce.desc": "The Pokémon's aura powers up the user's wind moves.",
+
+  "cobblemon.ability.restoration": "Restoration",
+  "cobblemon.ability.restoration.desc": "The Pokémon's HP is slowly but steadily restored throughout a battle. It heals a little extra in harsh sunlight.",
+"cobblemon.battle.heal.restoration": "%1$s restored a little HP!",
+
+  "cobblemon.ability.spikedheels": "Spiked Heels",
+  "cobblemon.ability.spikedheels.desc": "Increases the critical-hit ratio of the user's kicking moves.",
+
+  "cobblemon.ability.sweetdish": "Sweet Dish",
+  "cobblemon.ability.sweetdish.desc": "The Pokémon gradually regains HP in Misty Terrain.",
+  "cobblemon.battle.heal.sweetdish": "%1$s restored HP from Sweet Dish!",
+
+  "cobblemon.ability.strongarm": "Strong Arm",
+  "cobblemon.ability.strongarm.desc": "Powers up throwing and grappling moves. This also protects it from being forced to switch out.",
+  "cobblemon.battle.activate.strongarm": "%1$s's Strong Arm kept it in place!",
+
+  "cobblemon.ability.rapidfists": "Rapid Fists",
+  "cobblemon.ability.rapidfists.desc": "Gives priority to the Pokémon's punching moves.",
+
+  "cobblemon.ability.resilient": "Resilient",
+  "cobblemon.ability.resilient.desc": "It's so resilient that having a status condition boosts the Pokémon's Sp. Atk stat.",
+
+  "cobblemon.ability.reverberation": "Reverberation",
+  "cobblemon.ability.reverberation.desc": "The Pokémon takes no damage when hit by sound moves. Instead, its Attack stat is boosted.",
+
+  "cobblemon.ability.sandguard": "Sand Guard",
+  "cobblemon.ability.sandguard.desc": "Prevents status conditions and boosts the user's Defense in sandstorms.",
+
+  "cobblemon.ability.echoburst": "Echo Burst",
+  "cobblemon.ability.echoburst.desc": "Scatters echo shards in the air around the opposing team when the Pokémon takes damage from physical moves.",
+  "cobblemon.battle.activate.echoburst": "%1$s's body scattered debris!",
+
+  "cobblemon.ability.gourmand": "Gourmand",
+  "cobblemon.ability.gourmand.desc": "The Pokémon builds up a stockpile when it eats any berry.",
+
+  "cobblemon.ability.mightymycelium": "Mighty Mycelium",
+  "cobblemon.ability.mightymycelium.desc": "Raises the user's Sp. Atk but prevents the use of status moves.",
+
+  "cobblemon.ability.netcaster": "Net Caster",
+  "cobblemon.ability.netcaster.desc": "When the Pokémon enters a battle, it casts a net on opposing Pokémon and makes them slower, lowering their Speed stats.",
+
+  "cobblemon.ability.steelsoul": "Steel Soul",
+  "cobblemon.ability.steelsoul.desc": "Normal-type moves become Steel-type moves. The power of those moves is boosted a little.",
+
+  "cobblemon.ability.windglider": "Wind Glider",
+  "cobblemon.ability.windglider.desc": "Boosts the Pokémon's Speed stat if Tailwind takes effect or if the Pokémon is hit by a wind move. The Pokémon also takes no damage from wind moves.",
+
+  "cobblemon.ability.trapjaw": "Trap-Jaw",
+  "cobblemon.ability.trap-jaw": "Trap-Jaw",
+  "cobblemon.ability.trapjaw.desc": "Biting moves entrap the target, causing them to take damage for four to five turns. The target can't flee during this time.",
+  "cobblemon.battle.activate.trapjaw": "The target was caught in the Trap-Jaw!",
+  "cobblemon.battle.damage.trapjaw": "%1$s is hurt by the Trap-Jaw!",
+  "cobblemon.battle.end.trapjaw": "%1$s was freed from the Trap-Jaw!",
+
+  "cobblemon.ability.acidspit": "Acid Spit",
+  "cobblemon.ability.acidspit.desc": "The Pokémon spits acid on attackers that make direct contact with it. The fluid eliminates the effect of the attackers's Ability.",
+  "cobblemon.battle.activate.acidspit": "%1$s spewed acid on the attacker!",
+
+  "cobblemon.ability.tastyaroma": "Tasty Aroma",
+  "cobblemon.ability.tastyaroma.desc": "The Pokémon has a tasty aroma that redirects all biting moves towards it. It evades redirected attacks, making it immune to biting moves.",
+  "cobblemon.battle.activate.tastyaroma": "%1$s distracted them with its tasty aroma!",
+
+  "cobblemon.ability.championsmask": "Champion's Mask",
+  "cobblemon.ability.championsmask.desc": "The Pokémon can use \"not very effective\" moves to deal regular damage.",
+
+  "cobblemon.ability.rectitude": "Rectitude",
+  "cobblemon.ability.rectitude.desc": "When the Pokémon is hit by a Dark-type attack, its Sp. Atk stat is boosted by its sense of justice.",
+
+
+###moves###
+  "cobblemon.move.combattorque": "Combat Torque",
+  "cobblemon.move.combattorque.desc": "The user attacks the target with a twisting drift. This may also leave the target with paralysis.",
+
+  "cobblemon.move.blazingtorque": "Blazing Torque",
+  "cobblemon.move.blazingtorque.desc": "The user attacks the target with a burning drift. This may also leave the target with a burn.",
+
+  "cobblemon.move.wickedtorque": "Wicked Torque",
+  "cobblemon.move.wickedtorque.desc": "The user attacks the target with a wicked drift. This may also incude sleep.",
+
+  "cobblemon.move.noxioustorque": "Noxious Torque",
+  "cobblemon.move.noxioustorque.desc": "The user attacks the target with a noxious drift. This may also poison the target.",
+
+  "cobblemon.move.magicaltorque": "Magical Torque",
+  "cobblemon.move.magicaltorque.desc": "The user attacks the target with a magical drift. This may also confuse the target.",
+
+  "cobblemon.move.pumpkinbomb": "Pumpkin Bomb",
+  "cobblemon.move.pumpkinbomb.desc": "The user attacks everything around it by igniting an explosive pumpkin. This also damages the user quite a lot and may leave the target with a burn.",
+
+  "cobblemon.move.firebomb": "Fire Bomb",
+  "cobblemon.move.firebomb.desc": "The throws a flaming explosive at the target, leaving them with a burn.",
+
+  "cobblemon.move.bulletbarrage": "Bullet Barrage",
+  "cobblemon.move.bulletbarrage.desc": "The user forcefully shoots metal bullets at the target two to five times in a row.",
+
+  "cobblemon.move.digdeep": "Dig Deep",
+  "cobblemon.move.digdeep.desc": "The user digs into the target using its body as a pickaxe. This move is super effective on Ground-type Pokémon.",
+
+  "cobblemon.move.dragonpress": "Dragon Press",
+  "cobblemon.move.dragonpress.desc": "The user attacks by slamming its body into the target. The higher the user's Sp. Def stat, the greater the damage this move deals.",
+
+  "cobblemon.move.holdtheline": "Hold the Line",
+  "cobblemon.move.holdtheline.desc": "The user rallies their troops to stand their ground and sharply boosts their Defense and Sp. Def. This prevents the user from switching out or fleeing.",
+
+  "cobblemon.move.laststand": "Last Stand",
+  "cobblemon.move.laststand.desc": "The user makes their final stand, boosting their speed and sharply boosting their Attack and Sp. Atk. This prevents the user from switching out for fleeing.",
+
+  "cobblemon.move.magictrick": "Magic Trick",
+  "cobblemon.move.magictrick.desc": "The user performs a magic trick to switch its Attack with its Sp. Atk stat.",
+  "cobblemon.battle.activate.magictrick": "%1$s switched its Attack and Sp. Atk!",
+
+  "cobblemon.move.nightterror": "Night Terror",
+  "cobblemon.move.nightterror.desc": "The user devours the dreams of a sleeping target, leaving behind nothing but nightmares. The user's HP is restored by half the damage taken by the target.",
+
+  "cobblemon.move.sleepcharm": "Sleep Charm",
+  "cobblemon.move.sleepcharm.desc": "The user sprinkles magic sand onto the opponent to put them to sleep. If it succeeds, the user restores 1/4th of their HP.",
+
+  "cobblemon.move.sandshift": "Sand Shift",
+  "cobblemon.move.sandshift.desc": "The user shoots sand at the target before rushing to switch places with a party Pokémon in waiting.",
+
+  "cobblemon.move.sonicshriek": "Sonic Shriek",
+  "cobblemon.move.sonicshriek.desc": "The user attacks by firing a sonically-charged shriek from its chest.",
+
+  "cobblemon.move.terrainblade": "Terrain Blade",
+  "cobblemon.move.terrainblade.desc": "The user utilizes the energy of the terrain to attack. This move’s type and power change depending on the terrain at the time the move is used.",
+
+  "cobblemon.move.vitaldrain": "Vital Drain",
+  "cobblemon.move.vitaldrain.desc": "The user latches onto the target's vitals to drain them of their blood. The user's HP is restored by half the damage taken by the target.",
+
+  "cobblemon.move.vitalslash": "Vital Slash",
+  "cobblemon.move.vitalslash.desc": "The user slashes the target's vitals to drain them of their blood. The user's HP is restored by half the damage taken by the target.",
+
+  "cobblemon.move.spiritsong": "Spirit Song",
+  "cobblemon.move.spiritsong.desc": "The user belts out an ancient song to lift the spirits of the past. This causes sleeping Pokémon to wake up.",
+
+  "cobblemon.move.phantomblade": "Phantom Blade",
+  "cobblemon.move.phantomblade.desc": "The user tears at the target with its ghostly blade. This move has a heightened chance of landing a critical hit and never misses.",
+
+  "cobblemon.move.steelcutter": "Steel Cutter",
+  "cobblemon.move.steelcutter.desc": "The user slashes the target with steel blades. This move has a heightened chance of landing a critical hit.",
+
+  "cobblemon.move.snowbank": "Snow Bank",
+  "cobblemon.move.snowbank.desc": "The user restores its own HP by up to half its max HP. It regains more HP in snow or hail.",
+
+  "cobblemon.move.pitfall": "Pitfall",
+  "cobblemon.move.pitfall.desc": "The user creates a pitfall to trip the target. This move enables the user to attack first, but fails if the target is not readying an attack.",
+
+  "cobblemon.move.breezeball": "Breeze Ball",
+  "cobblemon.move.breezeball.desc": "The user hurls a wind charge at the target. The faster the user is than the target, the greater the move's power. This move inflicts damage using the Attack or Sp. Atk stat—whichever is higher for the user.",
+
+  "cobblemon.move.papercut": "Paper Cut",
+  "cobblemon.move.papercut.desc": "The user attacks by slicing the target with a blade as thin as paper. This move always lands a critical hit.",
+
+  "cobblemon.move.bygonebash": "Bygone Bash",
+  "cobblemon.move.bygonebash.desc": "The user throws a mighty punch using combined power of the spirits of its ancestors. This also damages the user quite a lot.",
+
+  "cobblemon.move.psychicsnap": "Psychic Snap",
+  "cobblemon.move.psychicsnap.desc": "The user sends out a shockwave of psychic power capable of shattering glass. This move can also break barriers, such as Light Screen and Reflect.",
+
+  "cobblemon.move.generationdance": "Generation Dance",
+  "cobblemon.move.generationdance.desc": "The user performs the dance of its ancestors, restoring its own HP by up to half its max HP. It regains more HP in harsh sunlight.",
+
+  "cobblemon.move.vengeanceofgenerations": "Vengeance of Generations",
+  "cobblemon.move.vengeanceofgenerations.desc": "The user attacks with the full force of a thousand generations. This move ignores the target's Ability and Immunities.",
+
+  "cobblemon.move.gmaxpresto": "G-Max Presto",
+  "cobblemon.move.gmaxpresto.desc": "A Fairy-type attack that Gigantamax Hattertainer uses. This may also make targets flinch or leave them with a burn.",
+
+  "cobblemon.move.shiverdance": "Shiver Dance",
+  "cobblemon.move.shiverdance.desc": "The user lightly performs a beautiful, shivering dance. This boosts the user's Attack and Sp. Atk stats. The user's Attack and Sp. Atk stat are raised sharply when its snowing.",
+
+  "cobblemon.move.pageturn": "Page Turn",
+  "cobblemon.move.pageturn.desc": "The user turns a page of its spell book. This boosts the user's Sp. Atk and Sp. Def stats. When used by Wizledger it changes form.",
+
+  "cobblemon.move.magicmissile": "Magic Missile",
+  "cobblemon.move.magicmissile.desc": "The user attacks the target by casting a mighty spell. This move becomes the same type as the user's type.",
+
+  "cobblemon.move.guardpress": "Guard Press",
+  "cobblemon.move.guardpress.desc": "The user attacks by slamming its stone body into the target. The higher the user's Defense stat, the greater the damage this move deals.",
+
+  "cobblemon.move.armorpress": "Armor Press",
+  "cobblemon.move.armorpress.desc": "The user attacks by slamming its armored body into the target. The higher the user's Defense stat, the greater the damage this move deals.",
+
+  "cobblemon.move.mindbend": "Mind Bend",
+  "cobblemon.move.mindbend.desc": "The user attacks the target with mental fortitude. The higher the user's Sp. Def stat, the greater the damage this move deals. This may also confuse the target.",
+
+  "cobblemon.move.letitcook": "Let It Cook",
+  "cobblemon.move.letitcook.desc": "The user attacks by throwing out a mass of cookies. This also lowers the user's Sp. Atk stat. May leave the target with a burn.",
+
+  "cobblemon.move.glacialcrash": "Glacial Crash",
+  "cobblemon.move.glacialcrash.desc": "The user attacks by slamming its icy body into the target. The higher the user's Defense stat, the greater the damage this move deals.",
+
+  "cobblemon.move.psydrive": "Psydrive",
+  "cobblemon.move.psydrive.desc": "The user delivers an powerful psychic kick to attack the target. This move deals special damage.",
+
+  "cobblemon.move.eeriedance": "Eerie Dance",
+  "cobblemon.move.eeriedance.desc": "The user lightly performs a beautiful, unsettling dance. This boosts the user's Sp. Atk and Sp. Def stats. This also lowers the user's Speed stat.",
+
+  "cobblemon.move.crystalspear": "Crystal Spear",
+  "cobblemon.move.crystalspear.desc": "The user pierces the target with a crystalline spear. This move has a heightened chance of landing a critical hit and never misses.",
+
+  "cobblemon.move.fleurdance": "Fleur Dance",
+  "cobblemon.move.fleurdance.desc": "The user performs an elegant flowery dance to strike the target. This attack does massive damage if the user isn't holding an item.",
+
+  "cobblemon.move.dragonfang": "Dragon Fang",
+  "cobblemon.move.dragonfang.desc": "The target is bitten with draconic fangs. This may also make the target flinch.",
+
+  "cobblemon.move.thunderclaw": "Thunder Claw",
+  "cobblemon.move.thunderclaw.desc": "The user attacks by slashing the target with electrified claws. This move has a heightened chance of landing a critical hit.",
+
+  "cobblemon.move.spiritdrain": "Spirit Drain",
+  "cobblemon.move.spiritdrain.desc": "The user uses its ghostly power to drain the target's life force. The user's HP is restored by up to half the damage taken by the target.",
+
+  "cobblemon.move.flyingkick": "Flying Kick",
+  "cobblemon.move.flyingkick.desc": "The user jumps forward to kick the target it midair. This may also make the target flinch.",
+
+  "cobblemon.move.zekromkick": "Zekrom Kick",
+  "cobblemon.move.zekromkick.desc": "The user delivers a powerful Zekrom Kick! This move is Dragon and Electric type simultaneously. This may also make the target flinch.",
+
+  "cobblemon.move.reshirambeam": "Reshiram Beam",
+  "cobblemon.move.reshirambeam.desc": "The user fires off a powerful Reshiram Beam! This move is Dragon and Electric type simultaneously. This may also confuse the target.",
+
+  "cobblemon.move.nightlight": "Nightlight",
+  "cobblemon.move.nightlight.desc": "The user damages opposing Pokémon by emitting a dark light. This may also confuse the target.",
+
+  "cobblemon.move.nosedive": "Nosedive",
+  "cobblemon.move.nosedive.desc": "The user flies into the air and dives down to attack the opponent. If this move misses, the user takes damage instead.",
+  "cobblemon.battle.damage.nosedive": "%1$s crashed into the ground!",
+
+  "cobblemon.move.flashbang": "Flashbang",
+  "cobblemon.move.flashbang.desc": "The user emits a powerful flash of light to inflict damage on everything around it. This may also lower the target's accuracy.",
+
+  "cobblemon.move.lockin": "Lock-In",
+  "cobblemon.move.lockin.desc": "The user shakes off their nerves to face the battle ahead. This move boosts the user's Attack, Defense, and Sp. Def stats but prevents the user from switching out or fleeing.",
+
+  "cobblemon.move.feyblade": "Fey Blade",
+  "cobblemon.move.feyblade.desc": "The user slashes the target using a magical key as a blade. This move has a heightened chance of landing a critical hit.",
+
+  "cobblemon.move.turntail": "Turn Tail",
+  "cobblemon.move.turntail.desc": "The user cowardly rushes back to switch places with a party Pokémon in waiting, restoring its own HP by up to one third its max HP.",
+  "cobblemon.battle.fail.turntail": "But %1$s refused!",
+
+  "cobblemon.move.stormsiphon": "Storm Siphon",
+  "cobblemon.move.stormsiphon.desc": "The user draws in lightning to restore its own HP. The amount of HP regained varies with the weather and terrain.",
+
+  "cobblemon.move.dragonaxe": "Dragon Axe",
+  "cobblemon.move.dragonaxe.desc": "The user swings its axe-like tusks to attack the target. This attack leaves behind Steel splinters that can damage opponents.",
+  "cobblemon.battle.sidestart.opponent.gmaxsteelsurge": "Sharp steel surrounds the enemy team!",
+  "cobblemon.battle.sideend.opponent.gmaxsteelsurge": "The sharp steel disappeared from around the opposing team!",
+  "cobblemon.battle.sidestart.ally.gmaxsteelsurge": "Sharp steel surrounds your team!",
+  "cobblemon.battle.sideend.ally.gmaxsteelsurge": "The sharp steel disappeared from around your team!",
+  "cobblemon.battle.damage.gmaxsteelsurge": "Sharp steel dug into %1$s!",
+
+  "cobblemon.move.fivestarpunch": "Five Star Punch",
+  "cobblemon.move.fivestarpunch.desc": "A consecutive five-punch attack that becomes more powerful with each successful hit. The higher the user's Sp. Def stat, the greater the damage this move deals.",
+
+  "cobblemon.move.vinepress": "Vine Press",
+  "cobblemon.move.vinepress.desc": "The user attacks by slamming its plant-like body into the target. The higher the user's Defense stat, the greater the damage this move deals.",
+
+  "cobblemon.move.phantomtrick": "Phantom Trick",
+  "cobblemon.move.phantomtrick.desc": "The user performs a ghostly trick to switch its Attack with its Sp. Atk stat.",
+  "cobblemon.battle.activate.phantomtrick": "%1$s switched its Attack and Sp. Atk!",
+
+  "cobblemon.move.hammerdown": "Hammer Down",
+  "cobblemon.move.hammerdown.desc": "The user launches a rock into the air with its might hammer. Flying Pokémon will fall to the ground when they're hit. This move is also super effective on Steel types.",
+
+  "cobblemon.move.relicdance": "Relic Dance",
+  "cobblemon.move.relicdance.desc": "The user performs an ancient dance. This raises the user's Attack, Sp. Atk, and Speed stats and also changes Meloetta's form.",
+
+  "cobblemon.move.boltbeam": "Bolt Beam",
+  "cobblemon.move.boltbeam.desc": "The user attacks with a beam of electricity. This may also paralyze the target.",
+
+  "cobblemon.move.psyclone": "Psyclone",
+  "cobblemon.move.psyclone.desc": "The user employs its power to attack by wrapping its opponent in a fierce psychic wind. This may also confuse the target.",
+
+  "cobblemon.move.rainbowwing": "Rainbow Wing",
+  "cobblemon.move.rainbowwing.desc": "The user attacks by showering the target with rainbow feathers. If its raining this move makes the weather sunny and creates a rainbow above your team's side. This doesn't work in heavy rain however.",
+  "cobblemon.battle.sidestart.ally.waterpledge": "A rainbow appeared in the sky on your team's side!",
+  "cobblemon.battle.sidestart.opponent.waterpledge": "A rainbow appeared in the sky on the opposing team's side!",
+
+  "cobblemon.move.obliquekick": "Oblique Kick",
+  "cobblemon.move.obliquekick.desc": "The user stomps down on the opponent's knee. This also lowers the target's Speed stat.",
+
+  "cobblemon.move.dropkix": "Dropkix",
+  "cobblemon.move.dropkix.desc": "The user flips into the air to kick down towards the opponent. If this move misses, the user takes damage instead.",
+  "cobblemon.battle.damage.dropkix": "%1$s crashed into the ground!",
+
+  "cobblemon.move.showdownmode": "Showdown Mode",
+  "cobblemon.move.showdownmode.desc": "The user decides to fight all out, standing on its previously folded legs to enter Showdown Mode. This raises the user's Attack, Sp. Atk, and Speed stats for three turns, but lowers Defense and Sp. Def when those three turns run out.",
+  "cobblemon.battle.start.showdownmode": "%1$s entered Showdown Mode!",
+  "cobblemon.battle.end.showdownmode": "%1$s exited Showdown Mode, its now fatigued!",
+
+  "cobblemon.move.guardcoat": "Guard Coat",
+  "cobblemon.move.guardcoat.desc": "The user attacks by slamming its fluffy body into the target. The higher the user's Defense stat, the greater the damage this move deals. This move's effects vary depending on what trim the user has.",
+
+  "cobblemon.move.pamper": "Pamper",
+  "cobblemon.move.pamper.desc": "The user pampers itself to raise its stats. This move's effects vary depending on what trim the user has.",
+
+  "cobblemon.move.shadowstars": "Shadow Stars",
+  "cobblemon.move.shadowstars.desc": "The user attacks by shooting dark throwing stars at the target. This move hits two to five times in a row.",
+
+  "cobblemon.move.starshower": "Starshower",
+  "cobblemon.move.starshower.desc": "The user attacks by showering the target with stars. This move hits two to five times in a row. This move also does increased damage if the user has used Cosmic Power previously.",
+
+  "cobblemon.move.quickfire": "Quick-Fire",
+  "cobblemon.move.quickfire.desc": "The user lunges at the target to inflict damage, moving at blinding speed. This move always goes first.",
+
+  "cobblemon.move.backpetal": "Backpetal",
+  "cobblemon.move.backpetal.desc": "After making its attack, the user rushes back to switch places with a party Pokémon in waiting.",
+
+  "cobblemon.move.butterflylanding": "Butterfly Landing",
+  "cobblemon.move.butterflylanding.desc": "The user delicately lands on the ground to rest its wings. After using this move, the user will no longer be Flying type and their moves will have an increased likelihood of additional effects occuring.",
+  "cobblemon.battle.start.butterflylanding": "%1$s gracefully landed on the ground!",
+  "cobblemon.battle.end.butterflylanding": "%1$s took flight!",
+
+  "cobblemon.move.sugarcrash": "Sugar Crash",
+  "cobblemon.move.sugarcrash.desc": "The user attacks the target with sugary sweets. This may also lower the target's speed.",
+
+  "cobblemon.move.softserve": "Soft Serve",
+  "cobblemon.move.softserve.desc": "The user restores the HP of itself or an ally by up to half of the target's max HP. It regains more HP in Misty Terrain or snow and hail.",
+
+  "cobblemon.move.mountainstorm": "Mountain Storm",
+  "cobblemon.move.mountainstorm.desc": "The user attacks by striking the target with a fierce punch before throwing them over its shoulder. This move always lands a critical hit.",
+
+  "cobblemon.move.valleydrop": "Valley Drop",
+  "cobblemon.move.valleydrop.desc": "The user attacks by grabbing the target and tripping them up, causing them to fall onto their back. This lowers the target's Speed stat, but also damages the user a little.",
+
+  "cobblemon.move.dragonsfist": "Dragon's Fist",
+  "cobblemon.move.dragonsfist.desc": "The user attacks the target with an uppercut thrown skyward with force.",
+
+  "cobblemon.move.volatileextract": "Volatile Extract",
+  "cobblemon.move.volatileextract.desc": "The user emits an incredibly volatile extract. For three turns, all stat changes affecting the target become the opposite of what they were. The target's stat changes return to normal after the effect runs out.",
+  "cobblemon.battle.start.volatileextract": "A volatile scent wafted into the air!",
+  "cobblemon.battle.end.volatileextract": "The volatule scent dissipated!",
+
+  "cobblemon.move.tripletumble": "Triple Tumble",
+  "cobblemon.move.tripletumble.desc": "The user stumbles around crashing into the target. This hits three times and becomes more powerful with each successful hit, but randomly lowers the user's Attack, Defense, or Speed stats for each hit.",
+
+  "cobblemon.move.hypnoblast": "Hypnoblast",
+  "cobblemon.move.hypnoblast.desc": "The user attacks the target with great psychic power. However, this also lowers the user's Sp. Atk and Sp. Def stats.",
+
+  "cobblemon.move.marinelight": "Marine Light",
+  "cobblemon.move.marinelight.desc": "The user shines an eerie hypnotic light at the target. The recoil from this move harshly lowers the user's Sp. Atk stat.",
+
+  "cobblemon.move.seismicwave": "Seismic Wave",
+  "cobblemon.move.seismicwave.desc": "The user shakes the ground with a seismic wave to attack the target. This move deals special damage.",
+
+  "cobblemon.move.stoneage": "Stone Age",
+  "cobblemon.move.stoneage.desc": "A column of stone hits the target. When used with its steel counterpart, this move's power is boosted and a trap of steel spikes appears. The trap damages opposing Pokémon that switch into battle.",
+
+  "cobblemon.move.iceage": "Ice Age",
+  "cobblemon.move.iceage.desc": "A column of ice hits the target. When used with its rock counterpart, this move's power is boosted and a trap of ice shards appears. The trap damages opposing Pokémon that switch into battle.",
+
+  "cobblemon.move.ironage": "Iron Age",
+  "cobblemon.move.ironage.desc": "A column of steel hits the target. When used with its ice counterpart, this move's power is boosted and a mirror shield appears to protect your team from wide-ranging attacks for 5 turns.",
+
+  "cobblemon.battle.sidestart.opponent.icespikes": "Ice Spikes surround the enemy team!",
+  "cobblemon.battle.sideend.opponent.icespikes": "The Ice Spikes disappeared from around the opposing team!",
+  "cobblemon.battle.sidestart.ally.icespikes": "Ice Spikes surround your team!",
+  "cobblemon.battle.sideend.ally.icespikes": "The Ice Spikes disappeared from around your team!",
+  "cobblemon.battle.damage.icespikes": "Ice Spikes dug into %1$s!",
+
+  "cobblemon.battle.sidestart.ally.mirrorshield": "A mirror shield appeared on your team's side!",
+  "cobblemon.battle.sidestart.opponent.mirrorshield": "A mirror shield appeared on the opposing team's side!",
+  "cobblemon.battle.activate.ironage": "A mirror shield protected %1$s!",
+
+  "cobblemon.move.echoshards": "Echo Shards",
+  "cobblemon.move.echoshards.desc": "The user lays a trap of levitating echo shards around the opposing team. The trap damages opposing Pokémon that switch into battle.",
+  "cobblemon.battle.sidestart.opponent.echoshards": "Echo Shards surround the enemy team!",
+  "cobblemon.battle.sideend.opponent.echoshards": "The Echo Shards disappeared from around the opposing team!",
+  "cobblemon.battle.sidestart.ally.echoshards": "Echo Shards surround your team!",
+  "cobblemon.battle.sideend.ally.echoshards": "The Echo Shards disappeared from around your team!",
+  "cobblemon.battle.damage.echoshards": "Echo Shards dug into %1$s!",
+
+  "cobblemon.move.deepfreeze": "Deep Freeze",
+  "cobblemon.move.deepfreeze.desc": "The user attacks by super-freezing the air around the target. This also leaves the target with frostbite.",
+
+  "cobblemon.move.frigidwater": "Frigid Water",
+  "cobblemon.move.frigidwater.desc": "The user attacks by shooting frigid cold water at the target. This move's power is boosted by 50 percent in snow or hail. This may also leave the target with frostbite.",
+
+  "cobblemon.move.cargothrow": "Cargo Throw",
+  "cobblemon.move.cargothrow.desc": "The user attacks by grabbing the target with one of its arms, making the target unable to flee. If used against a target that has already been grabbed, the target is thrown and a different Pokémon is dragged out.",
+
+  "cobblemon.move.giantpunch": "Giant Punch",
+  "cobblemon.move.giantpunch.desc": "The user attacks the target by throwing a powerful gorilla punch. This attack can hit a target using a move such as Protect or Detect.",
+
+  "cobblemon.move.honeydew": "Honeydew",
+  "cobblemon.move.honeydew.desc": "The honey gathered is absorbed by the user to restore its own HP. The more honey is gathered, the more HP is restored.",
+
+  "cobblemon.move.honeybomb": "Honey Bomb",
+  "cobblemon.move.honeybomb.desc": "The user fires a ball of honey at the target. The more honey is gathered, the greater the move's power. This also lowers the user's speed.",
+
+  "cobblemon.move.leviathanpulse": "Leviathan Pulse",
+  "cobblemon.move.leviathanpulse.desc": "The user attacks opposing Pokémon by shooting twin pulses of condensed water. If there are two opposing Pokémon, this move hits each of them once.",
+
+  "cobblemon.move.guardianbeam": "Guardian Beam",
+  "cobblemon.move.guardianbeam.desc": "The user attacks the target by shooting a mysterious beam out of its eye. The target's stat changes don't affect the damage inflicted by this move, and this attack never misses.",
+
+  "cobblemon.move.tigerbridge": "Tiger Bridge",
+  "cobblemon.move.tigerbridge.desc": "The user grabs the target and performs a reckless backbreaker rack drop. This also damages the user a little.",
+
+  "cobblemon.move.ensnare": "Ensnare",
+  "cobblemon.move.ensnare.desc": "The power of this attack move is doubled if it's used on a target that's switching out of battle.",
+
+  "cobblemon.move.mantisstrike": "Mantis Strike",
+  "cobblemon.move.mantisstrike.desc": "This move enables the user to attack first. This move fails if the target is not readying an attack.",
+
+  "cobblemon.move.potshot": "Potshot",
+  "cobblemon.move.potshot.desc": "The user fires a quick shot at the unsuspecting target. This move usually goes first and has a heightened chance of landing a critical-hit, but isn't always an accurate shot.",
+
+  "cobblemon.move.fossilfang": "Fossil Fang",
+  "cobblemon.move.fossilfang.desc": "The user bites into the target with sharp rock-like fangs. This may also lower the target's Speed stat.",
+
+  "cobblemon.move.terrabite": "Terra Bite",
+  "cobblemon.move.terrabite.desc": "The user viciously bites the target to hold them in place. The target becomes unable to flee.",
+
+  "cobblemon.move.ironfang": "Iron Fang",
+  "cobblemon.move.ironfang.desc": "The user bites with sharp metal fangs. This may also make the target flinch or lower the target's Defense stat.",
+
+  "cobblemon.move.seamitarslash": "Seamitar Slash",
+  "cobblemon.move.seamitarslash.desc": "The user strikes using hidden blades, slashing faster than the blink of an eye. This move never misses and has a heightened chance of landing a critical hit. This move also deals physical damage.",
+
+  "cobblemon.move.triplefury": "Triple Fury",
+  "cobblemon.move.triplefury.desc": "The user jabs the target three times in succession using its sharp beak. This move usually goes first. When used by Dodrio, sometimes all three heads will act in unison, doubling the move's power.",
+  "cobblemon.battle.activate.triplefury": "%1$s went all out!",
+
+  "cobblemon.move.rootout": "Root Out",
+  "cobblemon.move.rootout.desc": "The user goes all out and attacks the target by tearing its own roots out of the ground. This lowers the user's Defense and Sp. Def stats. This also increases in power if the user is ingrained, but they uproot themselves in the process.",
+  "cobblemon.battle.activate.rootout": "%1$s tore out its roots!",
+
+  "cobblemon.move.conjuringfire": "Conjuring Fire",
+  "cobblemon.move.conjuringfire.desc": "The user burns its item in order to cast a fiery spell. This move's effects change depending on the user's held item. The item is consumed after use.",
+  "cobblemon.battle.enditem.conjuringfire": "%1$s burned up its %2$s!",
+
+  "cobblemon.move.soakup": "Soak Up",
+  "cobblemon.move.soakup.desc": "The user restores its own HP by up to half its max HP. It regains more HP in rain.",
+
+  "cobblemon.move.slickslime": "Slick Slime",
+  "cobblemon.move.slickslime.desc": "The user coats itself in a slippery slime that increases it Sp. Def and prevents it from being trapped or bound by moves. This also prevents the user's speed from being lowered by the opponent's attacks.",
+  "cobblemon.battle.start.slickslime1": "%1$s covered itself in 1 layer of slime!",
+  "cobblemon.battle.start.slickslime2": "%1$s covered itself in 2 layers of slime!",
+  "cobblemon.battle.start.slickslime3": "%1$s covered itself in 3 layers of slime!",
+  "cobblemon.battle.start.slickslime4": "%1$s covered itself in 4 layers of slime!",
+  "cobblemon.battle.start.slickslime5": "%1$s covered itself in 5 layers of slime!",
+  "cobblemon.battle.start.slickslime6": "%1$s covered itself in 6 layers of slime!",
+  "cobblemon.battle.activate.slickslime": "%1$s's Slick Slime allowed it to escape!",
+  "cobblemon.battle.block.slickslime": "%1$s's Slick Slime allowed it to escape!",
+  "cobblemon.battle.end.slickslime": "%1$s's slime was washed off!",
+  "cobblemon.battle.end.slickslime0": "%1$s's slime was washed off!",
+  "cobblemon.battle.end.slickslime1": "%1$s's slime was washed off! It now has 1 layer of slime!",
+  "cobblemon.battle.end.slickslime2": "%1$s's slime was washed off! It now has 2 layers of slime!",
+  "cobblemon.battle.end.slickslime3": "%1$s's slime was washed off! It now has 3 layers of slime!",
+  "cobblemon.battle.end.slickslime4": "%1$s's slime was washed off! It now has 4 layers of slime!",
+  "cobblemon.battle.end.slickslime5": "%1$s's slime was washed off! It now has 5 layers of slime!",
+
+  "cobblemon.move.slimeball": "Slime Ball",
+  "cobblemon.move.slimeball.desc": "The user throws a ball of slime at the target. If the user has any slime layers, this attack lowers the target's Speed stat. This moves power increases depending on how many layers of slime the user has.",
+
+  "cobblemon.move.dragontrap": "Dragon Trap",
+  "cobblemon.move.dragontrap.desc": "This move enables the user to attack first. This move fails if the target is not readying a special attack.",
+
+  "cobblemon.move.heliobeam": "Helio Beam",
+  "cobblemon.move.heliobeam.desc": "The user gathers light and recovers HP on the first turn, then blasts an electric beam on the next turn.",
+  "cobblemon.battle.prepare.heliobeam": "%1$s absorbed light!"
+}

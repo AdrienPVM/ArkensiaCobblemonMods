@@ -1,0 +1,53 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.cheesecompat.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "plugin": "com.cheesecompat.CheeseCompatMixinPlugin",
+  "mixins": [
+    "BattleTowerManagerMixin",
+    "TeamSnapshotMixin",
+    "BattleTowerShutdownMixin",
+    "NetworkHelperImplMixin",
+    "ArcPhoneHealMixin",
+    "ArcPhonePCMixin",
+    "SanctuaryDistanceMixin",
+    "OrePileMixin",
+    "CobbleSafariInitMixin",
+    "TrialsNatureMixin",
+    "SafariTeleporterMixin",
+    "DungeonPortalSpawnMixin",
+    "DungeonDimensionsMixin",
+    "RaidTeraBlockMixin",
+    "RaidBossFacingMixin",
+    "RaidFireSpreadMixin",
+    "RaidEntityClearMixin",
+    "DaycareIVFixMixin",
+    "DaycareFromParentsMixin",
+    "FertilityClampMixin",
+    "DaycareSimpleModeTickMixin",
+    "DaycareGUIToggleMixin",
+    "DaycareIVAverageMixin",
+    "DaycareEggFertilityAvgMixin",
+    "DaycareStrictFertilityMixin",
+    "TeamFullRestoreMixin",
+    "BattleArenaPositionMixin",
+    "AcademySlingshotProtectionMixin",
+    "SculkShriekerBossSpawnMixin",
+    "AlphaScaleHitboxFixMixin",
+    "EnhancedCelestialsFactoryFallbackMixin",
+    "FoFOwnedGiratinaNoAggroMixin",
+    "BattleTowerChunkPreloadMixin",
+    "ExtraQuestsTimerResetGuardMixin",
+    "EntrepreneurProfessionLockMixin"
+  ],
+  "client": [
+    "client.IconDataAccessor",
+    "client.JourneyMapSeavlianIconMixin",
+    "client.BattleTowerScreenAspectMixin",
+    "client.NumismaticShopCullMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

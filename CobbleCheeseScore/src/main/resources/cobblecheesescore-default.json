@@ -1,0 +1,369 @@
+{
+  "port": 44310,
+  "updateIntervalMinutes": 10,
+  "timeZone": "Europe/Paris",
+  "autoDetectDataFolder": true,
+  "manualDataFolderPath": "",
+  "defaultMaxPlayers": 30,
+  "defaultRowsPerColumn": 10,
+  "showLastUpdate": true,
+  "lastUpdateText": "Dernière mise à jour :",
+  "enableWebInterface": true,
+  "enableJsonApi": true,
+  "enableDiscordWebhook": false,
+  "discordWebhookUrl": "",
+  "enableHistory": true,
+  "historyRetentionDays": 30,
+  
+  "defaultColors": {
+    "background": "#0f0c29",
+    "titleBackground": "#ffcb05",
+    "titleText": "#FFFFFF",
+    "text": "#FFFFFF",
+    "footerText": "#ffcb05",
+    "firstPlaceBackground": "#ff715b",
+    "secondPlaceBackground": "#ff5b42",
+    "thirdPlaceBackground": "#ff2f0f",
+    "topPlayerText": "#FFD700"
+  },
+  
+  "scoreboards": [
+    {
+      "id": "pokedex_completed",
+      "enabled": true,
+      "filename": "pokedex.png",
+      "title": "Pokédex Complété",
+      "description": "Espèces capturées",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {}
+    },
+    {
+      "id": "shiny_hunter",
+      "enabled": true,
+      "filename": "shiny.png",
+      "title": "Chasseur de Shiny",
+      "description": "Shinies capturés",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {
+        "titleBackground": "#FFD700"
+      }
+    },
+    {
+      "id": "play_time",
+      "enabled": true,
+      "filename": "playtime.png",
+      "title": "Temps de Jeu Total",
+      "description": "Heures jouées",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {}
+    },
+    {
+      "id": "battle_elite",
+      "enabled": true,
+      "filename": "battles.png",
+      "title": "Combattant Élite",
+      "description": "Victoires totales",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {}
+    },
+    {
+      "id": "trainer_tamer",
+      "enabled": true,
+      "filename": "trainers.png",
+      "title": "Dompteur de Dresseurs",
+      "description": "Victoires vs Trainers",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {}
+    },
+    {
+      "id": "distance_traveled",
+      "enabled": true,
+      "filename": "distance.png",
+      "title": "Distance Parcourue",
+      "description": "Kilomètres totaux",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {}
+    },
+    {
+      "id": "evolutionist",
+      "enabled": true,
+      "filename": "evolutions.png",
+      "title": "Évolutionniste",
+      "description": "Évolutions effectuées",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {}
+    },
+    {
+      "id": "type_normal",
+      "enabled": true,
+      "filename": "type_normal.png",
+      "title": "Maître Type Normal",
+      "description": "Pokémon Normal capturés",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {"titleBackground": "#A8A878"}
+    },
+    {
+      "id": "type_water",
+      "enabled": true,
+      "filename": "type_water.png",
+      "title": "Maître Type Water",
+      "description": "Pokémon Water capturés",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {"titleBackground": "#6890F0"}
+    },
+    {
+      "id": "type_fire",
+      "enabled": true,
+      "filename": "type_fire.png",
+      "title": "Maître Type Fire",
+      "description": "Pokémon Fire capturés",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {"titleBackground": "#F08030"}
+    },
+    {
+      "id": "type_grass",
+      "enabled": true,
+      "filename": "type_grass.png",
+      "title": "Maître Type Grass",
+      "description": "Pokémon Grass capturés",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {"titleBackground": "#78C850"}
+    },
+    {
+      "id": "type_electric",
+      "enabled": true,
+      "filename": "type_electric.png",
+      "title": "Maître Type Electric",
+      "description": "Pokémon Electric capturés",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {"titleBackground": "#F8D030"}
+    },
+    {
+      "id": "type_ice",
+      "enabled": true,
+      "filename": "type_ice.png",
+      "title": "Maître Type Ice",
+      "description": "Pokémon Ice capturés",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {"titleBackground": "#98D8D8"}
+    },
+    {
+      "id": "type_fighting",
+      "enabled": true,
+      "filename": "type_fighting.png",
+      "title": "Maître Type Fighting",
+      "description": "Pokémon Fighting capturés",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {"titleBackground": "#C03028"}
+    },
+    {
+      "id": "type_poison",
+      "enabled": true,
+      "filename": "type_poison.png",
+      "title": "Maître Type Poison",
+      "description": "Pokémon Poison capturés",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {"titleBackground": "#A040A0"}
+    },
+    {
+      "id": "type_ground",
+      "enabled": true,
+      "filename": "type_ground.png",
+      "title": "Maître Type Ground",
+      "description": "Pokémon Ground capturés",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {"titleBackground": "#E0C068"}
+    },
+    {
+      "id": "type_flying",
+      "enabled": true,
+      "filename": "type_flying.png",
+      "title": "Maître Type Flying",
+      "description": "Pokémon Flying capturés",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {"titleBackground": "#A890F0"}
+    },
+    {
+      "id": "type_psychic",
+      "enabled": true,
+      "filename": "type_psychic.png",
+      "title": "Maître Type Psychic",
+      "description": "Pokémon Psychic capturés",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {"titleBackground": "#F85888"}
+    },
+    {
+      "id": "type_bug",
+      "enabled": true,
+      "filename": "type_bug.png",
+      "title": "Maître Type Bug",
+      "description": "Pokémon Bug capturés",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {"titleBackground": "#A8B820"}
+    },
+    {
+      "id": "type_rock",
+      "enabled": true,
+      "filename": "type_rock.png",
+      "title": "Maître Type Rock",
+      "description": "Pokémon Rock capturés",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {"titleBackground": "#B8A038"}
+    },
+    {
+      "id": "type_ghost",
+      "enabled": true,
+      "filename": "type_ghost.png",
+      "title": "Maître Type Ghost",
+      "description": "Pokémon Ghost capturés",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {"titleBackground": "#705898"}
+    },
+    {
+      "id": "type_dragon",
+      "enabled": true,
+      "filename": "type_dragon.png",
+      "title": "Maître Type Dragon",
+      "description": "Pokémon Dragon capturés",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {"titleBackground": "#7038F8"}
+    },
+    {
+      "id": "type_dark",
+      "enabled": true,
+      "filename": "type_dark.png",
+      "title": "Maître Type Dark",
+      "description": "Pokémon Dark capturés",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {"titleBackground": "#705848"}
+    },
+    {
+      "id": "type_steel",
+      "enabled": true,
+      "filename": "type_steel.png",
+      "title": "Maître Type Steel",
+      "description": "Pokémon Steel capturés",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {"titleBackground": "#B8B8D0"}
+    },
+    {
+      "id": "type_fairy",
+      "enabled": true,
+      "filename": "type_fairy.png",
+      "title": "Maître Type Fairy",
+      "description": "Pokémon Fairy capturés",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {"titleBackground": "#EE99AC"}
+    },
+    {
+      "id": "pokeball_crafter",
+      "enabled": true,
+      "filename": "pokeballs.png",
+      "title": "Artisan Pokéball",
+      "description": "Pokéballs craftées",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {}
+    },
+    {
+      "id": "legendary_hunter",
+      "enabled": true,
+      "filename": "legendaries.png",
+      "title": "Chasseur de Légendaires",
+      "description": "Pokémon légendaires capturés",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {"titleBackground": "#7038F8"}
+    },
+    {
+      "id": "pvp_champion",
+      "enabled": true,
+      "filename": "pvp.png",
+      "title": "Champion PvP",
+      "description": "Victoires PvP",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {"titleBackground": "#C03028"}
+    },
+    {
+      "id": "trader",
+      "enabled": true,
+      "filename": "trades.png",
+      "title": "Trader",
+      "description": "Trades effectués",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {}
+    },
+    {
+      "id": "survivor",
+      "enabled": true,
+      "filename": "deaths.png",
+      "title": "Roi des Morts",
+      "description": "Nombre de morts",
+      "sortOrder": "desc",
+      "maxPlayers": 30,
+      "rowsPerColumn": 10,
+      "colors": {
+        "titleBackground": "#8B0000",
+        "firstPlaceBackground": "#FF0000",
+        "secondPlaceBackground": "#CC0000",
+        "thirdPlaceBackground": "#990000"
+      }
+    }
+  ]
+}

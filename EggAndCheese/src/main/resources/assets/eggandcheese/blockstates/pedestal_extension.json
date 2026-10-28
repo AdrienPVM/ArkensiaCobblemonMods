@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "offset=1": { "model": "eggandcheese:block/pedestal_extension" },
+    "offset=2": { "model": "eggandcheese:block/pedestal_extension" },
+    "offset=3": { "model": "eggandcheese:block/pedestal_extension" },
+    "offset=4": { "model": "eggandcheese:block/pedestal_extension" }
+  }
+}

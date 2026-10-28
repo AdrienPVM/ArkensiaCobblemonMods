@@ -1,0 +1,19 @@
+{
+  "cheesecompat.bt.already_in_battle": "You cannot enter the Battle Tower while in a battle!",
+  "cheesecompat.bt.restore_pending": "Battle Tower team restore still in progress — please wait a few seconds before starting a new battle.",
+  "cheesecompat.arcphone.heal_disabled": "Arc Phone healing is disabled on this server.",
+  "cheesecompat.arcphone.pc_disabled": "Arc Phone PC access is disabled on this server.",
+  "cheesecompat.radgyms.rescued": "You were rescued from a gym dimension after a server restart. Your gym progress was lost.",
+  "cheesecompat.radgyms.no_gym": "You don't have an active gym session. Leave the gym dimension and try again.",
+  "cheesecompat.radgyms.wrong_trainer": "This trainer doesn't belong to your gym session.",
+  "block.cheesecompat.cobblesafari_portal_frame": "CobbleSafari Portal Frame",
+  "block.cheesecompat.cobblesafari_portal": "CobbleSafari Portal",
+  "cheesecompat.slingshot.blocked": "The slingshot cannot be used here!",
+  "cheesecompat.dungeon.capture_blocked": "You cannot capture Pokémon in the dungeon!",
+  "gui.button.cheesecompat.breed_mode.auto": "Auto breeding",
+  "gui.button.cheesecompat.breed_mode.auto.tooltip": "Breeds continuously until fertility is depleted. Click to switch to one-shot.",
+  "gui.button.cheesecompat.breed_mode.simple_armed": "One-shot breeding (armed)",
+  "gui.button.cheesecompat.breed_mode.simple_armed.tooltip": "Will produce a single egg, then stop. Click to switch to auto.",
+  "gui.button.cheesecompat.breed_mode.simple_disarmed": "One-shot breeding (stopped)",
+  "gui.button.cheesecompat.breed_mode.simple_disarmed.tooltip": "Egg produced. Click to re-arm for another egg."
+}

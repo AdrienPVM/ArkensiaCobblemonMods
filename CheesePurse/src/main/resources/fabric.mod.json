@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "numismatic-cheesepurse",
+  "version": "${version}",
+  "name": "Numismatic Cheesepurse",
+  "description": "Automatically deposits picked-up Numismatic Overhaul coins into your purse when the toggle is enabled.",
+  "authors": ["RoiCheese"],
+  "contact": {
+    "homepage": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "sources": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "issues": "https://github.com/AdrienPVM/ArkensiaCobblemonMods/issues"
+  },
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.roicheese.numismaticheesepurse.NumismaticCheesePurse"],
+    "client": ["com.roicheese.numismaticheesepurse.NumismaticCheesePurseClient"]
+  },
+  "mixins": [
+    "numismaticheesepurse.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.17.2",
+    "fabric-api": "*",
+    "minecraft": "~1.21.1",
+    "numismatic-overhaul": "*"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "cheesestore.cmd.player_only": "Cette commande doit \u00eatre ex\u00e9cut\u00e9e par un joueur.",
+  "cheesestore.cmd.player_not_found": "Joueur introuvable : %s",
+  "cheesestore.cmd.balance": "\uD83E\uDDC0 Cr\u00e9dits : %s",
+  "cheesestore.cmd.no_fromage": "Aucun joueur n'a de cr\u00e9dits.",
+  "cheesestore.cmd.top_header": "=== Top Cr\u00e9dits ===",
+  "cheesestore.cmd.top_entry": "%s. %s \u2014 %s",
+  "cheesestore.cmd.give": "+%s cr\u00e9dits donn\u00e9s \u00e0 %s. Nouveau solde : %s",
+  "cheesestore.cmd.take": "-%s cr\u00e9dits retir\u00e9s \u00e0 %s. Nouveau solde : %s",
+  "cheesestore.cmd.set": "Cr\u00e9dits de %s d\u00e9fini \u00e0 : %s",
+  "cheesestore.cmd.balance_other": "\uD83E\uDDC0 Cr\u00e9dits de %s : %s",
+  "cheesestore.cmd.open_link": "\uD83D\uDED2 Cliquez ici pour ouvrir la boutique",
+  "cheesestore.cmd.open_hover": "Ouvrir %s",
+  "cheesestore.notify.received": "\uD83E\uDDC0 +%s cr\u00e9dits re\u00e7us ! Nouveau solde : %s",
+  "cheesestore.notify.deducted": "\uD83E\uDDC0 -%s cr\u00e9dits retir\u00e9s. Nouveau solde : %s",
+  "cheesestore.cmd.link_invalid": "Code de liaison invalide ou expir\u00e9. G\u00e9n\u00E8re-en un nouveau depuis la boutique.",
+  "cheesestore.cmd.link_rate_limited": "Trop de tentatives de liaison. Attends une minute avant de r\u00e9essayer.",
+  "cheesestore.cmd.link_success": "Session boutique li\u00e9e \u00E0 %s. Tu peux d\u00e9sormais voir ton solde et acheter des morphos depuis le site.",
+  "cheesestore.cmd.cosmetics_empty": "Aucun cosm\u00e9tique disponible pour le moment.",
+  "cheesestore.cmd.cosmetics_header": "=== Cosm\u00e9tiques (cr\u00e9dits) ===",
+  "cheesestore.cmd.cosmetics_entry": "\u2728 %s [%s] \u2014 %s cr\u00e9dits"
+}

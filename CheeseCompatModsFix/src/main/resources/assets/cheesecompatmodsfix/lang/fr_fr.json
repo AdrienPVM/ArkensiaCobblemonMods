@@ -1,0 +1,19 @@
+{
+  "cheesecompat.bt.already_in_battle": "Vous ne pouvez pas entrer dans la Tour de Combat pendant un combat !",
+  "cheesecompat.bt.restore_pending": "Restauration de l'équipe de la Tour de Combat en cours — patientez quelques secondes avant de lancer un nouveau combat.",
+  "cheesecompat.arcphone.heal_disabled": "Le soin via l'Arc Phone est désactivé sur ce serveur.",
+  "cheesecompat.arcphone.pc_disabled": "L'accès au PC via l'Arc Phone est désactivé sur ce serveur.",
+  "cheesecompat.radgyms.rescued": "Vous avez été rescapé d'une dimension de gym après un redémarrage serveur. Votre progression de gym a été perdue.",
+  "cheesecompat.radgyms.no_gym": "Vous n'avez pas de session de gym active. Quittez la dimension et réessayez.",
+  "cheesecompat.radgyms.wrong_trainer": "Ce dresseur n'appartient pas à votre session de gym.",
+  "block.cheesecompat.cobblesafari_portal_frame": "Cadre de Portail CobbleSafari",
+  "block.cheesecompat.cobblesafari_portal": "Portail CobbleSafari",
+  "cheesecompat.slingshot.blocked": "Le lance-pierre ne peut pas être utilisé ici !",
+  "cheesecompat.dungeon.capture_blocked": "Vous ne pouvez pas capturer de Pokémon dans le donjon !",
+  "gui.button.cheesecompat.breed_mode.auto": "Reproduction automatique",
+  "gui.button.cheesecompat.breed_mode.auto.tooltip": "Reproduit en continu jusqu'à épuisement de la fertilité. Cliquer pour passer en mode ponctuel.",
+  "gui.button.cheesecompat.breed_mode.simple_armed": "Reproduction ponctuelle (armée)",
+  "gui.button.cheesecompat.breed_mode.simple_armed.tooltip": "Produira un seul œuf puis s'arrêtera. Cliquer pour passer en mode automatique.",
+  "gui.button.cheesecompat.breed_mode.simple_disarmed": "Reproduction ponctuelle (arrêtée)",
+  "gui.button.cheesecompat.breed_mode.simple_disarmed.tooltip": "Œuf produit. Cliquer pour ré-armer et obtenir un nouvel œuf."
+}

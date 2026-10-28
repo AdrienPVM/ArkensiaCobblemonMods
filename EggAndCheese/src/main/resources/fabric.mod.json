@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "eggandcheese",
+  "version": "${version}",
+  "name": "EggAndCheese",
+  "description": "Procedurally generated collectible egg hunt system.",
+  "authors": ["RoiCheese"],
+  "contact": {
+    "homepage": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "sources": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "issues": "https://github.com/AdrienPVM/ArkensiaCobblemonMods/issues"
+  },
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.roicheese.eggandcheese.EggAndCheese"
+    ],
+    "client": [
+      "com.roicheese.eggandcheese.EggAndCheeseClient"
+    ],
+    "cheesedash": [
+      "com.roicheese.eggandcheese.dashboard.EggAndCheeseDashboardModule"
+    ]
+  },
+  "mixins": [],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21.1",
+    "cheesedash": "*"
+  }
+}

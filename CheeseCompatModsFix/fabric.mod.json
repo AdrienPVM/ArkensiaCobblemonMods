@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "cheesecompatmodsfix",
+  "version": "1.1.0",
+  "name": "CheeseCompatModsFix",
+  "description": "Compatibility fixes for Cacademy modpack (Battle Tower, Legendary Monuments, Arc Phone toggles)",
+  "authors": ["RoiCheese"],
+  "contact": {
+    "homepage": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "sources": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "issues": "https://github.com/AdrienPVM/ArkensiaCobblemonMods/issues"
+  },
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.cheesecompat.CheeseCompatMod"]
+  },
+  "mixins": [
+    "cheesecompatmodsfix.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-command-api-v2": "*"
+  }
+}

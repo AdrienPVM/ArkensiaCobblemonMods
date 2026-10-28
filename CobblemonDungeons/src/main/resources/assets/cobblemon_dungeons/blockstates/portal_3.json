@@ -1,0 +1,1 @@
+{ "variants": { "visible=false": { "model": "minecraft:block/air" }, "visible=true": { "model": "cobblemon_dungeons:block/portal" } } }

@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "com.cheeseitems.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "TotemMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

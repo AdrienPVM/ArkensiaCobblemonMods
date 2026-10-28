@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "com.roicheese.numismaticheesepurse.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [],
+  "client": [
+    "InventoryScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

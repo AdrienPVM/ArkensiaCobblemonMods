@@ -1,0 +1,32 @@
+﻿{
+  "schemaVersion": 1,
+  "id": "cobblecap",
+  "version": "${version}",
+  "name": "CobbleCap",
+  "description": "Badge-based Pokemon level cap progression for Cacademy",
+  "authors": ["RoiCheese"],
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "contact": {
+    "homepage": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "sources": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "issues": "https://github.com/AdrienPVM/ArkensiaCobblemonMods/issues"
+  },
+  "environment": "*",
+  "mixins": [
+    "cobblecap.mixins.json"
+  ],
+  "entrypoints": {
+    "main": ["com.cobblecap.CobbleCapMod"],
+    "client": ["com.cobblecap.client.CobbleCapClient"],
+    "cheesedash": ["com.cobblecap.dashboard.CobbleCapDashboardModule"]
+  },
+  "depends": {
+    "fabricloader": ">=0.15.11",
+    "fabric-api": "*",
+    "minecraft": "~1.21.1"
+  },
+  "suggests": {
+    "cobblemon": "*",
+    "cheesedash": "*"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "cobblemon_dungeons",
+  "version": "${version}",
+  "name": "Cobblemon Dungeons",
+  "description": "A customizable dungeon system for Cobblemon.",
+  "authors": ["RoiCheese"],
+  "contact": {
+    "homepage": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "sources": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "issues": "https://github.com/AdrienPVM/ArkensiaCobblemonMods/issues"
+  },
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.sebastian.cobblemondungeons.CobblemonDungeons"
+    ],
+    "client": [
+      "com.sebastian.cobblemondungeons.CobblemonDungeonsClient"
+    ],
+    "cheesedash": [
+      "com.sebastian.cobblemondungeons.dashboard.CobblemonDungeonsDashboardModule"
+    ]
+  },
+  "mixins": [
+    "cobblemon_dungeons.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.10",
+    "minecraft": ">=1.21",
+    "java": ">=21",
+    "fabric-api": "*",
+    "cobblemon": ">=1.6.1",
+    "rctapi": ">=0.13.7-beta",
+    "cheesedash": "*"
+  },
+  "suggests": {
+    "flan": "*",
+    "radicaltrainers": "*"
+  }
+}

@@ -1,0 +1,159 @@
+package com.cobblecheesescore.image;
+
+import com.cobblecheesescore.config.Config;
+import com.cobblecheesescore.config.ScoreboardConfig;
+import com.cobblecheesescore.scoreboard.PlayerScore;
+
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+
+public class ImageGenerator {
+    private final Config config;
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+    
+    public ImageGenerator(Config config) {
+        this.config = config;
+    }
+    
+    public BufferedImage generateScoreboard(ScoreboardConfig boardConfig, List<PlayerScore> scores) {
+        // Calculate dimensions
+        int rowsPerColumn = boardConfig.getRowsPerColumn();
+        int numPlayers = Math.min(scores.size(), boardConfig.getMaxPlayers());
+        int columns = (int) Math.ceil((double) numPlayers / rowsPerColumn);
+        
+        int columnWidth = 400;
+        int headerHeight = 80;
+        int footerHeight = config.isShowLastUpdate() ? 40 : 0;
+        int rowHeight = 30;
+        int padding = 20;
+        
+        int width = (columnWidth * columns) + (padding * (columns + 1));
+        int height = headerHeight + (rowsPerColumn * rowHeight) + footerHeight + (padding * 2);
+        
+        // Create image
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = image.createGraphics();
+        
+        // Enable antialiasing
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        
+        // Get colors
+        Color backgroundColor = parseColor(boardConfig.getColorOrDefault("background", config.getDefaultColors()));
+        Color titleBgColor = parseColor(boardConfig.getColorOrDefault("titleBackground", config.getDefaultColors()));
+        Color titleTextColor = parseColor(boardConfig.getColorOrDefault("titleText", config.getDefaultColors()));
+        Color textColor = parseColor(boardConfig.getColorOrDefault("text", config.getDefaultColors()));
+        Color footerTextColor = parseColor(boardConfig.getColorOrDefault("footerText", config.getDefaultColors()));
+        Color firstPlaceColor = parseColor(boardConfig.getColorOrDefault("firstPlaceBackground", config.getDefaultColors()));
+        Color secondPlaceColor = parseColor(boardConfig.getColorOrDefault("secondPlaceBackground", config.getDefaultColors()));
+        Color thirdPlaceColor = parseColor(boardConfig.getColorOrDefault("thirdPlaceBackground", config.getDefaultColors()));
+        
+        // Draw background
+        g.setColor(backgroundColor);
+        g.fillRect(0, 0, width, height);
+        
+        // Draw header
+        g.setColor(titleBgColor);
+        g.fillRect(0, 0, width, headerHeight);
+        
+        g.setColor(titleTextColor);
+        g.setFont(new Font("SansSerif", Font.BOLD, 28));
+        FontMetrics headerFm = g.getFontMetrics();
+        int titleX = (width - headerFm.stringWidth(boardConfig.getTitle())) / 2;
+        int titleY = (headerHeight + headerFm.getAscent()) / 2;
+        g.drawString(boardConfig.getTitle(), titleX, titleY);
+        
+        // Draw players
+        g.setFont(new Font("SansSerif", Font.PLAIN, 16));
+        FontMetrics fm = g.getFontMetrics();
+        
+        int yOffset = headerHeight + padding;
+        int currentColumn = 0;
+        int rowInColumn = 0;
+        
+        for (int i = 0; i < numPlayers; i++) {
+            PlayerScore player = scores.get(i);
+            int rank = i + 1;
+            
+            // Calculate position
+            int xOffset = padding + (currentColumn * (columnWidth + padding));
+            int rowY = yOffset + (rowInColumn * rowHeight);
+            
+            // Draw rank background for top 3
+            if (rank <= 3) {
+                Color rankColor = switch (rank) {
+                    case 1 -> firstPlaceColor;
+                    case 2 -> secondPlaceColor;
+                    case 3 -> thirdPlaceColor;
+                    default -> backgroundColor;
+                };
+                g.setColor(rankColor);
+                g.fillRect(xOffset, rowY, columnWidth, rowHeight);
+            }
+            
+            // Draw text
+            g.setColor(textColor);
+            String displayText = String.format("#%d %s: %s", 
+                rank, 
+                player.getPlayerName(), 
+                player.getFormattedScore());
+            
+            // Truncate if too long
+            int maxWidth = columnWidth - 10;
+            while (fm.stringWidth(displayText) > maxWidth && displayText.length() > 20) {
+                int lastSpace = displayText.lastIndexOf(' ');
+                if (lastSpace > 0) {
+                    displayText = displayText.substring(0, lastSpace) + "...";
+                } else {
+                    displayText = displayText.substring(0, displayText.length() - 4) + "...";
+                }
+            }
+            
+            g.drawString(displayText, xOffset + 5, rowY + rowHeight - 10);
+            
+            // Move to next row/column
+            rowInColumn++;
+            if (rowInColumn >= rowsPerColumn) {
+                rowInColumn = 0;
+                currentColumn++;
+            }
+        }
+        
+        // Draw footer with last update time
+        if (config.isShowLastUpdate()) {
+            g.setColor(footerTextColor);
+            g.setFont(new Font("SansSerif", Font.PLAIN, 14));
+            
+            LocalDateTime now = LocalDateTime.now(ZoneId.of(config.getTimeZone()));
+            String timeStr = now.format(TIME_FORMATTER);
+            String updateText = config.getLastUpdateText() + " " + timeStr;
+            
+            FontMetrics footerFm = g.getFontMetrics();
+            int footerX = (width - footerFm.stringWidth(updateText)) / 2;
+            int footerY = height - 15;
+            
+            g.drawString(updateText, footerX, footerY);
+        }
+        
+        g.dispose();
+        return image;
+    }
+    
+    private Color parseColor(String hex) {
+        try {
+            if (hex.startsWith("#")) {
+                hex = hex.substring(1);
+            }
+            int r = Integer.parseInt(hex.substring(0, 2), 16);
+            int g = Integer.parseInt(hex.substring(2, 4), 16);
+            int b = Integer.parseInt(hex.substring(4, 6), 16);
+            return new Color(r, g, b);
+        } catch (Exception e) {
+            return Color.WHITE;
+        }
+    }
+}

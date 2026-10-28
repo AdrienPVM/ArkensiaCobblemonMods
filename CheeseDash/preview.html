@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ArkensiaAdmin — Preview</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.1/dist/full.min.css" rel="stylesheet">
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Geist', 'system-ui', 'sans-serif'],
+            mono: ['Geist Mono', 'monospace'],
+          },
+          fontSize: {
+            '2xs': ['0.6875rem', { lineHeight: '1rem' }],
+            'xs':  ['0.8125rem', { lineHeight: '1.25rem' }],
+            'sm':  ['0.9375rem', { lineHeight: '1.375rem' }],
+            'base':['1rem',      { lineHeight: '1.5rem' }],
+            'lg':  ['1.125rem',  { lineHeight: '1.625rem' }],
+            'xl':  ['1.25rem',   { lineHeight: '1.75rem' }],
+            '2xl': ['1.5rem',    { lineHeight: '2rem' }],
+          },
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* ── CSS Variables / Theme ─────────────────────────────────────────── */
+    :root {
+      --bg:           #0c0e14;
+      --bg-card:      #13161e;
+      --bg-elevated:  #1a1d28;
+      --bg-border:    #252836;
+      --amber:        #f5a623;
+      --amber-dim:    #b87619;
+      --amber-glow:   rgba(245,166,35,0.15);
+      --cyan:         #22d3ee;
+      --green:        #22c55e;
+      --red:          #ef4444;
+      --muted:        #6b7280;
+      --muted-light:  #9ca3af;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: #e5e7eb;
+      font-family: 'Geist', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      margin: 0;
+    }
+
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--bg-border); border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: #374151; }
+
+    /* ── Grid bg (login) ─────────────────────────────────────────────── */
+    .grid-bg {
+      background-image:
+        linear-gradient(rgba(245, 166, 35, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(245, 166, 35, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+    }
+
+    /* ── Sidebar ─────────────────────────────────────────────────────── */
+    .sidebar {
+      background: var(--bg-card);
+      border-right: 1px solid var(--bg-border);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      transition: width 0.25s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .nav-item {
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      gap: 0.75rem;
+      border-radius: 0.5rem;
+      margin: 1px 4px;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.875rem;
+      font-family: 'Geist', sans-serif;
+      transition: all 0.1s;
+      text-align: left;
+      width: calc(100% - 8px);
+    }
+    .nav-item:hover { background: var(--bg-elevated); color: #e5e7eb; }
+    .nav-item.active {
+      background: rgba(245,166,35,0.08);
+      color: var(--amber);
+    }
+    .nav-item.active::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 50%;
+      transform: translateY(-50%);
+      width: 2px; height: 60%;
+      background: var(--amber);
+      border-radius: 0 2px 2px 0;
+    }
+
+    /* ── Stat card ───────────────────────────────────────────────────── */
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-border);
+      border-radius: 0.5rem;
+      padding: 1.125rem 1.25rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+    .stat-card:hover { border-color: rgba(245,166,35,0.18); }
+    .stat-card-glow {
+      position: absolute; top: -1px; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(245,166,35,0.35), transparent);
+    }
+    .stat-value {
+      font-family: 'Geist Mono', monospace;
+      font-size: 1.6rem; font-weight: 600; line-height: 1;
+    }
+    .stat-label {
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.65rem; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--muted);
+      margin-top: 0.3rem;
+    }
+    .stat-icon {
+      position: absolute; right: 1.125rem; top: 50%;
+      transform: translateY(-50%); font-size: 2rem; opacity: 0.1;
+    }
+
+    /* ── Section card ────────────────────────────────────────────────── */
+    .section-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-border);
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+    .section-card-header {
+      padding: 0.75rem 1.125rem;
+      border-bottom: 1px solid var(--bg-border);
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .section-card-title {
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.7rem; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-light);
+    }
+
+    /* ── Module card ─────────────────────────────────────────────────── */
+    .module-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-border);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      text-align: left;
+    }
+    .module-card:hover { border-color: rgba(245,166,35,0.2); background: #161920; }
+
+    /* ── Table ───────────────────────────────────────────────────────── */
+    .cg-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .cg-table thead tr { border-bottom: 1px solid var(--bg-border); }
+    .cg-table thead th {
+      padding: 0.5rem 1rem;
+      text-align: left;
+      font-family: 'Geist Mono', monospace;
+      font-size: 0.65rem; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .cg-table tbody tr { border-bottom: 1px solid rgba(37,40,54,0.5); }
+    .cg-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+    .cg-table tbody td { padding: 0.6rem 1rem; color: #d1d5db; vertical-align: middle; }
+
+    /* ── ID badge ────────────────────────────────────────────────────── */
+    .id-badge {
+      font-family: 'Geist Mono', monospace; font-size: 0.7rem;
+      background: rgba(255,255,255,0.04); border: 1px solid var(--bg-border);
+      border-radius: 0.2rem; padding: 0.1rem 0.35rem; color: var(--muted-light);
+    }
+
+    /* ── Status dot ──────────────────────────────────────────────────── */
+    .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
+    .s-online  { background: #22c55e; box-shadow: 0 0 0 2px rgba(34,197,94,0.2); }
+    .s-warn    { background: #f5a623; box-shadow: 0 0 0 2px rgba(245,166,35,0.2); }
+    .s-offline { background: #ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,0.2); }
+
+    /* ── Buttons ─────────────────────────────────────────────────────── */
+    .btn-cg {
+      height: 1.875rem; padding: 0 0.75rem; border-radius: 0.375rem;
+      font-family: 'Geist Mono', monospace; font-size: 0.75rem; font-weight: 500;
+      border: 1px solid transparent; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 0.375rem;
+      transition: all 0.1s; white-space: nowrap;
+    }
+    .btn-primary { background: rgba(245,166,35,0.1); border-color: rgba(245,166,35,0.25); color: var(--amber); }
+    .btn-primary:hover { background: rgba(245,166,35,0.18); }
+    .btn-danger  { background: rgba(239,68,68,0.1);  border-color: rgba(239,68,68,0.25);  color: var(--red); }
+    .btn-ghost   { background: transparent; border-color: var(--bg-border); color: var(--muted); }
+    .btn-ghost:hover { background: rgba(255,255,255,0.03); color: var(--muted-light); }
+    .btn-success { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.25); color: var(--green); }
+
+    /* ── Misc ────────────────────────────────────────────────────────── */
+    .mono { font-family: 'Geist Mono', monospace; }
+    .text-amber  { color: var(--amber); }
+    .text-cyan   { color: var(--cyan); }
+    .text-green  { color: var(--green); }
+    .text-red    { color: var(--red); }
+    .text-muted  { color: var(--muted); }
+
+    .section-divider { border: none; border-top: 1px solid var(--bg-border); margin: 1rem 0; }
+
+    @keyframes pulse-slow { 0%,100% { opacity:1 } 50% { opacity:0.35 } }
+    .pulse { animation: pulse-slow 2s ease-in-out infinite; }
+
+    @keyframes fadeIn { from { opacity:0; transform: translateY(4px) } to { opacity:1; transform: none } }
+    .fade-in { animation: fadeIn 0.2s ease-out; }
+
+    @keyframes slideRight { from { opacity:0; transform: translateX(6px) } to { opacity:1; transform:none } }
+    .slide-in { animation: slideRight 0.18s ease-out; }
+
+    /* ── Login specific ──────────────────────────────────────────────── */
+    .login-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-border);
+      border-radius: 0.625rem;
+      padding: 2rem;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+    }
+    .login-input {
+      width: 100%; padding: 0.625rem 0.875rem;
+      background: var(--bg-elevated); border: 1px solid var(--bg-border);
+      border-radius: 0.375rem; color: #e5e7eb; font-family: 'Geist Mono', monospace; font-size: 0.875rem;
+      outline: none; transition: border-color 0.15s;
+    }
+    .login-input:focus { border-color: rgba(245,166,35,0.5); }
+    .login-btn {
+      width: 100%; padding: 0.625rem;
+      background: var(--amber); color: #000; font-weight: 600;
+      font-family: 'Geist Mono', monospace; font-size: 0.875rem;
+      border: none; border-radius: 0.375rem; cursor: pointer;
+      transition: background 0.12s;
+    }
+    .login-btn:hover { background: #e69520; }
+    .login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Toast ───────────────────────────────────────────────────────── */
+    .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 100; display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none; }
+    .toast-item {
+      padding: 0.625rem 1rem; border-radius: 0.375rem; border: 1px solid;
+      font-family: 'Geist Mono', monospace; font-size: 0.75rem;
+      display: flex; align-items: center; gap: 0.5rem;
+      animation: slideRight 0.2s ease-out;
+      pointer-events: auto;
+    }
+    .toast-success { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.3); color: var(--green); }
+    .toast-error   { background: rgba(239,68,68,0.1);  border-color: rgba(239,68,68,0.3);  color: var(--red); }
+    .toast-info    { background: var(--bg-elevated); border-color: var(--bg-border); color: var(--muted-light); }
+  </style>
+</head>
+
+<body x-data="app()" x-init="init()">
+
+<!-- ── Toast container ────────────────────────────────────────────────────── -->
+<div class="toast-container">
+  <template x-for="t in toasts" :key="t.id">
+    <div class="toast-item" :class="'toast-'+t.type" x-show="t.vis" x-transition>
+      <span x-text="t.icon"></span><span x-text="t.msg"></span>
+    </div>
+  </template>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     LOGIN SCREEN
+════════════════════════════════════════════════════════════════════════════ -->
+<div
+  x-show="!auth"
+  x-transition:leave="transition duration-250 ease-in"
+  x-transition:leave-start="opacity-100"
+  x-transition:leave-end="opacity-0"
+  class="fixed inset-0 z-50 flex items-center justify-center"
+  style="background: var(--bg)"
+>
+  <!-- Animated grid bg -->
+  <div class="absolute inset-0 grid-bg pointer-events-none"></div>
+  <!-- Glows -->
+  <div class="absolute" style="top:-8rem;left:-8rem;width:24rem;height:24rem;border-radius:50%;background:rgba(245,166,35,0.04);filter:blur(64px);pointer-events:none"></div>
+  <div class="absolute" style="bottom:-8rem;right:-8rem;width:24rem;height:24rem;border-radius:50%;background:rgba(34,211,238,0.04);filter:blur(64px);pointer-events:none"></div>
+
+  <div class="relative z-10 w-full fade-in" style="max-width:22rem;padding:0 1.5rem">
+
+    <!-- Brand -->
+    <div style="text-align:center;margin-bottom:2.5rem">
+      <div style="display:inline-flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem">
+        <div style="width:2.5rem;height:2.5rem;border-radius:0.5rem;background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.25);display:flex;align-items:center;justify-content:center;font-size:1.25rem">🧀</div>
+        <span class="mono" style="font-size:1.125rem;font-weight:600;letter-spacing:0.15em;color:#e5e7eb">
+          ARKENSIA<span style="color:var(--amber)">ADMIN</span>
+        </span>
+      </div>
+      <p class="mono" style="font-size:0.7rem;color:var(--muted);margin-top:0.25rem">v1.0 — Accès administrateur restreint</p>
+    </div>
+
+    <!-- Card -->
+    <div class="login-card">
+
+      <!-- Error -->
+      <div
+        x-show="loginErr"
+        x-transition
+        style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:0.375rem;padding:0.5rem 0.75rem;margin-bottom:1rem;display:flex;align-items:center;gap:0.5rem"
+      >
+        <span style="color:var(--red);font-size:0.875rem">✗</span>
+        <span class="mono" style="font-size:0.75rem;color:var(--red)" x-text="loginErr"></span>
+      </div>
+
+      <!-- Token field -->
+      <div style="margin-bottom:1rem">
+        <label class="mono" style="font-size:0.65rem;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:0.4rem">Token d'accès</label>
+        <input
+          class="login-input"
+          :type="showPwd ? 'text' : 'password'"
+          placeholder="••••••••••••••••••••••••"
+          x-model="token"
+          @keydown.enter="doLogin()"
+          :disabled="loading"
+          autofocus
+        />
+      </div>
+
+      <!-- Remember + show toggle -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+        <label style="display:flex;align-items:center;gap:0.375rem;cursor:pointer">
+          <input type="checkbox" x-model="remember" style="accent-color:var(--amber);width:14px;height:14px" />
+          <span class="mono" style="font-size:0.7rem;color:var(--muted)">Mémoriser</span>
+        </label>
+        <button @click="showPwd=!showPwd" class="mono" style="font-size:0.7rem;color:var(--muted);background:none;border:none;cursor:pointer;padding:0">
+          <span x-text="showPwd ? '🙈 Masquer' : '👁 Afficher'"></span>
+        </button>
+      </div>
+
+      <button
+        class="login-btn"
+        @click="doLogin()"
+        :disabled="loading || !token.trim()"
+      >
+        <span x-show="!loading">Accéder au dashboard →</span>
+        <span x-show="loading">Vérification...</span>
+      </button>
+    </div>
+
+    <p class="mono" style="text-align:center;font-size:0.65rem;color:rgba(107,114,128,0.4);margin-top:1.5rem">
+      Port 44311 · Token défini dans cheeseguard_dashboard.json
+    </p>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     APP SHELL
+════════════════════════════════════════════════════════════════════════════ -->
+<div
+  x-show="auth"
+  x-transition:enter="transition duration-200"
+  x-transition:enter-start="opacity-0"
+  x-transition:enter-end="opacity-100"
+  style="display:flex;height:100vh;overflow:hidden"
+>
+
+  <!-- ── SIDEBAR ─────────────────────────────────────────────────────────── -->
+  <aside class="sidebar" :style="open ? 'width:14rem' : 'width:3.5rem'">
+
+    <!-- Brand -->
+    <div style="height:3.5rem;display:flex;align-items:center;padding:0 0.75rem;gap:0.625rem;border-bottom:1px solid var(--bg-border);flex-shrink:0">
+      <div style="width:2rem;height:2rem;border-radius:0.375rem;background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.25);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0">🧀</div>
+      <span
+        class="mono"
+        style="font-size:0.8rem;font-weight:600;letter-spacing:0.12em;color:var(--amber);white-space:nowrap;overflow:hidden;transition:all 0.25s"
+        :style="open ? 'max-width:8rem;opacity:1' : 'max-width:0;opacity:0'"
+      >ARKENSIA</span>
+    </div>
+
+    <!-- Nav -->
+    <nav style="flex:1;padding:0.5rem 0;overflow-y:auto;overflow-x:hidden">
+      <template x-for="sec in nav" :key="sec.label">
+        <div style="margin-bottom:0.25rem">
+          <!-- Section label -->
+          <div
+            class="mono"
+            style="padding:0.25rem 0.75rem;font-size:0.6rem;letter-spacing:0.12em;text-transform:uppercase;color:rgba(107,114,128,0.5);overflow:hidden;transition:all 0.25s"
+            :style="open ? 'max-height:1.5rem;opacity:1;margin-bottom:0.25rem' : 'max-height:0;opacity:0;margin-bottom:0'"
+            x-text="sec.label"
+          ></div>
+          <!-- Items -->
+          <template x-for="item in sec.items" :key="item.id">
+            <button
+              class="nav-item"
+              :class="view === item.id ? 'active' : ''"
+              @click="go(item.id)"
+              :title="!open ? item.label : ''"
+            >
+              <span style="font-size:1.1rem;flex-shrink:0;line-height:1" x-text="item.icon"></span>
+              <span
+                style="font-size:0.8125rem;white-space:nowrap;overflow:hidden;transition:all 0.25s"
+                :style="open ? 'max-width:8rem;opacity:1' : 'max-width:0;opacity:0'"
+                x-text="item.label"
+              ></span>
+            </button>
+          </template>
+        </div>
+      </template>
+    </nav>
+
+    <!-- Bottom actions -->
+    <div style="border-top:1px solid var(--bg-border);padding:0.5rem;display:flex;flex-direction:column;gap:0.25rem;flex-shrink:0">
+      <button class="nav-item" @click="open=!open" :title="!open ? 'Ouvrir' : ''">
+        <span style="font-size:1rem;flex-shrink:0" x-text="open ? '◀' : '▶'"></span>
+        <span style="font-size:0.75rem;white-space:nowrap;overflow:hidden;transition:all 0.25s;font-family:Geist Mono,monospace" :style="open ? 'max-width:8rem;opacity:1' : 'max-width:0;opacity:0'">Réduire</span>
+      </button>
+      <button class="nav-item" @click="logout()" style="color:var(--muted)" :title="!open ? 'Déconnexion' : ''">
+        <span style="font-size:1rem;flex-shrink:0">⏻</span>
+        <span style="font-size:0.75rem;white-space:nowrap;overflow:hidden;transition:all 0.25s;font-family:Geist Mono,monospace" :style="open ? 'max-width:8rem;opacity:1' : 'max-width:0;opacity:0'">Déconnexion</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── CONTENT AREA ─────────────────────────────────────────────────────── -->
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden">
+
+    <!-- Top bar -->
+    <header style="height:3.5rem;background:var(--bg-card);border-bottom:1px solid var(--bg-border);display:flex;align-items:center;padding:0 1.25rem;gap:1rem;flex-shrink:0">
+      <!-- Title -->
+      <div style="flex:1;display:flex;align-items:center;gap:0.625rem">
+        <span style="font-size:1.25rem;line-height:1" x-text="curItem?.icon || '⬡'"></span>
+        <div>
+          <div style="font-size:0.875rem;font-weight:600;color:#e5e7eb;line-height:1.2" x-text="curItem?.label || 'Dashboard'"></div>
+          <div class="mono" style="font-size:0.7rem;color:var(--muted);line-height:1.2" x-text="curItem?.desc || 'ArkensiaAdmin v1.0'"></div>
+        </div>
+      </div>
+
+      <!-- Pills -->
+      <div style="display:flex;align-items:center;gap:0.625rem">
+        <!-- TPS -->
+        <div style="display:flex;align-items:center;gap:0.375rem;background:var(--bg-elevated);border:1px solid var(--bg-border);border-radius:99px;padding:0.25rem 0.625rem">
+          <div class="status-dot" :class="srv.tps >= 18 ? 's-online' : srv.tps >= 14 ? 's-warn' : 's-offline'"></div>
+          <span class="mono" style="font-size:0.7rem;color:var(--muted)">
+            <span :style="'color:' + (srv.tps>=18?'var(--green)':srv.tps>=14?'var(--amber)':'var(--red)')" x-text="srv.tps"></span> TPS
+          </span>
+        </div>
+        <!-- Players -->
+        <div style="display:flex;align-items:center;gap:0.375rem;background:var(--bg-elevated);border:1px solid var(--bg-border);border-radius:99px;padding:0.25rem 0.625rem">
+          <span class="mono" style="font-size:0.7rem;color:var(--muted)">👥 <span style="color:#e5e7eb" x-text="srv.players"></span><span style="color:rgba(107,114,128,0.6)" x-text="'/'+srv.maxPlayers"></span></span>
+        </div>
+        <!-- Online status -->
+        <div style="display:flex;align-items:center;gap:0.375rem;background:var(--bg-elevated);border:1px solid;border-radius:99px;padding:0.25rem 0.625rem" :style="online ? 'border-color:rgba(34,197,94,0.25)' : 'border-color:rgba(239,68,68,0.25)'">
+          <div class="status-dot pulse" :class="online ? 's-online' : 's-offline'"></div>
+          <span class="mono" style="font-size:0.7rem" :style="'color:'+(online?'var(--green)':'var(--red)')" x-text="online?'ONLINE':'OFFLINE'"></span>
+        </div>
+        <!-- Refresh btn -->
+        <button @click="tick()" style="width:2rem;height:2rem;display:flex;align-items:center;justify-content:center;background:transparent;border:none;cursor:pointer;color:var(--muted);border-radius:0.375rem;transition:color 0.1s" class="hover:text-amber" title="Rafraîchir">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main content -->
+    <main style="flex:1;overflow-y:auto;overflow-x:hidden;background:var(--bg);padding:1.5rem">
+
+      <!-- ── OVERVIEW ──────────────────────────────────────────────── -->
+      <div x-show="view==='overview'" class="slide-in">
+        <div style="max-width:72rem;margin:0 auto">
+
+          <!-- Stats grid -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-bottom:1.5rem">
+            <div class="stat-card"><div class="stat-card-glow"></div><div class="stat-label">Joueurs en ligne</div><div class="stat-value" style="color:var(--cyan);margin-top:0.5rem" x-text="srv.players+'/'+srv.maxPlayers"></div><div class="stat-icon">👥</div></div>
+            <div class="stat-card"><div class="stat-card-glow"></div><div class="stat-label">TPS</div><div class="stat-value" :style="'color:'+(srv.tps>=18?'var(--green)':srv.tps>=14?'var(--amber)':'var(--red)')" style="margin-top:0.5rem" x-text="srv.tps"></div><div class="stat-icon">⚡</div></div>
+            <div class="stat-card"><div class="stat-card-glow"></div><div class="stat-label">Zones actives</div><div class="stat-value" style="color:var(--amber);margin-top:0.5rem" x-text="srv.zones"></div><div class="stat-icon">⬜</div></div>
+            <div class="stat-card"><div class="stat-card-glow"></div><div class="stat-label">Dimensions</div><div class="stat-value" style="color:#a78bfa;margin-top:0.5rem" x-text="srv.dims"></div><div class="stat-icon">🌀</div></div>
+            <div class="stat-card"><div class="stat-card-glow"></div><div class="stat-label">Events actifs</div><div class="stat-value" style="color:var(--green);margin-top:0.5rem" x-text="srv.events"></div><div class="stat-icon">🎯</div></div>
+            <div class="stat-card"><div class="stat-card-glow"></div><div class="stat-label">Version</div><div class="stat-value" style="font-size:0.875rem;color:var(--muted);margin-top:0.5rem" x-text="srv.version"></div><div class="stat-icon">📦</div></div>
+          </div>
+
+          <!-- Server status banner -->
+          <div class="section-card" style="margin-bottom:1.5rem">
+            <div class="section-card-header">
+              <span style="font-size:0.875rem">⚡</span>
+              <span class="section-card-title">Statut serveur</span>
+            </div>
+            <div style="padding:1rem 1.125rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem">
+              <div>
+                <div class="mono" style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.25rem">MOTD</div>
+                <div class="mono" style="font-size:0.8125rem;color:#e5e7eb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" x-text="srv.motd"></div>
+              </div>
+              <div>
+                <div class="mono" style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.25rem">VERSION</div>
+                <div class="mono" style="font-size:0.8125rem;color:#e5e7eb" x-text="srv.version"></div>
+              </div>
+              <div>
+                <div class="mono" style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.25rem">CONNEXION</div>
+                <div style="display:flex;align-items:center;gap:0.375rem">
+                  <span class="status-dot" :class="online?'s-online':'s-offline'"></span>
+                  <span class="mono" style="font-size:0.8125rem" :style="'color:'+(online?'var(--green)':'var(--red)')" x-text="online?'En ligne':'Hors ligne'"></span>
+                </div>
+              </div>
+              <div>
+                <div class="mono" style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.375rem">TPS</div>
+                <div style="display:flex;align-items:center;gap:0.5rem">
+                  <div style="flex:1;max-width:5rem;height:4px;background:var(--bg-elevated);border-radius:99px;overflow:hidden">
+                    <div style="height:100%;border-radius:99px;transition:width 0.4s" :style="'width:'+Math.min(100,(srv.tps/20)*100)+'%;background:'+(srv.tps>=18?'var(--green)':srv.tps>=14?'var(--amber)':'var(--red)')"></div>
+                  </div>
+                  <span class="mono" style="font-size:0.8125rem;color:#e5e7eb" x-text="srv.tps + ' / 20'"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modules grid -->
+          <div style="margin-bottom:0.75rem">
+            <div class="mono" style="font-size:0.65rem;letter-spacing:0.1em;color:var(--muted);text-transform:uppercase;margin-bottom:0.75rem">Modules CheeseGuard</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.625rem">
+              <template x-for="m in modules" :key="m.id">
+                <button class="module-card" @click="go(m.id)">
+                  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.625rem">
+                    <span style="font-size:1.5rem" x-text="m.icon"></span>
+                    <span x-show="m.count!=null" class="id-badge" x-text="m.count"></span>
+                  </div>
+                  <div style="font-size:0.8125rem;font-weight:600;color:#e5e7eb" x-text="m.name"></div>
+                  <div style="font-size:0.7rem;color:var(--muted);margin-top:0.2rem" x-text="m.desc"></div>
+                </button>
+              </template>
+            </div>
+          </div>
+
+          <!-- Recent activity (mock) -->
+          <div class="section-card" style="margin-top:1.5rem">
+            <div class="section-card-header">
+              <span style="font-size:0.875rem">📋</span>
+              <span class="section-card-title">Activité récente</span>
+              <span class="id-badge" style="margin-left:auto">Mock</span>
+            </div>
+            <table class="cg-table">
+              <thead><tr>
+                <th>Heure</th><th>Type</th><th>Description</th><th>Auteur</th>
+              </tr></thead>
+              <tbody>
+                <template x-for="a in activity" :key="a.id">
+                  <tr>
+                    <td><span class="mono" style="font-size:0.75rem;color:var(--muted)" x-text="a.time"></span></td>
+                    <td><span class="id-badge" x-text="a.type"></span></td>
+                    <td style="color:#d1d5db;font-size:0.8125rem" x-text="a.desc"></td>
+                    <td><span class="mono" style="font-size:0.75rem;color:var(--muted)" x-text="a.author"></span></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div><!-- /overview -->
+
+      <!-- ── PLACEHOLDER VIEWS ─────────────────────────────────────── -->
+      <template x-for="vid in ['zones','groups','chunks','dimensions','events','players','server']" :key="vid">
+        <div x-show="view===vid" class="slide-in" style="max-width:72rem;margin:0 auto">
+          <div class="section-card" style="margin-top:1.5rem">
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5rem 2rem;gap:0.75rem;color:#374151">
+              <span style="font-size:3rem;opacity:0.35" x-text="nav.flatMap(s=>s.items).find(i=>i.id===vid)?.icon||'⚙'"></span>
+              <div style="text-align:center">
+                <div style="font-size:0.875rem;font-weight:600;color:#6b7280" x-text="nav.flatMap(s=>s.items).find(i=>i.id===vid)?.label||vid"></div>
+                <div class="mono" style="font-size:0.75rem;color:#4b5563;margin-top:0.25rem" x-text="nav.flatMap(s=>s.items).find(i=>i.id===vid)?.desc||''"></div>
+                <div style="margin-top:1.5rem;display:inline-flex;align-items:center;gap:0.5rem;background:var(--bg-elevated);border:1px solid var(--bg-border);border-radius:0.375rem;padding:0.375rem 0.75rem">
+                  <span style="color:var(--amber);font-size:0.75rem" class="mono">Phase 2</span>
+                  <span style="color:#4b5563;font-size:0.75rem" class="mono">— implémentation en cours</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+    </main>
+  </div>
+</div>
+
+
+<script>
+function app() {
+  return {
+    auth: false,
+    open: true,
+    view: 'overview',
+    online: true,
+    token: '',
+    showPwd: false,
+    remember: false,
+    loginErr: null,
+    loading: false,
+    toasts: [],
+    _tc: 0,
+
+    srv: {
+      tps: 19.8, players: 7, maxPlayers: 50,
+      motd: 'Arkensia — Serveur Cobblemon',
+      version: '1.21.1-fabric',
+      zones: 42, dims: 8, events: 2,
+    },
+
+    nav: [
+      { label: 'Général', items: [
+        { id:'overview', icon:'⬡', label:'Vue d\'ensemble', desc:'Statut et métriques' },
+      ]},
+      { label: 'CheeseGuard', items: [
+        { id:'zones',      icon:'⬜', label:'Zones',       desc:'Zones de protection' },
+        { id:'groups',     icon:'🗂', label:'Groupes',     desc:'Groupes de zones' },
+        { id:'chunks',     icon:'🗺', label:'Chunks',      desc:'Sets et suggestions' },
+        { id:'dimensions', icon:'🌀', label:'Dimensions',  desc:'Dimensions custom' },
+        { id:'events',     icon:'🎯', label:'Événements',  desc:'Events du serveur' },
+        { id:'players',    icon:'👥', label:'Joueurs',     desc:'Admin joueurs' },
+        { id:'server',     icon:'⚙', label:'Serveur',     desc:'Système' },
+      ]},
+    ],
+
+    modules: [
+      { id:'zones',      icon:'⬜', name:'Zones',       desc:'Protection',   count: 42 },
+      { id:'dimensions', icon:'🌀', name:'Dimensions',  desc:'Mondes custom', count: 8  },
+      { id:'events',     icon:'🎯', name:'Événements',  desc:'En cours',     count: 2  },
+      { id:'players',    icon:'👥', name:'Joueurs',     desc:'En ligne',     count: 7  },
+      { id:'chunks',     icon:'🗺', name:'Chunks',      desc:'Sets actifs',  count: 3  },
+      { id:'server',     icon:'⚙', name:'Serveur',     desc:'Système',      count: null },
+    ],
+
+    activity: [
+      { id:1, time:'14:32', type:'DIM',    desc:'Snapshot créé pour "arena_pvp"',          author:'RoiCheese' },
+      { id:2, time:'14:28', type:'ZONE',   desc:'Zone "spawn_protected" modifiée',          author:'RoiCheese' },
+      { id:3, time:'14:15', type:'EVENT',  desc:'Event "Battle Tower T6" démarré',          author:'RoiCheese' },
+      { id:4, time:'13:55', type:'PLAYER', desc:'Joueur "Fromage64" téléporté → Overworld', author:'RoiCheese' },
+      { id:5, time:'13:40', type:'DIM',    desc:'Dimension personnelle "salle_joueur_a23f8412" créée', author:'système' },
+    ],
+
+    get curItem() {
+      return this.nav.flatMap(s=>s.items).find(i=>i.id===this.view) || null;
+    },
+
+    init() {
+      // In preview mode: auto-login with mock token to skip login screen
+      // In production: remove the next 2 lines to require real auth
+      this.auth = true;
+      // Show login in preview by setting auth=false above
+    },
+
+    doLogin() {
+      this.loading = true; this.loginErr = null;
+      setTimeout(() => {
+        if (this.token === 'demo' || this.token.length > 4) {
+          this.auth = true;
+          this.toast('Connexion réussie', 'success');
+        } else {
+          this.loginErr = 'Token invalide — essayez "demo" pour la démo';
+        }
+        this.loading = false;
+      }, 600);
+    },
+
+    go(id) { this.view = id; },
+    logout() { this.auth = false; this.token = ''; },
+
+    tick() {
+      // Simulate TPS fluctuation
+      this.srv.tps = +(18 + Math.random() * 2).toFixed(1);
+      this.srv.players = Math.floor(5 + Math.random() * 10);
+      this.toast('Statut rafraîchi', 'info', 1500);
+    },
+
+    toast(msg, type='info', dur=3000) {
+      const icons = { success:'✓', error:'✗', info:'ℹ', warn:'⚠' };
+      const id = ++this._tc;
+      this.toasts.push({ id, msg, type, icon:icons[type], vis:true });
+      setTimeout(() => {
+        const t = this.toasts.find(x=>x.id===id);
+        if(t) t.vis = false;
+        setTimeout(()=>{ this.toasts = this.toasts.filter(x=>x.id!==id); }, 200);
+      }, dur);
+    },
+  };
+}
+</script>
+</body>
+</html>

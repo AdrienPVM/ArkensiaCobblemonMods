@@ -1,0 +1,31 @@
+﻿{
+  "schemaVersion": 1,
+  "id": "cheesemarket",
+  "version": "${version}",
+  "name": "CheeseMarket",
+  "description": "Shop management system with custom full-screen GUI",
+  "authors": ["RoiCheese"],
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "contact": {
+    "homepage": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "sources": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "issues": "https://github.com/AdrienPVM/ArkensiaCobblemonMods/issues"
+  },
+  "environment": "*",
+  "entrypoints": {
+    "main":   ["com.cheesemarket.CheeseMarket"],
+    "client": ["com.cheesemarket.CheeseMarketClient"],
+    "cheesedash": ["com.cheesemarket.dashboard.CheeseMarketDashboardModule"]
+  },
+  "depends": {
+    "fabricloader": ">=0.15.11",
+    "minecraft":    "~1.21.1",
+    "java":         ">=21",
+    "fabric-api":   "*",
+    "cheesedash":   "*"
+  },
+  "suggests": {
+    "cheesestore":  "*",
+    "cheeseitems":  "*"
+  }
+}

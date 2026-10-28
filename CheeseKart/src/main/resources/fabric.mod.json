@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "cheesekart",
+  "version": "${version}",
+  "name": "CheeseKart",
+  "description": "Mode Kart avec bateaux invisibles et physique OpenBoatUtils",
+  "authors": ["RoiCheese"],
+  "contact": {
+    "homepage": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "sources": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "issues": "https://github.com/AdrienPVM/ArkensiaCobblemonMods/issues"
+  },
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.cheesekart.CheeseKartMod"
+    ],
+    "client": [
+      "com.cheesekart.client.CheeseKartClient"
+    ],
+    "cheesedash": [
+      "com.cheesekart.dashboard.CheeseKartDashboardModule"
+    ]
+  },
+  "mixins": [
+    "cheesekart.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*",
+    "cheesedash": "*"
+  },
+  "suggests": {
+    "cobbleshift": "*",
+    "openboatutils": "*"
+  }
+}

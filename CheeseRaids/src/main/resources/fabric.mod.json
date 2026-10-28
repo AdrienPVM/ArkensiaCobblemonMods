@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "cheeseraids",
+  "version": "${version}",
+  "name": "CheeseRaids",
+  "description": "Modular server raid framework (timed multiplayer raids with procedural arenas, bosses and rewards). First raid: Hoopa Invasion.",
+  "authors": ["RoiCheese"],
+  "contact": {
+    "homepage": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "sources": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "issues": "https://github.com/AdrienPVM/ArkensiaCobblemonMods/issues"
+  },
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.cheeseraids.CheeseRaidsMod"
+    ],
+    "cheesedash": [
+      "com.cheeseraids.dashboard.CheeseRaidsDashboardModule"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*",
+    "cheesedash": "*",
+    "cheeseguard": "*"
+  }
+}

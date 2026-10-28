@@ -1,0 +1,81 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Secrets and server state — NEVER commit these.
+# Mod configs hold the CheeseDash master token, Stripe API keys and webhooks.
+# ─────────────────────────────────────────────────────────────────────────────
+# Anchored with a leading slash on purpose: an unanchored `config/` would also
+# ignore Java packages named `config` (several mods have one), silently dropping
+# source files from the commit.
+/config/
+*/config/*.json
+*/run/
+run/
+world/
+logs/
+*.log
+**/cheesedash.json
+**/cheesedash_audit.json
+**/cheesestore*.json
+*.env
+.env*
+secrets*
+*.pem
+*.key
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Gradle / Java build output
+# ─────────────────────────────────────────────────────────────────────────────
+build/
+out/
+bin/
+.gradle/
+gradle-app.setting
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+*.class
+*.jar
+!**/gradle/wrapper/*.jar
+
+# Loom / Fabric
+.fabric/
+remappedSrc/
+*-dev.jar
+*-sources.jar
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Third-party jars used as compile-time dependencies.
+# These belong to their respective authors and must NEVER be redistributed
+# here. Contributors supply their own copies — see each libs/README.md.
+# ─────────────────────────────────────────────────────────────────────────────
+libs/*.jar
+dist/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# IDE
+# ─────────────────────────────────────────────────────────────────────────────
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+.metadata
+*.launch
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OS
+# ─────────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Working files that must not reach the public repo
+# ─────────────────────────────────────────────────────────────────────────────
+temp/
+tmp/
+.planning/
+*.bak
+*.orig
+*~

@@ -1,0 +1,4 @@
+{
+  "autocoinpurse.button.tooltip.enabled": "Collecte auto : ACTIVÉE\nLes pièces ramassées sont automatiquement déposées dans votre bourse.",
+  "autocoinpurse.button.tooltip.disabled": "Collecte auto : DÉSACTIVÉE\nCliquez pour déposer automatiquement les pièces ramassées dans votre bourse."
+}

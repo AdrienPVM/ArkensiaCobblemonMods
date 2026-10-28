@@ -1,0 +1,28 @@
+﻿{
+  "schemaVersion": 1,
+  "id": "cheesedash",
+  "version": "${version}",
+  "name": "CheeseDash",
+  "description": "Admin dashboard web pour les mods Arkensia",
+  "authors": ["RoiCheese"],
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "contact": {
+    "homepage": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "sources": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",
+    "issues": "https://github.com/AdrienPVM/ArkensiaCobblemonMods/issues"
+  },
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.cheesedash.CheeseDashMod"],
+    "client": ["com.cheesedash.client.CheeseDashClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.15.11",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "custom": {
+    "cheesedash:api_version": "1"
+  }
+}
