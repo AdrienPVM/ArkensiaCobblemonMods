@@ -92,17 +92,48 @@ Navigateur ──WS   44312──┘                ├── CheeseMarket
 
 ## Compilation
 
+Il te faut **JDK 21**. Gradle est fourni avec le wrapper, et toutes les dépendances
+vers des mods tiers sont récupérées automatiquement depuis Maven — **19 des 21 mods
+compilent sur un clone vierge, sans aucun téléchargement manuel.**
+
 Chaque mod est un projet Gradle indépendant :
 
 ```bash
 cd CheeseDash
-./gradlew build
+./gradlew build          # gradlew.bat sous Windows
 ```
 
 Le jar est produit dans `build/libs/`. Ignore les variantes `-sources.jar` et
 `-dev.jar` au déploiement.
 
-L'ordre d'installation compte : CheeseDash d'abord, puis tout ce qui en dépend.
+### L'ordre de compilation n'est pas facultatif
+
+Les mods qui dépendent d'un autre mod du dépôt compilent contre son **jar compilé**,
+pas contre ses sources. Compile les trois piliers d'abord, dans cet ordre :
+
+```bash
+cd CheeseDash     && ./gradlew build   # presque tout en dépend
+cd ../CheeseGuard && ./gradlew build   # requis par CheeseRaids, AetherialBridge
+cd ../CheeseItems && ./gradlew build   # requis par CheeseStore
+# puis n'importe quel autre mod, dans n'importe quel ordre
+```
+
+Une erreur mentionnant un `cheesedash-1.0.0.jar` introuvable signifie que la première
+étape a été sautée.
+
+### Deux mods exigent des jars que tu dois fournir
+
+**CheeseFixQuests** et **CheeseCompatModsFix** se greffent sur FTB Quests, FTB Teams,
+FTB Library et StarAcademy. Ces quatre mods sont exclusifs à CurseForge — publiés ni
+sur Modrinth ni sur aucun Maven public — donc Gradle ne peut pas les télécharger, et
+ce dépôt ne les redistribue pas.
+
+Télécharge-les toi-même dans [`localdeps/`](localdeps/README.md). Les deux builds
+s'arrêtent immédiatement en nommant précisément ce qui manque, tu ne resteras donc
+pas dans le flou. **Les 19 autres mods n'ont besoin de rien de tout ça.**
+
+L'ordre d'installation sur un serveur suit la même logique : CheeseDash d'abord, puis
+tout ce qui en dépend.
 
 ---
 

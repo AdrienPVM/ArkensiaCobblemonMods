@@ -27,7 +27,8 @@ other open branch, and the diff hides whatever real change is inside.
 
 ## Building
 
-You need **JDK 21** and nothing else — Gradle comes with the wrapper.
+You need **JDK 21** and nothing else — Gradle comes with the wrapper, and every
+third-party mod dependency is resolved from Maven automatically.
 
 Each mod is an independent Gradle project:
 
@@ -37,6 +38,32 @@ cd CheeseGuard
 ```
 
 On Windows, use `gradlew.bat`.
+
+**Build the hubs first.** Mods that depend on another mod in this repository compile
+against its *built jar*, not its source:
+
+```bash
+cd CheeseDash     && ./gradlew build   # almost everything needs it
+cd ../CheeseGuard && ./gradlew build   # needed by CheeseRaids, AetherialBridge
+cd ../CheeseItems && ./gradlew build   # needed by CheeseStore
+```
+
+A failure about a missing `cheesedash-1.0.0.jar` means you skipped step one. Note
+those paths pin version `1.0.0` — if you bump a mod's version, update the paths in
+whatever depends on it.
+
+**Two mods need jars you supply yourself.** CheeseFixQuests and CheeseCompatModsFix
+mix into FTB Quests, FTB Teams, FTB Library and StarAcademy, which are
+CurseForge-exclusive and therefore not resolvable by Gradle. Drop them in
+`localdeps/` — see [`localdeps/README.md`](localdeps/README.md). Both builds fail
+fast with an explicit message if they are absent. The other 19 mods need nothing.
+
+**Dependency coordinates look odd on purpose.** Modrinth dependencies are pinned by
+*version id* (`maven.modrinth:cobblemon:v77SHSXW`) rather than version number, because
+version numbers are not unique — Cobblemon publishes its Fabric and NeoForge builds
+under the same `1.6.1`. Resolving by number silently fetches the wrong jar. Each
+coordinate carries a comment with the readable version; `localdeps/README.md` explains
+how to find an id when you need to bump one.
 
 To test against a real server, drop the built jar into your server's `mods/` folder
 along with CheeseDash and whatever the mod declares in its `depends`. Delete the old

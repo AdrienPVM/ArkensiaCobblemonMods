@@ -1,90 +1,101 @@
 # CobbleCheeseScore
 
-Advanced multi-scoreboard mod for Cobblemon Minecraft servers.
+> Thirty-odd leaderboards for a Cobblemon server, rendered as PNG images you can hang
+> on an in-world map or embed elsewhere.
 
-## Features
+The mod reads player data straight off disk — Pokédex NBT, Cobblemon player data,
+vanilla stats — ranks everyone, and renders each leaderboard to a PNG with
+configurable colours. Images refresh on a timer and are served through CheeseDash.
 
-✅ **30+ Scoreboards** including:
-- Pokédex Completed (from real Pokédex NBT file)
-- Shiny Hunter
-- Play Time
-- Battle stats (Elite, Trainers, PvP)
-- 18 Type Masters (one per Pokémon type)
-- Distance, Evolutions, Trades, Pokéball Crafter, Survivor
+**Minecraft 1.21.1 · Fabric · Java 21 · 16 files, ~2 700 lines · server-side**
 
-✅ **Multiple Output Formats**:
-- Individual PNG images per scoreboard (http://server:port/pokedex.png)
-- JSON API (http://server:port/api/pokedex.json)
-- Interactive web interface (http://server:port/)
+---
 
-✅ **Advanced Features**:
-- Auto-refresh every X minutes (configurable)
-- Per-scoreboard color customization
-- Discord webhooks for top rank changes
-- Historical data tracking (30 days retention)
-- Smart caching system for performance
+## Requirements
 
-✅ **Data Sources**:
-- `/world/pokedex/[uuid].nbt` - Real Pokédex data (most reliable)
-- `/world/cobblemonplayerdata/[uuid].json` - Cobblemon stats
-- `/world/stats/[uuid].json` - Minecraft vanilla stats
+- **CheeseDash** — required. Leaderboards are configured and served through it.
+- Fabric Loader ≥ 0.16.0, Java 21
+- **Cobblemon** — optional at build time, required in practice: without it there is no
+  data to rank.
 
-## Installation
+Build CheeseDash first, then drop both in `mods/`. `environment` is `server`.
 
-1. Download `cobblecheesescore-1.0.0.jar`
-2. Place in server `/mods/` folder
-3. Start server once to generate config
-4. Edit `/config/cobblecheesescore.json`
-5. Restart server
+## Where the data comes from
+
+The mod reads these files out of your world folder. Nothing is written back.
+
+```
+world/
+├── pokedex/<uuid>.nbt                 ← player Pokédex
+├── cobblemonplayerdata/<uuid>.json    ← Cobblemon stats
+└── stats/<uuid>.json                  ← vanilla Minecraft stats
+```
+
+A player with no Pokédex file simply does not appear — they have to have caught at
+least one Pokémon first.
+
+## How you reach the leaderboards
+
+Through **CheeseDash**, under the `scores` section. The API lives at
+`/api/v1/scores/*`:
+
+| Method | Route | Purpose |
+|--------|-------|---------|
+| GET | `/scoreboards` | list every board |
+| GET | `/scoreboards/<id>` | one board's data |
+| GET | `/scoreboards/<id>/image` | the rendered **PNG** |
+| PUT | `/scoreboards/<id>` | edit a board |
+| POST | `/refresh` | force a regeneration |
+| GET/PUT | `/config` | global configuration |
+| GET | `/stats` | collection statistics |
+| GET/POST/PUT/DELETE | `/minigames[/<id>]` | minigame boards and sessions |
+
+> ### ⚠️ If you read an older guide, ignore its access section
+>
+> An earlier version ran **its own web server on port 44310**, serving the PNGs and a
+> JSON API publicly with no authentication. **That server no longer exists** — it was
+> removed when the mod moved to CheeseDash.
+>
+> The `port`, `enableWebInterface` and `enableJsonApi` keys are still written to the
+> config file but are **dead**: no code reads them. Changing them does nothing.
+>
+> The practical consequence is good news — leaderboard images now sit behind
+> CheeseDash's authentication instead of being world-readable. The flip side is that
+> embedding an image in a public website now needs something that holds a CheeseDash
+> session to proxy it, or an export of your own.
 
 ## Configuration
 
-Config file: `/config/cobblecheesescore.json`
+`config/cobblecheesescore.json`, created on first boot.
 
-### Global Settings
+### Global
 
 ```json
 {
-  "port": 44310,
   "updateIntervalMinutes": 10,
   "timeZone": "Europe/Paris",
+  "autoDetectDataFolder": true,
+  "manualDataFolderPath": "",
   "defaultMaxPlayers": 30,
-  "enableWebInterface": true,
-  "enableJsonApi": true,
+  "defaultRowsPerColumn": 10,
+  "showLastUpdate": true,
+  "lastUpdateText": "Last updated:",
   "enableDiscordWebhook": false,
-  "discordWebhookUrl": "https://discord.com/api/webhooks/...",
-  "enableHistory": true
+  "discordWebhookUrl": "",
+  "enableHistory": true,
+  "historyRetentionDays": 30
 }
 ```
 
-### Scoreboard Configuration
+If auto-detection of the world folder fails, set `autoDetectDataFolder` to `false` and
+fill in `manualDataFolderPath`.
 
-Each scoreboard can be customized:
-
-```json
-{
-  "id": "pokedex_completed",
-  "enabled": true,
-  "filename": "pokedex.png",
-  "title": "Pokédex Complété",
-  "description": "Nombre d'espèces capturées",
-  "sortOrder": "desc",
-  "maxPlayers": 30,
-  "rowsPerColumn": 10,
-  "colors": {
-    "titleBackground": "#009B72"
-  }
-}
-```
-
-### Color Overrides
-
-Override default colors per scoreboard:
+### Colours
 
 ```json
-"colors": {
+"defaultColors": {
   "background": "#141414",
-  "titleBackground": "#FFD700",
+  "titleBackground": "#009B72",
   "titleText": "#FFFFFF",
   "text": "#FFFFFF",
   "footerText": "#FFFF00",
@@ -94,139 +105,108 @@ Override default colors per scoreboard:
 }
 ```
 
-## API Endpoints
+### One board
 
-### PNG Images
-- `http://localhost:44310/pokedex.png`
-- `http://localhost:44310/shiny.png`
-- `http://localhost:44310/type_water.png`
-- ... (one per scoreboard)
+Any colour key can be overridden per board:
 
-### JSON API
-- `http://localhost:44310/api/pokedex.json`
-- `http://localhost:44310/api/shiny.json`
-- `http://localhost:44310/api/all.json` - All scoreboards
-
-Example JSON response:
 ```json
 {
-  "scoreboard": "pokedex_completed",
-  "title": "Pokédex Complété",
-  "lastUpdate": "2025-02-14T12:00:00Z",
-  "players": [
-    {
-      "rank": 1,
-      "uuid": "...",
-      "name": "PlayerName",
-      "score": 906,
-      "formattedScore": "906/1025 (88%)"
-    }
-  ]
+  "id": "shiny_hunter",
+  "enabled": true,
+  "filename": "shiny.png",
+  "title": "Shiny Hunter",
+  "description": "Shinies caught",
+  "sortOrder": "desc",
+  "maxPlayers": 30,
+  "rowsPerColumn": 10,
+  "colors": { "titleBackground": "#FFD700" }
 }
 ```
 
-### Web Interface
-- `http://localhost:44310/` - Interactive dashboard with all scoreboards
+Set `"enabled": false` to stop generating a board.
 
-## Discord Webhooks
+## The boards
 
-Enable notifications when top 1 changes:
+### Main (11)
+
+| Id | Measures | Score format |
+|----|----------|--------------|
+| `pokedex_completed` | species caught | `906/1025 (88%)` |
+| `shiny_hunter` | shinies caught | `69` |
+| `play_time` | hours played | `141.4h` |
+| `battle_elite` | total battle wins | `443` |
+| `trainer_tamer` | wins against trainers | `347` |
+| `distance_traveled` | distance covered | `829.7 km` |
+| `evolutionist` | evolutions performed | `225` |
+| `pokeball_crafter` | Poké Balls crafted | `5964` |
+| `pvp_champion` | PvP wins | `4` |
+| `trader` | trades completed | `56` |
+| `survivor` | fewest deaths (ascending) | `10 deaths` |
+
+### By type (18)
+
+`type_normal`, `type_water`, `type_fire`, `type_grass`, `type_electric`, `type_ice`,
+`type_fighting`, `type_poison`, `type_ground`, `type_flying`, `type_psychic`,
+`type_bug`, `type_rock`, `type_ghost`, `type_dragon`, `type_dark`, `type_steel`,
+`type_fairy` — each pre-coloured with that type's official colour.
+
+### Minigames
+
+A separate board family with its own sessions and a persistent legends list.
+
+## Adding your own board
+
+Add an entry to `scoreboards` in the config, **then implement its score calculation in
+`ScoreboardManager.java`**. Config alone is not enough — the mod has to be told how to
+compute the number.
+
+## Discord notifications
 
 ```json
-"enableDiscordWebhook": true,
-"discordWebhookUrl": "https://discord.com/api/webhooks/YOUR_WEBHOOK"
+{
+  "enableDiscordWebhook": true,
+  "discordWebhookUrl": "https://discord.com/api/webhooks/..."
+}
 ```
 
-Notification format:
-```
-🏆 **Nouveau Champion - Pokédex Complété!**
-PlayerName a pris la 1ère place avec 906 espèces capturées!
-```
-
-## Building from Source
-
-### Prerequisites
-- JDK 21
-- Gradle 8.x
-
-### Build
-
-```bash
-./gradlew build
-```
-
-Output JAR: `build/libs/cobblecheesescore-1.0.0.jar`
-
-## Project Structure
-
-```
-CobbleCheeseScore/
-├── src/main/java/com/cobblecheesescore/
-│   ├── CobbleCheeseScore.java           # Main mod class
-│   ├── config/
-│   │   ├── Config.java                  # Config loader
-│   │   └── ScoreboardConfig.java        # Scoreboard definition
-│   ├── data/
-│   │   ├── DataCollector.java           # Main data collector
-│   │   ├── PokedexNBTParser.java        # NBT file parser
-│   │   ├── CobblemonDataParser.java     # JSON parser
-│   │   └── MinecraftStatsParser.java    # Stats parser
-│   ├── scoreboard/
-│   │   ├── ScoreboardManager.java       # Manages all scoreboards
-│   │   ├── PlayerScore.java             # Player score data class
-│   │   └── ScoreCalculator.java         # Score calculation logic
-│   ├── image/
-│   │   └── ImageGenerator.java          # PNG generation
-│   ├── server/
-│   │   ├── HttpServer.java              # HTTP server
-│   │   ├── PngHandler.java              # PNG endpoint handler
-│   │   ├── JsonApiHandler.java          # JSON API handler
-│   │   └── WebInterfaceHandler.java     # HTML interface
-│   ├── cache/
-│   │   └── CacheManager.java            # Caching system
-│   ├── webhook/
-│   │   └── DiscordWebhook.java          # Discord integration
-│   └── history/
-│       └── HistoryTracker.java          # Historical data
-└── src/main/resources/
-    ├── fabric.mod.json
-    ├── cobblecheesescore-default.json   # Default config
-    └── web/
-        └── index.html                    # Web interface template
-```
+Posts when the top spot on a board changes hands.
 
 ## Performance
 
-- **Cache**: Parsed data cached between updates
-- **Update interval**: Configurable (default 10 minutes)
-- **Image caching**: Generated PNG images cached in memory
-- **30 players**: ~1-2 seconds for full update
-- **Memory**: ~50-100MB for cache + images
+| Players | Full refresh | Memory | Suggested interval |
+|---------|--------------|--------|--------------------|
+| ~30 | 1–2 s | 50–100 MB | 10 min |
+| 100+ | 3–5 s | 100–200 MB | 15–20 min |
+
+Lower `defaultMaxPlayers` and raise `updateIntervalMinutes` if it costs too much.
 
 ## Troubleshooting
 
-### Scoreboards show 0 for all players
-- Check data folder detection: `/config/cobblecheesescore.json` → `autoDetectDataFolder: true`
-- Manually set path: `"manualDataFolderPath": "/path/to/world"`
+**No data at all.** Check the three source folders exist under `world/` and that
+players have actually caught Pokémon. Look for
+`[CobbleCheeseScore] Collected data for N players` in the log.
 
-### Images not updating
-- Check update interval: `updateIntervalMinutes`
-- Check logs for errors
-- Verify file permissions
+**Images look stale.** Check `updateIntervalMinutes`, then force a refresh with
+`POST /api/v1/scores/refresh`.
 
-### Discord webhooks not working
-- Verify webhook URL is valid
-- Check `enableDiscordWebhook: true`
-- Check server has internet access
+**A player is missing.** They have no Pokédex `.nbt` file yet.
+
+Useful log lines:
+
+```
+[CobbleCheeseScore] Configuration loaded from /config/cobblecheesescore.json
+[CobbleCheeseScore] Auto-detected world path: /world
+[CobbleCheeseScore] Collected data for 30 players
+[CobbleCheeseScore] Updated scoreboard: pokedex_completed (25 players)
+```
+
+## Arkensia specifics
+
+`ScoreboardManager` can load four "Conseil 4" ranking boards from a JSON export
+produced by **CobbleCap**. Those are tied to Arkensia's league format; without
+CobbleCap's export file the boards are simply empty and nothing breaks.
 
 ## License
 
-MIT License - Free to use and modify
-
-## Credits
-
-Built for the Cacademy Cobblemon server.
-
-## Support
-
-For issues or feature requests, contact the server admin.
+[PolyForm Noncommercial 1.0.0](../LICENSE) with an Additional Permission for server
+operators.

@@ -1,57 +1,60 @@
-# Scheduled Restart - Mod Fabric pour Minecraft 1.21.1
+# ScheduleRestart
 
-## 📋 Description
-Mod serveur Fabric qui permet de planifier des redémarrages ou arrêts avec countdown automatique.
+> Schedule a server restart or shutdown with a player-facing countdown.
 
-## ⚙️ Fonctionnalités
-- Planification de redémarrage/arrêt avec countdown
-- Rappels toutes les minutes
-- Countdown des 10 dernières secondes
-- Messages avec émojis
-- Réservé aux OPs (niveau permission 2)
+The smallest mod here, and one of the most likely to be useful to you unchanged.
+Announce a restart, and players get reminders every minute plus a countdown over the
+last ten seconds.
 
-## 🎮 Commandes
+**Minecraft 1.21.1 · Fabric · Java 21 · 1 file, ~150 lines**
 
-### Planifier un redémarrage
-```
-/schedulerestart <minutes>
-```
-Exemple : `/schedulerestart 5` → redémarre dans 5 minutes
+---
 
-### Planifier un arrêt
-```
-/schedulerestart <minutes> stop
-```
-Exemple : `/schedulerestart 10 stop` → arrête dans 10 minutes
+## Requirements
 
-## 🔨 Compilation
+- **CheeseDash** — required (it registers as a dashboard-aware mod)
+- Fabric Loader ≥ 0.16.0, Java 21
 
-1. Assure-toi d'avoir Java 21 installé
-2. Dans le dossier du mod, exécute :
+Build CheeseDash first, then drop both in `mods/`.
+
+## Commands
+
+Requires OP level 2.
+
+| Command | Effect |
+|---------|--------|
+| `/schedulerestart <minutes>` | restart in N minutes |
+| `/schedulerestart <minutes> stop` | shut down in N minutes, without restarting |
+
+Example: `/schedulerestart 5` announces a restart in five minutes.
+
+Only one schedule can be active at a time — issuing a new one cancels the previous.
+
+## ⚠️ How the "restart" actually works
+
+**This mod runs the vanilla `stop` command.** It does not restart anything by itself —
+it cannot. Something outside Minecraft has to bring the server back up: a hosting
+panel with auto-restart enabled, a `systemd` unit with `Restart=always`, a
+`while true` wrapper script, Docker with `--restart`, whatever you use.
+
+If nothing is watching, `/schedulerestart 5` will stop your server in five minutes and
+leave it stopped. Use the `stop` argument when that is what you actually want, and
+test your wrapper before relying on this in production.
+
+## Troubleshooting
+
+- Check `logs/latest.log` — the mod logs what it scheduled and when.
+- Confirm you have OP level 2.
+- If the server stops and never comes back, the problem is your wrapper, not this mod.
+
+## Building
+
 ```bash
-./gradlew build
+cd ../CheeseDash && ./gradlew build        # required first
+cd ../ScheduleRestart && ./gradlew build   # -> build/libs/
 ```
-(Sur Windows : `gradlew.bat build`)
 
-3. Le fichier `.jar` se trouve dans `build/libs/`
+## License
 
-## 📦 Installation
-
-1. Place le fichier `.jar` dans le dossier `mods/` de ton serveur
-2. Redémarre le serveur
-3. Vérifie que le mod est chargé avec `/mods` (si Fabric API est installé)
-
-## ⚠️ Prérequis
-- Minecraft 1.21.1
-- Fabric Loader 0.16.9+
-- Fabric API 0.107.0+
-
-## 📝 Notes
-- Le redémarrage utilise la commande `stop` - ton panel/wrapper (Minestrator, systemd, etc.) doit être configuré pour auto-restart
-- Si tu veux un vrai arrêt sans redémarrage, utilise l'argument `stop`
-- Une seule planification peut être active à la fois (la nouvelle annule l'ancienne)
-
-## 🐛 En cas de problème
-- Vérifie les logs du serveur dans `logs/latest.log`
-- Assure-toi que Fabric API est bien installé
-- Vérifie que tu as les permissions OP niveau 2 minimum
+[PolyForm Noncommercial 1.0.0](../LICENSE) with an Additional Permission for server
+operators.
