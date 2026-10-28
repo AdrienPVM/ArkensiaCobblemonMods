@@ -3,7 +3,7 @@
   "id": "cheesekart",
   "version": "${version}",
   "name": "CheeseKart",
-  "description": "Mode Kart avec bateaux invisibles et physique OpenBoatUtils",
+  "description": "Kart racing mode built on invisible boats and OpenBoatUtils physics",
   "authors": ["RoiCheese"],
   "contact": {
     "homepage": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",

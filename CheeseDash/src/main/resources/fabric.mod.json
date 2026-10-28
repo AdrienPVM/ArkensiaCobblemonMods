@@ -3,7 +3,7 @@
   "id": "cheesedash",
   "version": "${version}",
   "name": "CheeseDash",
-  "description": "Admin dashboard web pour les mods Arkensia",
+  "description": "Self-hosted web admin dashboard, and the hub the other Arkensia mods plug into",
   "authors": ["RoiCheese"],
   "license": "PolyForm-Noncommercial-1.0.0",
   "contact": {
