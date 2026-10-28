@@ -3,7 +3,7 @@
   "id": "scheduledrestart",
   "version": "1.0.0",
   "name": "Scheduled Restart",
-  "description": "Planifie des redÃ©marrages/arrÃªts du serveur avec countdown",
+  "description": "Planifie des redémarrages/arrêts du serveur avec countdown",
   "authors": ["RoiCheese"],
   "contact": {
     "homepage": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",

@@ -8,6 +8,14 @@ group = project.maven_group
 
 repositories {
     mavenCentral()
+    // Modrinth Maven resolves mod jars as ordinary Gradle dependencies, so a
+    // clean clone builds with no manual downloads. Nothing third-party is
+    // redistributed by this repository.
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+        content { includeGroup 'maven.modrinth' }
+    }
     maven {
         name = 'Fabric'
         url = 'https://maven.fabricmc.net/'
@@ -23,7 +31,7 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
     // EasyNPC — compileOnly to avoid bundling, remap not needed (we use reflection)
-    compileOnly files("../localdeps/easy_npc_bundle-6.2.0-fabric-1.21.1.jar")
+    compileOnly "maven.modrinth:easy-npc:PG3ZdKaC" // Easy NPC 6.2.0 (fabric)
 
     // CheeseDash — dashboard integration
     compileOnly files("../CheeseDash/build/libs/cheesedash-1.0.0.jar")

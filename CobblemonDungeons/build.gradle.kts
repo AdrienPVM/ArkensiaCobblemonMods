@@ -13,6 +13,10 @@ repositories {
     maven("https://maven.impactdev.net/repository/maven-public/") // Cobblemon Mirror
     maven("https://jitpack.io")
     maven("https://cursemaven.com")
+    // Modrinth Maven resolves mod jars as ordinary Gradle dependencies, so a
+    // clean clone builds with no manual downloads. Nothing third-party is
+    // redistributed by this repository.
+    maven("https://api.modrinth.com/maven")
 }
 
 dependencies {
@@ -27,9 +31,10 @@ dependencies {
     // Radical Cobblemon Trainers API (CurseForge Project ID: 1152792)
     modImplementation("curse.maven:radical-cobblemon-trainers-api-1152792:7483015")
 
-    // Cobblemon (local JAR — Maven artifact not resolvable)
-    // modImplementation("com.cobblemon:cobblemon-fabric:1.6.1+1.21.1")
-    modImplementation(files("libs/cobblemon-fabric-1.7.1+1.21.1.jar"))
+    // Cobblemon 1.7.1 (fabric), from Modrinth Maven.
+    // Pinned by Modrinth version id: the version number "1.7.1" is shared by the
+    // Fabric and NeoForge builds, so resolving by number can fetch the wrong jar.
+    modImplementation("maven.modrinth:cobblemon:s64m1opn")
 
     // Kotlin (Required because Cobblemon is written in Kotlin)
     implementation("org.jetbrains.kotlin:kotlin-stdlib:2.0.0")

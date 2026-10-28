@@ -7,10 +7,46 @@ group = project.maven_group
 
 repositories {
     mavenCentral()
+    // Modrinth Maven resolves mod jars as ordinary Gradle dependencies, so a
+    // clean clone builds with no manual downloads. Nothing third-party is
+    // redistributed by this repository.
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+        content { includeGroup 'maven.modrinth' }
+    }
+    // sgui (Patbox)
+    maven {
+        name = 'Nucleoid'
+        url = 'https://maven.nucleoid.xyz/'
+    }
     maven {
         name = 'Fabric'
         url = 'https://maven.fabricmc.net/'
     }
+}
+
+// Fail fast with an actionable message rather than a wall of "cannot find symbol".
+def ftbQuestsJar = file('../localdeps/ftb-quests-fabric-2101.1.13.jar')
+def academyJar   = file('../localdeps/academy-mc1.21.1-v1.4.0+build.467-fabric.jar')
+
+def missingLocal = [ftbQuestsJar, academyJar].findAll { !it.exists() }
+if (!missingLocal.isEmpty()) {
+    throw new GradleException("""
+CheeseCompatModsFix cannot be built without these third-party jars.
+
+Missing from localdeps/:
+${missingLocal.collect { "  - " + it.name }.join('\n')}
+
+FTB Quests and StarAcademy are CurseForge-exclusive — neither is on Modrinth nor
+on any public Maven repository, so Gradle cannot download them for you. This mod
+mixes into their classes, and the Mixin annotation processor validates every
+target, so both are required to compile even where the mixin targets a class by
+string name.
+
+Download them from CurseForge (Fabric, 1.21.1) and drop them in localdeps/ with
+exactly those filenames. Details: localdeps/README.md
+""")
 }
 
 dependencies {
@@ -22,51 +58,57 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
     // Battle Tower + Cobblemon — modCompileOnly so Loom remaps intermediary->yarn for hierarchy resolution
-    compileOnly files("../localdeps/cobblemon_battle_tower-fabric-1.7.11+1.6.1.jar")
-    compileOnly files("../localdeps/Cobblemon-fabric-1.6.1+1.21.1.jar")
+    compileOnly "maven.modrinth:cobblemon-battle-tower-1-6-1:NRBIX8Ty" // Battle Tower 1.7.11+1.6.1 (fabric)
+    compileOnly "maven.modrinth:cobblemon:v77SHSXW" // Cobblemon 1.6.1 (fabric)
 
     // Legendary Monuments — modCompileOnly so Loom remaps intermediary->yarn for hierarchy resolution
-    modCompileOnly files("../localdeps/LegendaryMonuments-7.2.jar")
+    modCompileOnly "maven.modrinth:legendary-monuments:oaBxuxgH" // Legendary Monuments 7.2
 
-    // Minerally — for OrePile mixin (JustHammers crash fix)
-    modCompileOnly files("../localdeps/minerally-1.21-1.21.jar")
+    // Minerally — for the OrePile mixin (JustHammers crash fix). Even though that
+    // mixin targets the class by string name, the Mixin annotation processor still
+    // validates the target, so the jar has to be on the compile classpath.
+    modCompileOnly "maven.modrinth:minerally:wvK26f7w" // Minerally 1.21
 
     // CobbleSafari — modCompileOnly so Loom remaps intermediary for hierarchy resolution
-    modCompileOnly files("../localdeps/cobblesafari-fabric-1.21.1-0.1.5.jar")
+    modCompileOnly "maven.modrinth:cobblesafari:XANyMPaV" // CobbleSafari 0.1.5 (fabric)
 
     // CobblemonTrialsEdition — for Natures static method bridge (Cobblemon 1.6.x compat)
-    compileOnly files("../localdeps/CobblemonTrialsEdition-fabric-1.2.2.jar")
+    compileOnly "maven.modrinth:cobblemon-trials-edition:XdMo4HiB" // Trials Edition 1.2.2 (fabric)
 
     // CobblemonRaidDens — modCompileOnly so Loom remaps intermediary for hierarchy resolution
-    modCompileOnly files("../localdeps/cobblemonraiddens-fabric-0.4.7+1.21.1.jar")
+    modCompileOnly "maven.modrinth:cobblemonraiddens:d8mGjw4X" // Raid Dens 0.4.7 (fabric)
 
-    // Academy (StarAcademy) — for SlingshotEntity mixin (uncatchable boss protection)
-    modCompileOnly files("../localdeps/academy-mc1.21.1-v1.4.0+build.467-fabric.jar")
+    // Academy (StarAcademy) — for the SlingshotEntity mixin (uncatchable boss
+    // protection). Not published on Modrinth, so it has to come from localdeps/.
+    modCompileOnly files(academyJar)
 
     // EnhancedCelestials — for the lunar fallback mixin (cheeseguard:* dims inherit arkensia settings)
-    modCompileOnly files("../localdeps/Enhanced-Celestials-Fabric-1.21.1-6.0.2.5.jar")
+    modCompileOnly "maven.modrinth:enhanced-celestials:WU6cJeLI" // Enhanced Celestials 6.0.2.5 (fabric)
     // DataAnchor — superclass of EnhancedCelestialsLunarForecastWorldData (SyncedLevelTrackedData)
-    modCompileOnly files("../localdeps/Data_Anchor-fabric-1.21.1-2.0.0.12.jar")
+    modCompileOnly "maven.modrinth:data-anchor:CpSbR8Mk" // Data Anchor 2.0.0.12 (fabric)
 
     // DaycarePlus — for IV inheritance mixin (competitive mode vanilla IVs)
-    compileOnly files("../localdeps/daycareplus-1.1.0+1.21.1.jar")
+    compileOnly "maven.modrinth:daycareplus:HqAFvLN2" // Daycare+ 1.1.0 (fabric)
 
     // fightorflight — modCompileOnly so Loom remaps intermediary→yarn for hierarchy
-    modCompileOnly files("../localdeps/fightorflight-fabric-0.9.0.jar")
+    modCompileOnly "maven.modrinth:cobblemon-fight-or-flight-reborn:6McAEN1y" // Fight or Flight 0.9.0 (fabric)
 
     // ExtraQuests + FTB Quests — modCompileOnly for hierarchy resolution
-    modCompileOnly files("../localdeps/ExtraQuests-1.5.3-1.21.1-Fabric.jar")
+    modCompileOnly "maven.modrinth:extraquests:bbzqP178" // ExtraQuests 1.5.3 (fabric)
     modCompileOnly files("../localdeps/ftb-quests-fabric-2101.1.13.jar")
 
     // sgui — extracted from DaycarePlus JiJ, needed for DaycareGUIToggleMixin
     // modCompileOnly so Loom remaps intermediary → yarn (sgui API uses Item/ItemStack)
-    modCompileOnly files("libs/sgui-1.6.1+1.21.1.jar")
+    modCompileOnly "eu.pb4:sgui:1.6.1+1.21.1"
 
     // JourneyMap (client-only) — for EntityHelper getIconData mixin to fix Seavlian fakemon icons
-    modCompileOnly files("libs/journeymap-fabric-1.21.1-6.0.0-beta.47.jar")
+    // JourneyMap 1.21.1-6.0.0-beta.47 (fabric). Pinned to beta.47 on purpose: the
+    // 6.0.0 release was built with Loom 1.14.10, which this project's Loom 1.10.5
+    // refuses to read.
+    modCompileOnly "maven.modrinth:journeymap:oBV1MaLz"
 
     // numismatic-overhaul — for the ShopBlockEntityRender distance-cull mixin (client-only FPS opt)
-    compileOnly files("../localdeps/numismatic-overhaul-0.3.4+1.21.jar")
+    compileOnly "maven.modrinth:numismatic-overhaul:DPXG6kTJ" // Numismatic Overhaul 0.3.4
 
     // Kotlin stdlib — needed to compile against Cobblemon's Kotlin classes
     compileOnly "org.jetbrains.kotlin:kotlin-stdlib:2.0.21"

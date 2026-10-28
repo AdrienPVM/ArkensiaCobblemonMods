@@ -8,6 +8,14 @@ group = project.maven_group
 
 repositories {
     mavenCentral()
+    // Modrinth Maven resolves mod jars as ordinary Gradle dependencies, so a
+    // clean clone builds with no manual downloads. Nothing third-party is
+    // redistributed by this repository.
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+        content { includeGroup 'maven.modrinth' }
+    }
     maven {
         name = 'Fabric'
         url = 'https://maven.fabricmc.net/'
@@ -26,7 +34,7 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.10.1'
 
     // Cobblemon — compileOnly for Mixin targets (reflection-based at runtime)
-    compileOnly files("../localdeps/Cobblemon-fabric-1.6.1+1.21.1.jar")
+    compileOnly "maven.modrinth:cobblemon:v77SHSXW" // Cobblemon 1.6.1 (fabric)
     compileOnly "org.jetbrains.kotlin:kotlin-stdlib:2.0.21"
 }
 

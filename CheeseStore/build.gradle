@@ -8,13 +8,23 @@ group = project.maven_group
 
 repositories {
     mavenCentral()
+    // Modrinth Maven resolves mod jars as ordinary Gradle dependencies, so a
+    // clean clone builds with no manual downloads. Nothing third-party is
+    // redistributed by this repository.
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+        content { includeGroup 'maven.modrinth' }
+    }
+    // sgui (Patbox)
+    maven {
+        name = 'Nucleoid'
+        url = 'https://maven.nucleoid.xyz/'
+    }
     maven {
         name = 'Fabric'
         url = 'https://maven.fabricmc.net/'
     }
-    // Local flat-dir for bundled (JiJ) mod jars that aren't on a Maven repo (sgui).
-    // flatDir gives Loom the group:name:version metadata it needs to nest the jar.
-    flatDir { dirs 'libs' }
 }
 
 dependencies {
@@ -31,9 +41,9 @@ dependencies {
     // sgui — server-side chest GUI library (Patbox), powers the in-game /cosmetics menu.
     // modImplementation so Loom remaps intermediary → yarn for the sgui API;
     // include(...) (JiJ) so it ships bundled inside the CheeseStore jar (no separate install).
-    // Resolved from the flatDir repo above (coordinate notation gives Loom JiJ metadata).
-    modImplementation(group: '', name: 'sgui', version: '1.6.1')
-    include(group: '', name: 'sgui', version: '1.6.1')
+    // Resolved from Patbox's Nucleoid Maven, declared above.
+    modImplementation "eu.pb4:sgui:1.6.1+1.21.1"
+    include "eu.pb4:sgui:1.6.1+1.21.1"
 
     implementation 'com.google.code.gson:gson:2.10.1'
 }

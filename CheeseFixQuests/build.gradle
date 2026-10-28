@@ -8,10 +8,42 @@ group = project.maven_group
 
 repositories {
     mavenCentral()
+    // Modrinth Maven resolves mod jars as ordinary Gradle dependencies, so a
+    // clean clone builds with no manual downloads. Nothing third-party is
+    // redistributed by this repository.
+    maven {
+        name = 'Modrinth'
+        url = 'https://api.modrinth.com/maven'
+        content { includeGroup 'maven.modrinth' }
+    }
     maven {
         name = 'Fabric'
         url = 'https://maven.fabricmc.net/'
     }
+}
+
+// Fail fast with an actionable message rather than a wall of "cannot find symbol".
+def ftbJars = [
+    'ftb-quests-fabric-2101.1.13.jar',
+    'ftb-teams-fabric-2101.1.2.jar',
+    'ftb-library-fabric-2101.1.18.jar'
+].collect { file("../localdeps/$it") }
+
+def missingFtb = ftbJars.findAll { !it.exists() }
+if (!missingFtb.isEmpty()) {
+    throw new GradleException("""
+CheeseFixQuests cannot be built without the FTB jars.
+
+Missing from localdeps/:
+${missingFtb.collect { "  - " + it.name }.join('\n')}
+
+These three mods are CurseForge-exclusive — they are on neither Modrinth nor any
+public Maven repository, so Gradle cannot download them for you. CheeseFixQuests
+mixes directly into their classes, so they are required to compile.
+
+Grab them from CurseForge (search the mod name, pick the Fabric 1.21.1 file) and
+drop them in localdeps/ with exactly those filenames. Details: localdeps/README.md
+""")
 }
 
 dependencies {
@@ -22,19 +54,20 @@ dependencies {
 
     // FTB Quests + FTB Teams + FTB Library + Architectury — needed for Mixin targets
     // Loom remaps these to Yarn for development
-    modCompileOnly files(
-        "../localdeps/ftb-quests-fabric-2101.1.13.jar",
-        "../localdeps/ftb-teams-fabric-2101.1.2.jar",
-        "../localdeps/ftb-library-fabric-2101.1.18.jar",
-        "../localdeps/architectury-13.0.8-fabric.jar"
-    )
+    modCompileOnly "maven.modrinth:architectury-api:Wto0RchG" // Architectury 13.0.8 (fabric)
+
+    // FTB Quests / Teams / Library are CurseForge-exclusive: published neither on
+    // Modrinth nor on any public Maven repo, so Gradle cannot fetch them. This mod
+    // mixes directly into their classes, so they are mandatory to compile.
+    // Download them from CurseForge into localdeps/ — see localdeps/README.md.
+    modCompileOnly files(ftbJars)
 
     // cobblemon_quests — compileOnly (NOT modCompileOnly) to avoid Cobblemon remap conflict.
     // Mixin 3 uses remap=false with intermediary descriptors.
-    compileOnly files("../localdeps/cobblemon_quests-[1.21.1]-fabric-1.1.14.jar")
+    compileOnly "maven.modrinth:cobblemon-quests:bI0Iu3CZ" // Cobblemon Quests 1.1.14 (fabric)
 
     // ExtraQuests — compileOnly for Mixin 4 (timer reset redirect).
-    compileOnly files("../localdeps/ExtraQuests-1.5.3-1.21.1-Fabric.jar")
+    compileOnly "maven.modrinth:extraquests:bbzqP178" // ExtraQuests 1.5.3 (fabric)
 
     implementation 'com.google.code.gson:gson:2.10.1'
 }

@@ -3,7 +3,7 @@
   "id": "cobbleshift",
   "version": "${version}",
   "name": "CobbleShift",
-  "description": "Transform players into PokÃ©mon with passive abilities, plus mini-games (CobbleHunt, Hot Potato)",
+  "description": "Transform players into Pokémon with passive abilities, plus mini-games (CobbleHunt, Hot Potato)",
   "authors": ["RoiCheese"],
   "contact": {
     "homepage": "https://github.com/AdrienPVM/ArkensiaCobblemonMods",

@@ -15,7 +15,11 @@ repositories {
 	maven { url 'https://maven.wispforest.io' }
 	maven { url 'https://maven.ladysnake.org/releases' }
 	maven { url 'https://jitpack.io' }
-	flatDir { dirs 'libs' }
+	maven {
+		name = 'Modrinth'
+		url = 'https://api.modrinth.com/maven'
+		content { includeGroup 'maven.modrinth' }
+	}
 }
 
 dependencies {
@@ -24,7 +28,7 @@ dependencies {
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 	modCompileOnly "org.ladysnake.cardinal-components-api:cardinal-components-api:6.1.0"
-	modCompileOnly(fileTree(dir: 'libs', include: ['*.jar']))
+	modCompileOnly "maven.modrinth:numismatic-overhaul:DPXG6kTJ" // Numismatic Overhaul 0.3.4
 }
 
 processResources {
