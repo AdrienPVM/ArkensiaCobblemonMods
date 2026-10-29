@@ -25,32 +25,64 @@ prefix, also `scores`, which gives it one unauthenticated route under `/scores/a
 
 ## Required role
 
-**Every authenticated route in this module requires only a valid session.** `ScoresApi`
-contains no call to `WebDashboard.requireWrite` or `WebDashboard.requireAdmin` — grep it
-and you get nothing. The only gate is CheeseDash's `/api/` middleware, which rejects a
-request with no valid `Authorization: Bearer <token>` with `401` and otherwise lets it
-through whatever the session's role is.
+**`ScoresApi` contains no role check of its own.** Grep it for
+`WebDashboard.requireWrite` or `WebDashboard.requireAdmin` and you get nothing — not once,
+across its eight mutating routes.
 
-⚠️ That means a **READ_ONLY** account can create a mini-game, delete a session, rewrite a
-board's title and colours, and force a refresh. If that matters to you, do not hand out
-READ_ONLY accounts expecting them to be read-only across this module.
+What stands in for those checks is CheeseDash's own module dispatcher, in `DashboardApi`:
 
-For reference, the correct form in this repository is:
+```java
+DashboardModule module = DashboardRegistry.getModule(prefix);
+if (module != null) {
+    if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+        return;
+    }
+    module.handleRequest(exchange, subRoute);
+    ...
+}
+```
+
+That is the correct form — it tests the return value and returns — so in this build every
+non-`GET` request to any route under `/api/v1/scores/` does require `OPERATOR` or above,
+and `GET` requests accept any role including `READ_ONLY`. The boundary holds.
+
+What does **not** hold is the reason it holds. The protection is a property of the core's
+dispatch, keyed purely on the HTTP method, and the module contributes nothing. Three
+consequences:
+
+- **No route in this module can require `SUPER_ADMIN`.** Deleting a mini-game with all its
+  sessions, rewriting a board's title and colours, and forcing a full refresh are all
+  `OPERATOR`-level operations, because `OPERATOR` is the only bar the dispatcher knows.
+- **A mutating `GET` would be completely unguarded.** None exists today — every write here
+  is a `POST`, `PUT` or `DELETE` — but nothing in the module would stop one from being
+  added, and nothing would flag it.
+- **A change to the dispatcher removes every check at once.** `ScoresApi` has no second
+  line of defence.
+
+This is documented rather than fixed, deliberately. The role note on each route below
+states the role **actually** required in this build, and marks with (core) the cases where
+the guarantee comes from CheeseDash's dispatch rather than from the module.
+
+For reference, `requireWrite` means `OPERATOR` or above and `requireAdmin` means
+`SUPER_ADMIN`; both send their own `403` and report the outcome as a boolean, so the
+correct local form is:
 
 ```java
 if (!WebDashboard.requireWrite(exchange)) return;
 ```
 
-`requireWrite` returns a boolean and sends the `403` itself; ignoring the return value
-sends the 403 **and then continues to execute the handler**, which is worse than not
-calling it. This module does neither — it does not call it at all. The role column below
-reports what the code actually enforces, not what the route arguably should.
+Ignoring the return value sends the 403 **and then continues to execute the handler**,
+which is worse than not calling it. A module that writes that line correctly adds defence
+in depth; it does not move the boundary, which the dispatcher already holds.
 
 | Role | What it can do here |
 |---|---|
-| READ_ONLY | everything |
-| OPERATOR | everything |
-| SUPER_ADMIN | everything |
+| READ_ONLY | every `GET` route — boards, rankings, images, config, stats, mini-games |
+| OPERATOR | all of the above, plus every non-`GET` route (enforced by the core) |
+| SUPER_ADMIN | the same as OPERATOR — no route here asks for more |
+
+Every non-`GET` request is also written to CheeseDash's audit log as `scores.<method>`
+with the full path.
 
 ---
 
@@ -127,8 +159,9 @@ no refresh has completed.
 
 ### `PUT /api/v1/scores/scoreboards/:id`
 
-Edit a board's presentation. Role: **any** — see the warning above. Body is a partial
-object; only the keys present are applied.
+Edit a board's presentation. Role: **OPERATOR** (core) — see
+[required role](#required-role). Body is a partial object; only the keys present are
+applied.
 
 | Body key | Type | Effect |
 |---|---|---|
@@ -203,7 +236,7 @@ code, not the content type, and never pipe the body straight into an image decod
 
 ### `POST /api/v1/scores/refresh`
 
-Force a full recollection and re-render. Role: **any** — see the warning above. No body.
+Force a full recollection and re-render. Role: **OPERATOR** (core). No body.
 
 ```bash
 curl -X POST -H "Authorization: Bearer $TOKEN" \
@@ -272,7 +305,7 @@ all, though the last three do have an effect. See
 
 ### `PUT /api/v1/scores/config`
 
-Role: **any** — see the warning above.
+Role: **OPERATOR** (core).
 
 ⚠️ **This route changes almost nothing.** Read `handleUpdateConfig` and it does exactly
 two things: if the body has both `scoreboardId` and `enabled`, it looks the board up and
@@ -331,19 +364,20 @@ counter at `0` and no `updateIntervalMinutes` key.
 
 ## Mini-game routes
 
-The model and the point-scoring rule are described in [mini-games](minigames.md). All of
-these need only a valid session.
+The model and the point-scoring rule are described in [mini-games](minigames.md). The
+reads accept any role; the five writes need `OPERATOR` or above, enforced by the core
+dispatcher.
 
-| Method | Path | Purpose |
-|---|---|---|
-| `GET` | `/minigames` | every game with its session count and top player |
-| `POST` | `/minigames` | create a game |
-| `GET` | `/minigames/global` | aggregate ranking across all games |
-| `GET` | `/minigames/:id` | one game, its sessions newest-first, and its ranking |
-| `PUT` | `/minigames/:id` | rename a game |
-| `DELETE` | `/minigames/:id` | delete a game and all its sessions |
-| `POST` | `/minigames/:id/sessions` | record a session result |
-| `DELETE` | `/minigames/:id/sessions/:idx` | delete one session by index |
+| Method | Path | Purpose | Role |
+|---|---|---|---|
+| `GET` | `/minigames` | every game with its session count and top player | any |
+| `POST` | `/minigames` | create a game | `OPERATOR` (core) |
+| `GET` | `/minigames/global` | aggregate ranking across all games | any |
+| `GET` | `/minigames/:id` | one game, its sessions newest-first, and its ranking | any |
+| `PUT` | `/minigames/:id` | rename a game | `OPERATOR` (core) |
+| `DELETE` | `/minigames/:id` | delete a game and all its sessions | `OPERATOR` (core) |
+| `POST` | `/minigames/:id/sessions` | record a session result | `OPERATOR` (core) |
+| `DELETE` | `/minigames/:id/sessions/:idx` | delete one session by index | `OPERATOR` (core) |
 
 `/minigames/global` is matched before `/minigames/:id`, so `global` is a reserved id: a
 game created with that id can be listed but never fetched individually.

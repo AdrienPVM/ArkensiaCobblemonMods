@@ -43,6 +43,34 @@ Aucune route n'appelle `requireAdmin` : rien ici n'est réservé à SUPER_ADMIN.
 | `POST` | `/api/v1/raids/stop` | OPERATOR | arrête un raid et nettoie |
 | `POST` | `/api/v1/raids/reload` | OPERATOR | relit les fichiers de définition |
 
+Ces appels à `requireWrite` ne sont pas la seule chose qui applique cette colonne. Le
+répartiteur de modules de CheeseDash, dans `DashboardApi`, garde tous les modules avant
+même d'atteindre `RaidsApi` :
+
+```java
+DashboardModule module = DashboardRegistry.getModule(prefix);
+if (module != null) {
+    if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+        return;
+    }
+    module.handleRequest(exchange, subRoute);
+```
+
+Les trois appels propres à `RaidsApi` sont donc de la défense en profondeur : utiles, et
+redondants dans cette configuration. Trois conséquences du fait que la vraie frontière
+siège dans le cœur :
+
+- **Aucune route raids ne peut exiger `SUPER_ADMIN`.** Le répartiteur ne connaît que
+  `requireWrite` : `OPERATOR` est donc le plafond, à moins qu'un handler n'appelle
+  `requireAdmin` lui-même, et aucun ne le fait. Démarrer un raid, en arrêter un et relire
+  tous les fichiers de définition depuis le disque sont toutes des opérations de niveau
+  `OPERATOR`.
+- **Un `GET` qui modifierait quelque chose ne serait attrapé que par le module.** Les
+  quatre routes de lecture ne font bien que lire, mais le répartiteur ne regarde que la
+  méthode HTTP et laisserait passer telle quelle une route de ce genre.
+- **Une modification du répartiteur ne désarmerait pas ces trois routes**, puisqu'elles
+  vérifient le rôle elles-mêmes — à la différence des modules qui ne gardent rien.
+
 Tout le reste sous ce préfixe renvoie `404 {"error":"Not found"}`. Une requête qui arrive avant
 la fin du démarrage du serveur renvoie `503 {"error":"CheeseRaids not ready"}`. Une exception
 non rattrapée renvoie `500 {"error":"Internal server error"}` et journalise la cause côté

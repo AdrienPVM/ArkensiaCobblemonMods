@@ -103,10 +103,12 @@ config CRUD, hot reload, ticket templates, trainer files, live instances with fo
 and force-leave, statistics, run history and the leaderboard. Five `dungeon_*` messages are
 pushed over the CheeseDash WebSocket on the `dungeons` channel.
 
-⚠️ `DungeonsApi` never calls `WebDashboard.requireWrite` or `requireAdmin`. Eight mutating
-routes — including deleting a dungeon and force-failing a live run — are therefore open to
-**any** authenticated session, `READ_ONLY` included. Treat every dashboard account as an
-operator for this module until that changes; the full list and the one-line fix are in
+`DungeonsApi` never calls `WebDashboard.requireWrite` or `requireAdmin` itself, but the role
+boundary still holds: CheeseDash's module dispatcher requires `OPERATOR` or above for every
+non-`GET` request to any module. The eight mutating routes — including deleting a dungeon
+and force-failing a live run — are therefore `OPERATOR`-level, and `GET` routes accept any
+role, `READ_ONLY` included. The bar is set by the core rather than by the module, which
+means no route here can require `SUPER_ADMIN`. Details in
 [the dashboard page](docs/dashboard.md).
 
 CheeseGuard can also drive the mod during a timed event through three effect types,

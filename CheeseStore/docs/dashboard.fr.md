@@ -24,9 +24,12 @@ est retracé dans [le flux de paiement](payments.fr.md).
 Les deux surfaces partagent l'unique canal WebSocket du mod, `store`, sur le port
 44312.
 
-> ⚠️ **La surface d'administration n'applique aucun contrôle de rôle.** Lis
-> [les gardes de rôle manquants](#les-gardes-de-rôle-manquants) avant de créer un
-> compte `READ_ONLY` en supposant qu'il est en lecture seule. Il ne l'est pas.
+> ⚠️ **La frontière des rôles de la surface d'administration est tenue par CheeseDash,
+> pas par CheeseStore.** Elle tient bien — les écritures exigent `OPERATOR` — mais lis
+> [ce que le cœur applique réellement](#ce-que-le-cœur-applique-réellement) pour savoir
+> ce que cela te garantit et ce que cela ne te garantit pas. La surface publique, elle,
+> n'a aucune frontière de rôle, par conception ; une de ses routes en divulgue plus que
+> tu ne l'attends peut-être — voir [`GET /players`](#catalogue-en-lecture-seule).
 
 ---
 
@@ -46,7 +49,7 @@ session émis par le flux de liaison de compte du site, résolu par
 
 ---
 
-## Les gardes de rôle manquants
+## Ce que le cœur applique réellement
 
 CheeseDash donne à un module trois aides pour protéger une route par rôle :
 `WebDashboard.requireWrite(exchange)` pour OPERATOR ou plus,
@@ -59,53 +62,79 @@ if (!WebDashboard.requireWrite(exchange)) return;
 
 **`StoreApi.handle` n'en appelle aucune.** Pas une seule fois, nulle part dans le
 fichier — les chaînes `requireWrite`, `requireAdmin` et `getSession` n'apparaissent pas
-du tout dans les sources de CheeseStore. Chaque route admin mutante listée sur cette
-page — chaque `POST`, `PUT` et `DELETE`, l'intégralité des produits, de la galerie, des
-cosmétiques, des cosmétiques jouables, de la livraison manuelle, des soldes de
-portefeuille et de la configuration Stripe — accepte donc **n'importe quelle session
-CheeseDash authentifiée**, `READ_ONLY` comprise.
+du tout dans les sources de CheeseStore. Ce qui tient lieu de ces contrôles, c'est le
+répartiteur de modules de CheeseDash, dans `DashboardApi` :
 
-Les conséquences pratiques, en clair. Le détenteur d'un compte `READ_ONLY` peut :
+```java
+DashboardModule module = DashboardRegistry.getModule(prefix);
+if (module != null) {
+    if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+        return;
+    }
+    module.handleRequest(exchange, subRoute);
+    ...
+}
+```
 
-- fixer le solde de crédits de n'importe quel joueur à n'importe quel nombre
-  (`PUT /wallets/:uuid`)
-- changer le prix d'un produit, ou ses commandes de livraison (`PUT /products/:id`)
-- relivrer une commande d'achat (`POST /orders/:id/deliver`)
-- écraser la clé secrète Stripe et le secret du webhook (`PUT /config`)
+C'est la forme correcte — elle teste la valeur de retour et rend la main — donc dans
+cette version, toute requête non-`GET` sous `/api/v1/store/` exige bien `OPERATOR` ou
+au-dessus, et les requêtes `GET` acceptent tous les rôles, `READ_ONLY` compris. Une
+session `READ_ONLY` ne peut pas changer le prix d'un produit, fixer un solde de
+portefeuille, relivrer une commande d'achat ni écraser les clés Stripe. La frontière
+tient.
 
-Le dernier point est le plus tranchant : un `PUT /config` qui écrit un nouveau
-`stripeWebhookSecret` invalide immédiatement les signatures du vrai endpoint Stripe, ce
-qui arrête silencieusement toutes les livraisons ; écrire une nouvelle
-`stripeSecretKey` pointe le checkout vers un autre compte Stripe.
+Ce qui ne tient pas, c'est la raison pour laquelle elle tient. La protection est une
+propriété du répartiteur du cœur, fondée uniquement sur la méthode HTTP, et CheeseStore
+n'y contribue en rien. Trois conséquences :
 
-Ceci est documenté plutôt que corrigé, délibérément, parce que le changer changerait le
-comportement pour quiconque fait déjà tourner le mod avec des comptes qui ne sont pas
-SUPER_ADMIN. Jusqu'à ce que ce soit corrigé, traite **chaque** compte CheeseDash
-capable d'atteindre ce module comme un exploitant de boutique à part entière. S'il te
-faut un observateur réellement en lecture seule, ne lui donne pas d'accès CheeseDash.
+- **Aucune route de CheeseStore ne peut exiger `SUPER_ADMIN`.** `PUT /config`, qui écrit
+  la clé secrète Stripe et le secret du webhook, est une opération de niveau `OPERATOR`,
+  parce qu'`OPERATOR` est la seule barre que le répartiteur connaisse. C'est le point le
+  plus tranchant : écrire un nouveau `stripeWebhookSecret` invalide immédiatement les
+  signatures du vrai endpoint Stripe, ce qui arrête silencieusement toutes les
+  livraisons, et écrire une nouvelle `stripeSecretKey` pointe le checkout vers un autre
+  compte Stripe. Fixer des soldes de portefeuille arbitraires (`PUT /wallets/:uuid`) se
+  situe au même niveau.
+- **Un `GET` qui modifierait quelque chose serait totalement sans garde.** Il n'en existe
+  aucun aujourd'hui dans `StoreApi.handle`, mais rien dans le module n'empêcherait d'en
+  ajouter un, et rien ne le signalerait.
+- **Une modification du répartiteur supprimerait tous les contrôles d'un coup.** La
+  surface d'administration de CheeseStore n'a pas de seconde ligne de défense.
 
-Les routes publiques ne sont pas concernées par ce manque. Elles ne se sont jamais
-reposées sur des contrôles de rôle ; elles ont leurs propres gardes, et ces gardes sont
-bien là.
+Un `OPERATOR` sur ce serveur est donc un exploitant de boutique à part entière — c'est
+la conception voulue, pas un accident, mais cela vaut d'être dit clairement avant de
+distribuer le rôle. S'il te faut un observateur réellement en lecture seule,
+`READ_ONLY` est le rôle à donner, et il se comporte conformément à son nom.
+
+Les routes publiques sont en dehors de tout cela. Elles sont non authentifiées par
+conception et ne se sont jamais reposées sur des contrôles de rôle ; elles ont leurs
+propres gardes — limitation de débit, même origine, OAuth plus un compte lié, HMAC — et
+ces gardes sont bien là. L'une d'elles, `GET /players`, renvoie à qui la demande la
+liste complète des pseudos et UUID ; voir
+[les routes de catalogue](#catalogue-en-lecture-seule).
 
 ---
 
 ## Routes d'administration
 
-Tous les chemins ci-dessous sont relatifs à `/api/v1/store`. Le rôle requis est indiqué
-tel que le code se comporte réellement — voir ci-dessus pour comprendre pourquoi il est
-uniforme.
+Tous les chemins ci-dessous sont relatifs à `/api/v1/store`. Le rôle indiqué est le
+rôle réellement exigé dans cette version : tout `GET` accepte tous les rôles,
+`READ_ONLY` compris, et tout non-`GET` exige `OPERATOR` ou au-dessus. La marque
+`(cœur)` rappelle que la garantie vient du répartiteur de CheeseDash et non de
+CheeseStore — voir
+[ce que le cœur applique réellement](#ce-que-le-cœur-applique-réellement). La règle est
+uniforme sur tous les tableaux de cette page, donc seul le premier porte la colonne.
 
 ### Produits
 
-| Méthode | Chemin | Rôle en pratique | Corps | Réponse |
+| Méthode | Chemin | Rôle | Corps | Réponse |
 |---|---|---|---|---|
-| `GET` | `/products` | toute session | — | `200` tableau de produits complets |
-| `POST` | `/products` | toute session | objet produit, `imageBase64` facultatif | `201` le produit créé |
-| `PUT` | `/products/:id` | toute session | produit partiel, `imageBase64` facultatif | `200` le produit fusionné |
-| `DELETE` | `/products/:id` | toute session | — | `200 {"deleted":true}` |
-| `POST` | `/products/:id/image` | toute session | `{"imageBase64":"..."}` | `200 {"ok":true}` |
-| `GET` | `/products/:id/image` | toute session | — | `200 image/png`, ou `404` |
+| `GET` | `/products` | tous les rôles | — | `200` tableau de produits complets |
+| `POST` | `/products` | `OPERATOR` (cœur) | objet produit, `imageBase64` facultatif | `201` le produit créé |
+| `PUT` | `/products/:id` | `OPERATOR` (cœur) | produit partiel, `imageBase64` facultatif | `200` le produit fusionné |
+| `DELETE` | `/products/:id` | `OPERATOR` (cœur) | — | `200 {"deleted":true}` |
+| `POST` | `/products/:id/image` | `OPERATOR` (cœur) | `{"imageBase64":"..."}` | `200 {"ok":true}` |
+| `GET` | `/products/:id/image` | tous les rôles | — | `200 image/png`, ou `404` |
 
 Un objet produit, tel que le renvoie `StoreProduct.toJson()` :
 

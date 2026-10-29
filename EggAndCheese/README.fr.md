@@ -102,12 +102,14 @@ trouve un.
 
 ## Avertissements francs
 
-⚠️ **Aucun contrôle de rôle dans l'API.** `EggsApi` ne contient aucun appel à
-`WebDashboard.requireWrite` ni à `requireAdmin`. Toutes les routes sont ouvertes à
-n'importe quelle session CheeseDash authentifiée, `READ_ONLY` comprise — un compte en
-lecture seule peut donc supprimer des collectibles et distribuer des items. Restreins le
-port du dashboard, et la distribution des comptes, comme si chaque compte était
-administrateur.
+⚠️ **La frontière des rôles du dashboard est tenue par le cœur, pas par ce mod.** `EggsApi`
+ne contient aucun appel à `WebDashboard.requireWrite` ni à `requireAdmin`. Les écritures
+restent malgré tout réservées à `OPERATOR`, parce que le répartiteur de modules de
+CheeseDash rejette toute requête non-`GET` qui échoue à `requireWrite` avant même que le
+module la voie — un compte `READ_ONLY` est donc bien en lecture seule ici. Le prix à payer :
+aucune route de ce mod ne peut exiger `SUPER_ADMIN`, un `GET` qui modifierait quelque chose
+serait sans garde, et une seule modification de ce répartiteur ferait tomber tous les
+contrôles d'un coup. [Le détail](docs/dashboard.fr.md#ce-que-le-cœur-applique-réellement).
 
 ⚠️ **`/pedestal` n'a aucune exigence de permission.** N'importe quel joueur du serveur peut
 rerégler n'importe quelle stèle devant laquelle il peut se placer.

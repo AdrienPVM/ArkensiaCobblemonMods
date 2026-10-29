@@ -164,14 +164,26 @@ in-game image frame can fetch a PNG without a token.
 The module itself holds only the `MinecraftServer` reference and answers `503` while it is
 null. Everything else is delegated to `ScoresApi` as a static call.
 
-### No role checks
+### No role checks of its own
 
-`ScoresApi` never calls `WebDashboard.requireWrite` or `requireAdmin`. Every route,
-including the mutating ones, is open to any authenticated session whatever its role. This
-is not a subtlety of how `requireWrite` is used — in this repository it returns a boolean
-and must be guarded as `if (!WebDashboard.requireWrite(exchange)) return;`, and ignoring
-the return value would be worse than useless — the calls are simply absent. Documented
-with its consequences in [dashboard](dashboard.md#required-role).
+`ScoresApi` never calls `WebDashboard.requireWrite` or `requireAdmin`. The role boundary is
+nonetheless enforced — by the core, not by this module. CheeseDash's module dispatcher in
+`DashboardApi` tests `requireWrite` on every non-`GET` request before handing off:
+
+```java
+if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+    return;
+}
+module.handleRequest(exchange, subRoute);
+```
+
+So in this build every write under `/api/v1/scores/` needs `OPERATOR` or above, and every
+`GET` is open to any role including `READ_ONLY`. What the absence of local calls costs is
+elsewhere: no route in this module can require `SUPER_ADMIN`, because `OPERATOR` is the only
+bar the dispatcher knows; a mutating route exposed as a `GET` would not be guarded at all,
+since the dispatcher keys only on the HTTP method; and a single change to that dispatcher
+would remove every check at once, with no second line of defence here to catch it.
+Documented with its consequences in [dashboard](dashboard.md#required-role).
 
 ## Mixins
 
@@ -210,9 +222,10 @@ end of `updateAll` would give the dashboard live refresh notifications.
 
 Read this section before changing anything.
 
-**No role checks on the REST API.** The most serious one. A READ_ONLY dashboard account
-can rewrite board titles, create and delete mini-games, delete recorded sessions and force
-refreshes.
+**No role checks of its own on the REST API.** Writes are gated at `OPERATOR` by
+CheeseDash's dispatcher, so the boundary holds today. The cost is structural: no route here
+can ask for `SUPER_ADMIN`, a mutating `GET` would be unguarded, and the whole module loses
+its protection if that one dispatcher check changes.
 
 **The refresh race.** Described above. Plain `HashMap`s mutated from two kinds of thread
 with no synchronisation.

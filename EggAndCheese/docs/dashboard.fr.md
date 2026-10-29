@@ -32,28 +32,56 @@ L'authentification est celle de CheeseDash, pas celle de ce mod.
 `POST /api/v1/auth/login` renvoie un token de session, à passer en
 `Authorization: Bearer <token>` sur toutes les autres requêtes.
 
-⚠️ **Toutes les routes d'`EggsApi` n'exigent qu'une session valide. Il n'y a aucun
-contrôle de rôle dans l'API de ce mod.** `EggsApi.java` ne contient aucun appel à
-`WebDashboard.requireWrite` ni à `WebDashboard.requireAdmin` — vérifié par un grep sur
-tout l'arbre des sources. Un compte `READ_ONLY` peut donc supprimer un collectible, en
-renommer un, effacer des découvertes, donner des items à des joueurs connectés, réécrire
-la configuration et lancer la réparation d'intégrité.
+### Ce que le cœur applique réellement
 
-C'est un vrai manque, pas un choix de conception, et il vaut la peine de rappeler à quoi
-ressemble la forme correcte. Dans ce dépôt, `WebDashboard.requireWrite(exchange)`
-**renvoie un booléen** et ne bloque rien par lui-même : ignorer son résultat ne fait rien.
-La forme qui impose réellement quelque chose est :
+`EggsApi.java` ne contient aucun appel à `WebDashboard.requireWrite` ni à
+`WebDashboard.requireAdmin` — vérifié par un grep sur tout l'arbre des sources. La
+frontière des rôles est pourtant bien appliquée, par le répartiteur de modules de
+CheeseDash dans `DashboardApi`, et non par ce mod :
 
 ```java
-if (!WebDashboard.requireWrite(exchange)) return;
+DashboardModule module = DashboardRegistry.getModule(prefix);
+if (module != null) {
+    if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+        return;
+    }
+    module.handleRequest(exchange, subRoute);
+    ...
+}
 ```
 
-Tant que les handlers mutants ci-dessous ne commencent pas par cette ligne, considère que
-le « rôle requis » est « n'importe quelle session authentifiée », et restreins en
-conséquence l'attribution des comptes `READ_ONLY`.
+C'est la forme correcte — elle teste la valeur de retour et rend la main — donc dans cette
+version, toute requête non-`GET` sous `/api/v1/eggs/` exige bien `OPERATOR` ou au-dessus,
+et les requêtes `GET` acceptent tous les rôles, `READ_ONLY` compris. Un compte `READ_ONLY`
+ne peut pas supprimer un collectible, en renommer un, effacer des découvertes, donner des
+items, réécrire la configuration ni lancer la réparation d'intégrité. La frontière tient.
 
-La colonne des rôles dans les tableaux ci-dessous consigne ce que le code impose
-aujourd'hui, pas ce qu'il devrait imposer.
+Ce qui ne tient pas, c'est la raison pour laquelle elle tient. La protection est une
+propriété du répartiteur du cœur, fondée uniquement sur la méthode HTTP, et le module n'y
+contribue en rien. Trois conséquences :
+
+- **Aucune route d'EggAndCheese ne peut exiger `SUPER_ADMIN`.** Supprimer un collectible
+  avec son bloc dans le monde et sa quête FTB, et réécrire la configuration du mod pour
+  tous les joueurs connectés, sont deux opérations de niveau `OPERATOR`, parce qu'`OPERATOR`
+  est la seule barre que le répartiteur connaisse. Une route qui voudrait `SUPER_ADMIN`
+  devrait appeler `requireAdmin` elle-même.
+- **Un `GET` qui modifierait quelque chose serait totalement sans garde.** Il n'en existe
+  aucun aujourd'hui — chaque handler qui change l'état est associé à `POST`, `PUT` ou
+  `DELETE` — mais rien dans le module n'empêcherait d'en ajouter un, et rien ne le
+  signalerait.
+- **Une modification du répartiteur supprimerait tous les contrôles d'un coup.** `EggsApi`
+  n'a pas de seconde ligne de défense.
+
+Ajouter `if (!WebDashboard.requireWrite(exchange)) return;` en tête de chaque handler
+mutant serait de la défense en profondeur : utile, mais redondant aujourd'hui, et ce n'est
+pas la frontière elle-même. À noter que dans ce dépôt,
+`WebDashboard.requireWrite(exchange)` **renvoie un booléen** et ne bloque rien par
+lui-même : ignorer son résultat ne fait rien, c'est donc la seule forme qui vaille d'être
+écrite.
+
+La colonne des rôles dans les tableaux ci-dessous indique le rôle **réellement** exigé dans
+cette version, et marque par (cœur) les cas où la garantie vient du répartiteur de
+CheeseDash et non du module.
 
 ## Conventions
 
@@ -77,19 +105,19 @@ aujourd'hui, pas ce qu'il devrait imposer.
 
 | Méthode | Chemin | Rôle imposé | Ce que ça fait |
 |---|---|---|---|
-| `GET` | `/collectibles` | n'importe quelle session | Toutes les entrées, triées par id, en résumé |
-| `POST` | `/collectibles` | n'importe quelle session | Créer une entrée |
-| `GET` | `/collectibles/:id` | n'importe quelle session | Une entrée, détail complet avec l'ADN |
-| `PUT` | `/collectibles/:id` | n'importe quelle session | Modifier des champs et/ou l'ADN, déplacer le bloc |
-| `DELETE` | `/collectibles/:id` | n'importe quelle session | Supprimer l'entrée, son bloc et sa quête FTB |
-| `POST` | `/collectibles/:id/rename` | n'importe quelle session | Changer l'id |
-| `POST` | `/collectibles/:id/randomize-dna` | n'importe quelle session | Remplacer l'ADN par un nouvel ADN aléatoire |
-| `GET` | `/collectibles/:id/discoveries` | n'importe quelle session | Qui l'a trouvé, avec les pseudos |
-| `POST` | `/collectibles/:id/discoveries` | n'importe quelle session | Enregistrer une découverte par pseudo |
-| `DELETE` | `/collectibles/:id/discoveries` | n'importe quelle session | Effacer toutes les découvertes |
-| `DELETE` | `/collectibles/:id/discoveries/:uuid` | n'importe quelle session | Retirer une découverte |
-| `POST` | `/collectibles/:id/give-admin` | n'importe quelle session | Donner l'item de placement admin à un joueur connecté |
-| `POST` | `/collectibles/:id/give-deco` | n'importe quelle session | Donner l'item décoratif à un joueur connecté |
+| `GET` | `/collectibles` | tous les rôles | Toutes les entrées, triées par id, en résumé |
+| `POST` | `/collectibles` | `OPERATOR`+ (cœur) | Créer une entrée |
+| `GET` | `/collectibles/:id` | tous les rôles | Une entrée, détail complet avec l'ADN |
+| `PUT` | `/collectibles/:id` | `OPERATOR`+ (cœur) | Modifier des champs et/ou l'ADN, déplacer le bloc |
+| `DELETE` | `/collectibles/:id` | `OPERATOR`+ (cœur) | Supprimer l'entrée, son bloc et sa quête FTB |
+| `POST` | `/collectibles/:id/rename` | `OPERATOR`+ (cœur) | Changer l'id |
+| `POST` | `/collectibles/:id/randomize-dna` | `OPERATOR`+ (cœur) | Remplacer l'ADN par un nouvel ADN aléatoire |
+| `GET` | `/collectibles/:id/discoveries` | tous les rôles | Qui l'a trouvé, avec les pseudos |
+| `POST` | `/collectibles/:id/discoveries` | `OPERATOR`+ (cœur) | Enregistrer une découverte par pseudo |
+| `DELETE` | `/collectibles/:id/discoveries` | `OPERATOR`+ (cœur) | Effacer toutes les découvertes |
+| `DELETE` | `/collectibles/:id/discoveries/:uuid` | `OPERATOR`+ (cœur) | Retirer une découverte |
+| `POST` | `/collectibles/:id/give-admin` | `OPERATOR`+ (cœur) | Donner l'item de placement admin à un joueur connecté |
+| `POST` | `/collectibles/:id/give-deco` | `OPERATOR`+ (cœur) | Donner l'item décoratif à un joueur connecté |
 
 ### Forme résumée
 
@@ -266,9 +294,9 @@ plusieurs fois sur le même joueur.
 
 | Méthode | Chemin | Rôle imposé | Ce que ça fait |
 |---|---|---|---|
-| `GET` | `/config` | n'importe quelle session | Lire les quatre réglages plus deux compteurs |
-| `PUT` | `/config` | n'importe quelle session | Écrire n'importe quel sous-ensemble, puis pousser un paquet de sync à tous les joueurs connectés |
-| `POST` | `/config/sync-ftb` | n'importe quelle session | Lancer une synchronisation FTB Quests complète |
+| `GET` | `/config` | tous les rôles | Lire les quatre réglages plus deux compteurs |
+| `PUT` | `/config` | `OPERATOR`+ (cœur) | Écrire n'importe quel sous-ensemble, puis pousser un paquet de sync à tous les joueurs connectés |
+| `POST` | `/config/sync-ftb` | `OPERATOR`+ (cœur) | Lancer une synchronisation FTB Quests complète |
 
 ```json
 {
@@ -329,8 +357,8 @@ pas par le thread serveur.
 
 | Méthode | Chemin | Rôle imposé | Ce que ça fait |
 |---|---|---|---|
-| `GET` | `/integrity` | n'importe quelle session | Rapport de doublons et d'orphelins sur les chunks chargés |
-| `POST` | `/integrity/reconcile` | n'importe quelle session | Délier les doublons et les orphelins |
+| `GET` | `/integrity` | tous les rôles | Rapport de doublons et d'orphelins sur les chunks chargés |
+| `POST` | `/integrity/reconcile` | `OPERATOR`+ (cœur) | Délier les doublons et les orphelins |
 
 Les deux sont documentés en entier, payloads et raisonnement compris, dans
 [intégrité](integrity.fr.md#les-points-dapi-du-dashboard).

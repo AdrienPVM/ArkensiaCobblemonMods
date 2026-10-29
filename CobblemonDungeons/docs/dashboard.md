@@ -20,18 +20,44 @@ as `Authorization: Bearer <token>` on every other request. The module answers `5
 
 ---
 
-## ⚠️ Every route is reachable by every authenticated role
+## What the core actually enforces
 
-`DungeonsApi` never calls `WebDashboard.requireWrite` or `WebDashboard.requireAdmin`. Not
-once, anywhere in the file. CheeseDash checks that a session exists before dispatching to
-a module, but the role check is each module's own responsibility, and this module does not
-perform it.
+`DungeonsApi` contains no role check of its own. It never calls
+`WebDashboard.requireWrite` or `WebDashboard.requireAdmin` — not once, anywhere in the
+file, across its eight mutating routes.
 
-The practical effect: a `READ_ONLY` account can create, edit and delete dungeon configs,
-rewrite trainer files, change ticket templates, trigger a reload, force-fail a live run and
-kick a player out of a dungeon. Eight mutating routes, no role gate:
+What stands in for those checks is CheeseDash's own module dispatcher, in `DashboardApi`:
 
-| Route | What a READ_ONLY session can do with it |
+```java
+DashboardModule module = DashboardRegistry.getModule(prefix);
+if (module != null) {
+    if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+        return;
+    }
+    module.handleRequest(exchange, subRoute);
+    ...
+}
+```
+
+That is the correct form — it tests the return value and returns — so in this build every
+non-`GET` request to any route under `/api/v1/dungeons/` does require `OPERATOR` or above,
+and `GET` requests accept any role including `READ_ONLY`. The boundary holds.
+
+What does **not** hold is the reason it holds. The protection is a property of the core's
+dispatch, keyed purely on the HTTP method, and the module contributes nothing. Three
+consequences:
+
+- **No route in CobblemonDungeons can require `SUPER_ADMIN`.** Deleting a dungeon and its
+  file, overwriting any trainer JSON, and force-failing a live run are all `OPERATOR`-level
+  operations, because `OPERATOR` is the only bar the dispatcher knows.
+- **A mutating `GET` would be completely unguarded.** None exists today, but nothing in the
+  module would stop one from being added, and nothing would flag it.
+- **A change to the dispatcher removes every check at once.** This API has no second line
+  of defence.
+
+The eight mutating routes, all `OPERATOR` or above by the core's dispatch:
+
+| Route | What it does |
 |---|---|
 | `POST /configs` | Create a dungeon |
 | `PUT /configs/:id` | Overwrite a dungeon's whole config |
@@ -42,25 +68,21 @@ kick a player out of a dungeon. Eight mutating routes, no role gate:
 | `POST /active/fail` | Force-fail a running dungeon |
 | `POST /active/leave` | Remove a player from a running dungeon |
 
-The fix, for whoever takes it on, is one line at the top of each mutating handler:
+A local `if (!WebDashboard.requireWrite(exchange)) return;` at the top of each of those
+handlers would be defence in depth — useful, but redundant with the dispatcher, and not the
+boundary itself.
 
-```java
-if (!WebDashboard.requireWrite(exchange)) return;
-```
-
-`requireWrite` admits `OPERATOR` and above and answers the request itself when it refuses,
-so returning immediately is correct. Until that lands, treat any account with dashboard
-access as an operator for this module, and do not hand out `READ_ONLY` sessions thinking
-they are read-only.
-
-The role column in the tables below records what the code enforces today, not what each
-route ought to require.
+For reference, `requireWrite` means `OPERATOR` or above and `requireAdmin` means
+`SUPER_ADMIN`; both send their own `403` and report the outcome as a boolean. The role
+column in the tables below states the role **actually** required in this build, and marks
+with (core) the cases where the guarantee comes from CheeseDash's dispatch rather than from
+the module.
 
 ## Dungeon configs
 
 ### `GET /configs`
 
-Summaries of every registered dungeon. Role: any authenticated session.
+Summaries of every registered dungeon. Role: any role, `READ_ONLY` included.
 
 ```json
 [
@@ -85,15 +107,15 @@ are counted live from the instance maps.
 ### `GET /configs/:id`
 
 The dungeon's full `DungeonConfig`, serialised by Gson exactly as the file on disk would
-be. Role: any authenticated session. `404` with `{"error":"Dungeon not found"}` if the id
-is unknown.
+be. Role: any role, `READ_ONLY` included. `404` with `{"error":"Dungeon not found"}` if
+the id is unknown.
 
 Path ids are validated: an id containing `..`, `/`, `\` or `%`, or 128 characters or more,
 is rejected with `400` and `{"error":"Invalid config ID"}`.
 
 ### `POST /configs`
 
-Creates a dungeon. Role: **any authenticated session** (see the warning above).
+Creates a dungeon. Role: `OPERATOR` or above (core).
 
 ```json
 { "id": "ruins_of_arkensia", "name": "Ruins of Arkensia" }
@@ -115,7 +137,7 @@ message.
 
 ### `PUT /configs/:id`
 
-Replaces the whole config. Role: **any authenticated session**. The body is a complete
+Replaces the whole config. Role: `OPERATOR` or above (core). The body is a complete
 `DungeonConfig` document; anything you omit comes back as the field default, so this is a
 replace and not a merge. `general.id` in the body is ignored — the path id always wins, so
 a dungeon cannot be renamed through this route.
@@ -129,7 +151,7 @@ Responses: `200` with the stored config, `404` if unknown, `400`
 ### `DELETE /configs/:id`
 
 Deletes the file, then runs a full `ConfigLoader.load()` to rebuild the registry. Role:
-**any authenticated session**. Answers `200 {"deleted":true}`, or `404` if unknown.
+`OPERATOR` or above (core). Answers `200 {"deleted":true}`, or `404` if unknown.
 
 A live run of the deleted dungeon keeps going — its instance holds its own config object.
 
@@ -137,7 +159,7 @@ A live run of the deleted dungeon keeps going — its instance holds its own con
 
 `ConfigLoader.load()` on the server thread: clears the registry, re-reads
 `config.json`, `dungeon_tickets.json`, every `dungeons/*.json`, and then the run history,
-cooldowns and leaderboard. Role: **any authenticated session**. Answers
+cooldowns and leaderboard. Role: `OPERATOR` or above (core). Answers
 `200 {"reloaded":true}`.
 
 Trainers are **not** reloaded — `TrainerLoader.load` only runs at server start.
@@ -146,7 +168,7 @@ Trainers are **not** reloaded — `TrainerLoader.load` only runs at server start
 
 ### `GET /tickets`
 
-The raw contents of `dungeon_tickets.json`. Role: any authenticated session.
+The raw contents of `dungeon_tickets.json`. Role: any role, `READ_ONLY` included.
 
 ```json
 { "tickets": [ { "dungeonId": "generic_dungeon", "itemName": "§6Copper Dungeon Ticket", "tier": 1 } ] }
@@ -154,7 +176,7 @@ The raw contents of `dungeon_tickets.json`. Role: any authenticated session.
 
 ### `PUT /tickets`
 
-Replaces the ticket config and saves it to disk. Role: **any authenticated session**.
+Replaces the ticket config and saves it to disk. Role: `OPERATOR` or above (core).
 Returns the stored config.
 
 A body that is not valid JSON is swallowed: `ConfigLoader.updateTicketConfig` catches the
@@ -168,7 +190,8 @@ Connected clients are not re-synced; they pick the change up on their next join.
 
 ### `GET /trainers`
 
-Lists the files in `config/cobblemon_dungeons/trainers/`. Role: any authenticated session.
+Lists the files in `config/cobblemon_dungeons/trainers/`. Role: any role, `READ_ONLY`
+included.
 
 ```json
 [ { "id": "example_trainer", "filename": "example_trainer.json" } ]
@@ -178,13 +201,13 @@ An absent directory yields an empty array.
 
 ### `GET /trainers/:id`
 
-The raw file contents of `<id>.json`, served as-is. Role: any authenticated session. `404`
-`{"error":"Trainer file not found"}` if the file does not exist.
+The raw file contents of `<id>.json`, served as-is. Role: any role, `READ_ONLY` included.
+`404` `{"error":"Trainer file not found"}` if the file does not exist.
 
 ### `PUT /trainers/:id`
 
 Validates that the body parses as JSON, creates the directory if needed, and writes the
-body verbatim to `<id>.json`. Role: **any authenticated session**. Returns the body on
+body verbatim to `<id>.json`. Role: `OPERATOR` or above (core). Returns the body on
 success, `400` `{"error":"Invalid JSON: …"}` otherwise.
 
 Only JSON syntax is checked — not whether RCTApi can make a trainer out of it. A
@@ -200,7 +223,7 @@ cannot escape the trainers directory.
 ### `GET /active`
 
 Every live instance, deduplicated — the instance map is keyed per player, so a four-person
-party would otherwise appear four times. Role: any authenticated session.
+party would otherwise appear four times. Role: any role, `READ_ONLY` included.
 
 ```json
 {
@@ -234,7 +257,7 @@ a number of instances.
 
 ### `POST /active/fail`
 
-Force-fails the run the given player is in. Role: **any authenticated session**.
+Force-fails the run the given player is in. Role: `OPERATOR` or above (core).
 
 ```json
 { "playerUuid": "0b1c…" }
@@ -250,8 +273,8 @@ exception message. A UUID that is well-formed but matches nobody still answers
 
 ### `POST /active/leave`
 
-Removes one player from their run, leaving the rest of the party in it. Role: **any
-authenticated session**. Same body shape. The player sees *You have been removed from the
+Removes one player from their run, leaving the rest of the party in it. Role: `OPERATOR`
+or above (core). Same body shape. The player sees *You have been removed from the
 dungeon by an administrator.* and goes through the normal leave path, which on a
 non-completed run means their dungeon progress is not saved.
 
@@ -263,8 +286,8 @@ success.
 
 ### `GET /stats`
 
-Aggregates computed on the fly from the in-memory run history. Role: any authenticated
-session. See [leaderboards and run history](records.md#statistics) for the exact
+Aggregates computed on the fly from the in-memory run history. Role: any role, `READ_ONLY`
+included. See [leaderboards and run history](records.md#statistics) for the exact
 definitions.
 
 ```json
@@ -279,7 +302,7 @@ definitions.
 
 ### `GET /stats/history?n=50`
 
-The most recent runs, newest first. Role: any authenticated session.
+The most recent runs, newest first. Role: any role, `READ_ONLY` included.
 
 | Parameter | Type | Default | Range |
 |---|---|---|---|
@@ -294,8 +317,8 @@ The most recent runs, newest first. Role: any authenticated session.
 
 ### `GET /leaderboard` and `GET /leaderboard/:dungeonId`
 
-Role: any authenticated session. Both return the same nested shape — dungeon id, then tier
-as a string key, then an array of entries sorted fastest first:
+Role: any role, `READ_ONLY` included. Both return the same nested shape — dungeon id,
+then tier as a string key, then an array of entries sorted fastest first:
 
 ```json
 {
@@ -313,7 +336,7 @@ times returns `{"<dungeonId>": {}}`.
 ### `GET /config`
 
 The contents of `config.json`, with `database.password` replaced by `"***"`. Role: any
-authenticated session.
+role, `READ_ONLY` included.
 
 ```json
 { "database": { "useSql": false, "host": "localhost", "port": 3306,

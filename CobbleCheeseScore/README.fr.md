@@ -100,12 +100,13 @@ route publique sans authentification sur `/scores/api/images/…` pour que quelq
 l'intérieur de Minecraft puisse récupérer un PNG sans token. Aucun canal WebSocket : le
 module ne diffuse rien, donc une vue du dashboard doit interroger périodiquement.
 
-⚠️ **Aucune route de ce module ne vérifie le rôle de l'appelant.** `ScoresApi` ne contient
-aucun appel à `WebDashboard.requireWrite` ni à `requireAdmin` : un compte CheeseDash
-**READ_ONLY** peut donc réécrire les titres et les couleurs des classements, créer et
-supprimer des mini-jeux, supprimer des sessions enregistrées et forcer des
-rafraîchissements. Distribue les comptes en conséquence. Détails dans
-[dashboard](docs/dashboard.fr.md#rôle-requis).
+**Aucune route de ce module ne vérifie elle-même le rôle de l'appelant.** `ScoresApi` ne
+contient aucun appel à `WebDashboard.requireWrite` ni à `requireAdmin` ; la frontière est
+tenue un niveau au-dessus, par le répartiteur de modules de CheeseDash, qui exige `OPERATOR`
+ou au-dessus sur toute requête non-`GET` et laisse lire tous les rôles. Les lectures sont
+donc ouvertes à `READ_ONLY` et toute écriture exige `OPERATOR` — mais aucune route ici ne
+peut demander `SUPER_ADMIN`, et une route mutante exposée en `GET` passerait à travers.
+Détails dans [dashboard](docs/dashboard.fr.md#rôle-requis).
 
 ## Avertissements honnêtes
 

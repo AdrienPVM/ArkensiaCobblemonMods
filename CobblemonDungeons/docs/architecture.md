@@ -228,9 +228,14 @@ read by nothing.
 **`DUNGEON_MODIFIER` is not implemented.** CheeseGuard's third dungeon effect logs and
 announces, and its own comment says integration with `DungeonManager` is future work.
 
-**The dashboard enforces no roles.** `DungeonsApi` never calls `requireWrite` or
-`requireAdmin`, so eight mutating routes are open to any authenticated session including
-`READ_ONLY`. Documented in full in [the dashboard page](dashboard.md).
+**The dashboard's role boundary lives in the core, not here.** `DungeonsApi` never calls
+`requireWrite` or `requireAdmin`. The boundary still holds — CheeseDash's module dispatcher
+requires `OPERATOR` or above for every non-`GET` request to any module, so the eight
+mutating routes are `OPERATOR`-level and `GET` accepts any role. But the guarantee is a
+property of the core's dispatch, keyed purely on the HTTP method: no route here can require
+`SUPER_ADMIN`, a mutating `GET` would be unguarded, and one change to that dispatcher would
+remove every check at once with no second line of defence in this API. Documented in full
+in [the dashboard page](dashboard.md).
 
 **`deathCount` in run history is derived and wrong for parties that lost members**, because
 the starting life total is recomputed from the player count at logging time rather than the

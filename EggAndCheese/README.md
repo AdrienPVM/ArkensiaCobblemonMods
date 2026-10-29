@@ -97,11 +97,13 @@ channel each time a player finds one.
 
 ## Honest warnings
 
-⚠️ **No role checks in the API.** `EggsApi` contains no call to
-`WebDashboard.requireWrite` or `requireAdmin`. Every route is open to any authenticated
-CheeseDash session, `READ_ONLY` included — which means a read-only account can delete
-collectibles and hand out items. Restrict the dashboard port, and who holds an account, as
-if every account were an administrator.
+⚠️ **The dashboard role boundary is held by the core, not by this mod.** `EggsApi`
+contains no call to `WebDashboard.requireWrite` or `requireAdmin`. Writes are still
+`OPERATOR`-only, because CheeseDash's module dispatcher rejects every non-`GET` request
+that fails `requireWrite` before the module ever sees it — so a `READ_ONLY` account really
+is read-only here. The cost is that no route in this mod can require `SUPER_ADMIN`, that a
+mutating `GET` would be unguarded, and that one change to that dispatcher would drop every
+check at once. [The detail](docs/dashboard.md#what-the-core-actually-enforces).
 
 ⚠️ **`/pedestal` has no permission requirement at all.** Any player on the server can
 retune any pedestal they can stand in front of.

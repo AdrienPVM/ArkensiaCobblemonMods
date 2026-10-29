@@ -126,13 +126,19 @@ Registers under the `store` prefix, with two separate surfaces:
   limiting, a same-origin check on anything that spends, and HMAC signature
   verification on the webhook.
 
-> ⚠️ **The admin surface has no role enforcement.** `StoreApi.handle` never calls
-> `WebDashboard.requireWrite` or `requireAdmin`, so **any** authenticated CheeseDash
-> session — `READ_ONLY` included — can change product prices and delivery commands,
-> re-deliver orders, set any player's credit balance, and overwrite your Stripe
-> secret and webhook secret. Until that is fixed, treat every CheeseDash account that
-> can reach this module as a full store operator.
-> [The detail, and the shape of the fix](docs/dashboard.md#the-missing-role-guards).
+> ⚠️ **The admin surface's role boundary is CheeseDash's, not CheeseStore's.**
+> `StoreApi.handle` never calls `WebDashboard.requireWrite` or `requireAdmin`; the
+> core's module dispatcher does it for every non-`GET` request, so writes do require
+> `OPERATOR` and a `READ_ONLY` session really is read-only. The consequence is the
+> ceiling: no route here can require `SUPER_ADMIN`, so an `OPERATOR` can change
+> product prices and delivery commands, re-deliver orders, set any player's credit
+> balance, and overwrite your Stripe secret and webhook secret.
+> [The detail](docs/dashboard.md#what-the-core-actually-enforces).
+>
+> ⚠️ **`GET /store/api/players` is public.** It is served by `handlePublic`, with no
+> authentication of any kind, and returns every known player name and UUID to anyone
+> who can reach the port. If that roster is private to you, keep 44311 behind a proxy
+> that restricts it.
 
 ## Honest limits
 

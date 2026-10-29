@@ -345,11 +345,14 @@ Ouvre `http://<serveur>:44311`, connecte-toi, et choisis **CheeseGuard** dans la
 latérale. Les zones créées dans cette marche à suivre y sont listées, avec leurs flags sous
 forme de grille plutôt qu'une commande par flag.
 
-⚠️ Une chose à savoir avant de créer des comptes dashboard pour d'autres personnes : six
-des huit API de CheeseGuard ne vérifient jamais le rôle du compte, donc un compte READ_ONLY
-peut supprimer une zone ou effacer une dimension à travers ce mod. Traite tout compte
-capable d'atteindre la section CheeseGuard comme un opérateur jusqu'à ce que ce soit
-corrigé. Le détail est dans [l'architecture](architecture.fr.md#faiblesses-connues).
+⚠️ Une chose à savoir avant de créer des comptes dashboard pour d'autres personnes : un
+compte `READ_ONLY` ne peut ici que lire — le répartiteur de CheeseDash exige `OPERATOR` ou
+au-dessus pour toute requête non-`GET` vers un module — mais un `OPERATOR` peut faire tout
+ce que ce mod propose. Six des huit API de CheeseGuard ne vérifient aucun rôle elles-mêmes :
+rien ne peut donc se situer au-dessus d'`OPERATOR`, et supprimer une zone ou effacer une
+dimension est à la même barre que modifier un flag. Ne donne `OPERATOR` qu'à des personnes à
+qui tu confierais le mod entier. Le détail est dans
+[l'architecture](architecture.fr.md#faiblesses-connues).
 
 ## Pour aller plus loin
 

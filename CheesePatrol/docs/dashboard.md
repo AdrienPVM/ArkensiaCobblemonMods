@@ -131,8 +131,8 @@ Teleports a **player** to the waypoint one step beyond the one its NPC is curren
 toward, so the player arrives in front of the NPC rather than behind it. It does not move
 the NPC.
 
-**Required role: OPERATOR or higher** — in intent. ⚠️ See the warning below; it is not
-enforced.
+**Required role: OPERATOR or higher.** Enforced twice — see
+[the note on where the role check lives](#where-the-role-check-lives) below.
 
 **Request body:**
 
@@ -177,22 +177,45 @@ current one, and preserves the player's yaw and pitch.
 | `400` | `{"error":"Dimension not found: <id>"}` | the patrol's dimension is not loaded on this server |
 | `404` | `{"error":"Patrol not found"}` | no patrol for that UUID |
 | `404` | `{"error":"Player not found: <name>"}` | not online |
+| `403` | CheeseDash's own | the session's role is below OPERATOR |
 | `500` | `{"error":"<exception message>"}` | anything else, including malformed JSON |
 
-⚠️ **The role check does not work.** The dispatcher calls:
+### Where the role check lives
+
+`CheesePatrolApi` guards this route itself, in the correct form:
 
 ```java
-WebDashboard.requireWrite(exchange);
-handleTp(exchange, server);
+} else if (path.equals("/tp") && method.equals("POST")) {
+    if (!WebDashboard.requireWrite(exchange)) return;
+    handleTp(exchange, server);
 ```
 
-`requireWrite` sends a `403` and returns `false` when the session lacks OPERATOR, but the
-return value is discarded and `handleTp` runs regardless. A `READ_ONLY` session therefore
-receives a 403 **and** gets the teleport scheduled. The correct form, used elsewhere in the
-repository, is `if (!WebDashboard.requireWrite(exchange)) return;`. This is the same mistake
-CheeseKart's `KartApi` and CheeseGuard's `RacesApi` make, so it is a repo-wide pattern worth
-fixing in one pass rather than a CheesePatrol-specific oversight. Until then, treat
-`READ_ONLY` accounts as able to teleport players.
+`requireWrite` sends the `403` and returns `false` when the session lacks OPERATOR, and
+testing the result is what makes the guard real — a bare `WebDashboard.requireWrite(exchange);`
+would send the `403` and then run the handler anyway.
+
+That local call is not, though, the only thing standing in the way. CheeseDash's module
+dispatch in `DashboardApi` already gates every module before the module sees the request:
+
+```java
+DashboardModule module = DashboardRegistry.getModule(prefix);
+if (module != null) {
+    if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+        return;
+    }
+    module.handleRequest(exchange, subRoute);
+```
+
+So the module's own call is defence in depth: useful, and redundant in this configuration.
+Three consequences of the real boundary living in the core:
+
+- **No patrol route can require `SUPER_ADMIN`.** The dispatch only knows `requireWrite`, so
+  `OPERATOR` is the ceiling unless a handler calls `requireAdmin` itself. Neither does.
+- **A mutating `GET` would be caught only by the module.** `/tp` is a `POST`, so the point
+  is theoretical here, but the dispatch keys purely on the HTTP method and would wave a
+  mutating `GET` straight through.
+- **A change to the dispatcher would not disarm `/tp`**, because of the local call — unlike
+  modules that guard nothing themselves.
 
 **The 200 means scheduled, not done.** The teleport goes through
 `WebDashboard.executeOnServerThread`, which waits up to 5 seconds for the server thread to

@@ -279,17 +279,19 @@ nothing, and no `commands/` package exists. Every operation goes through the das
 the REST API. If you were given a `/cobblecheesescore …` command by some other
 documentation, it does not exist in this version.
 
-## A READ_ONLY account changed something
+## An OPERATOR changed something I wanted locked down
 
-**Cause.** `ScoresApi` contains no call to `WebDashboard.requireWrite` or
-`requireAdmin`. The only gate is CheeseDash's authentication middleware, which checks that
-the session is valid and does not check its role. Every route in the module — including
-`PUT /scoreboards/:id`, `POST /refresh`, and all the mini-game mutations — is open to any
-authenticated session.
+**Cause.** This is intended, and it is the ceiling. `ScoresApi` contains no call to
+`WebDashboard.requireWrite` or `requireAdmin`, so the only role check is the one
+CheeseDash's module dispatcher applies to every non-`GET` request: `OPERATOR` or above.
+That covers `PUT /scoreboards/:id`, `POST /refresh`, `PUT /config` and all five mini-game
+mutations — a `READ_ONLY` session is refused with `403` on each of them, but an `OPERATOR`
+is allowed on all of them equally. There is no finer distinction inside the module.
 
-**Fix.** There is no configuration for this; it needs a code change, one guard clause per
-mutating handler. Until then, treat a READ_ONLY CheeseDash account as having full write
-access to this module, and restrict accounts accordingly. Full detail in
+**Fix.** Nothing here can require `SUPER_ADMIN` without a code change: the dispatcher knows
+only the `OPERATOR` bar, and a route that needs more has to call
+`WebDashboard.requireAdmin` itself. Until a route does, hand out `OPERATOR` only to people
+you would trust with every write in this module. Full detail in
 [dashboard](dashboard.md#required-role).
 
 ## The mini-game ranking is upside down
@@ -364,7 +366,8 @@ Open it at
    command separates a server problem from a client problem.
 
 Do not open a public issue for a security problem — `SECURITY.md` at the repository root
-explains where to send it. The missing role checks documented above are already known.
+explains where to send it. The absence of local role checks documented above is already
+known, as is the fact that the core dispatcher covers it.
 
 ---
 

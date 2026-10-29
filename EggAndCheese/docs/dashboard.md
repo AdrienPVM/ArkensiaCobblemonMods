@@ -31,27 +31,54 @@ shutdown. Otherwise it hands the request straight to `EggsApi.handle`.
 Authentication is CheeseDash's, not this mod's. `POST /api/v1/auth/login` returns a
 session token, which you pass as `Authorization: Bearer <token>` on every other request.
 
-⚠️ **Every route in `EggsApi` requires only a valid session. There is no role check
-anywhere in this mod's API.** `EggsApi.java` contains no call to
-`WebDashboard.requireWrite` or `WebDashboard.requireAdmin` — verified by grepping the
-whole source tree. A `READ_ONLY` account can therefore delete a collectible, rename one,
-clear discoveries, hand items to online players, rewrite the config, and run the
-integrity repair.
+### What the core actually enforces
 
-That is a genuine gap, not a design decision, and it is worth stating how the correct
-form looks. In this repository `WebDashboard.requireWrite(exchange)` **returns a
-boolean** and blocks nothing on its own — ignoring its result is a no-op. The shape that
-actually enforces anything is:
+`EggsApi.java` contains no call to `WebDashboard.requireWrite` or
+`WebDashboard.requireAdmin` — verified by grepping the whole source tree. The role
+boundary is nonetheless enforced, by CheeseDash's module dispatcher in `DashboardApi`
+rather than by this mod:
 
 ```java
-if (!WebDashboard.requireWrite(exchange)) return;
+DashboardModule module = DashboardRegistry.getModule(prefix);
+if (module != null) {
+    if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+        return;
+    }
+    module.handleRequest(exchange, subRoute);
+    ...
+}
 ```
 
-Until the mutating handlers below start with that line, treat "required role" as "any
-authenticated session" and restrict who gets a `READ_ONLY` account accordingly.
+That is the correct form — it tests the return value and returns — so in this build every
+non-`GET` request under `/api/v1/eggs/` does require `OPERATOR` or above, and `GET`
+requests accept any role including `READ_ONLY`. A `READ_ONLY` account cannot delete a
+collectible, rename one, clear discoveries, hand out items, rewrite the config or run the
+integrity repair. The boundary holds.
 
-The role column in the tables below records what the code enforces today, not what it
-should.
+What does **not** hold is the reason it holds. The protection is a property of the core's
+dispatch, keyed purely on the HTTP method, and the module contributes nothing. Three
+consequences:
+
+- **No route in EggAndCheese can require `SUPER_ADMIN`.** Deleting a collectible along
+  with its world block and FTB quest, and rewriting the mod config for every online
+  player, are both `OPERATOR`-level operations, because `OPERATOR` is the only bar the
+  dispatcher knows. A route that wanted `SUPER_ADMIN` would have to call `requireAdmin`
+  itself.
+- **A mutating `GET` would be completely unguarded.** None exists today — every handler
+  that changes state is matched on `POST`, `PUT` or `DELETE` — but nothing in the module
+  would stop one from being added, and nothing would flag it.
+- **A change to the dispatcher removes every check at once.** `EggsApi` has no second
+  line of defence.
+
+Adding `if (!WebDashboard.requireWrite(exchange)) return;` at the top of each mutating
+handler would be defence in depth: useful, but redundant today, and not the boundary
+itself. In this repository `WebDashboard.requireWrite(exchange)` **returns a
+boolean** and blocks nothing on its own — ignoring its result is a no-op, so that is the
+only shape worth writing.
+
+The role column in the tables below states the role **actually** required in this build,
+and marks with (core) the cases where the guarantee comes from CheeseDash's dispatch
+rather than from the module.
 
 ## Conventions
 
@@ -73,19 +100,19 @@ should.
 
 | Method | Path | Role enforced | What it does |
 |---|---|---|---|
-| `GET` | `/collectibles` | any session | Every entry, sorted by id, as summaries |
-| `POST` | `/collectibles` | any session | Create an entry |
-| `GET` | `/collectibles/:id` | any session | One entry, full detail including DNA |
-| `PUT` | `/collectibles/:id` | any session | Update fields and/or DNA, relocate the block |
-| `DELETE` | `/collectibles/:id` | any session | Delete the entry, its world block and its FTB quest |
-| `POST` | `/collectibles/:id/rename` | any session | Change the id |
-| `POST` | `/collectibles/:id/randomize-dna` | any session | Replace the DNA with a new random one |
-| `GET` | `/collectibles/:id/discoveries` | any session | Who found it, with names |
-| `POST` | `/collectibles/:id/discoveries` | any session | Record a discovery by player name |
-| `DELETE` | `/collectibles/:id/discoveries` | any session | Clear every discovery |
-| `DELETE` | `/collectibles/:id/discoveries/:uuid` | any session | Remove one discovery |
-| `POST` | `/collectibles/:id/give-admin` | any session | Give the admin placement item to an online player |
-| `POST` | `/collectibles/:id/give-deco` | any session | Give the decorative item to an online player |
+| `GET` | `/collectibles` | any role | Every entry, sorted by id, as summaries |
+| `POST` | `/collectibles` | `OPERATOR`+ (core) | Create an entry |
+| `GET` | `/collectibles/:id` | any role | One entry, full detail including DNA |
+| `PUT` | `/collectibles/:id` | `OPERATOR`+ (core) | Update fields and/or DNA, relocate the block |
+| `DELETE` | `/collectibles/:id` | `OPERATOR`+ (core) | Delete the entry, its world block and its FTB quest |
+| `POST` | `/collectibles/:id/rename` | `OPERATOR`+ (core) | Change the id |
+| `POST` | `/collectibles/:id/randomize-dna` | `OPERATOR`+ (core) | Replace the DNA with a new random one |
+| `GET` | `/collectibles/:id/discoveries` | any role | Who found it, with names |
+| `POST` | `/collectibles/:id/discoveries` | `OPERATOR`+ (core) | Record a discovery by player name |
+| `DELETE` | `/collectibles/:id/discoveries` | `OPERATOR`+ (core) | Clear every discovery |
+| `DELETE` | `/collectibles/:id/discoveries/:uuid` | `OPERATOR`+ (core) | Remove one discovery |
+| `POST` | `/collectibles/:id/give-admin` | `OPERATOR`+ (core) | Give the admin placement item to an online player |
+| `POST` | `/collectibles/:id/give-deco` | `OPERATOR`+ (core) | Give the decorative item to an online player |
 
 ### Summary shape
 
@@ -257,9 +284,9 @@ the same player.
 
 | Method | Path | Role enforced | What it does |
 |---|---|---|---|
-| `GET` | `/config` | any session | Read the four settings plus two counters |
-| `PUT` | `/config` | any session | Write any subset, then push a sync packet to every online player |
-| `POST` | `/config/sync-ftb` | any session | Run a full FTB Quests sync |
+| `GET` | `/config` | any role | Read the four settings plus two counters |
+| `PUT` | `/config` | `OPERATOR`+ (core) | Write any subset, then push a sync packet to every online player |
+| `POST` | `/config/sync-ftb` | `OPERATOR`+ (core) | Run a full FTB Quests sync |
 
 ```json
 {
@@ -319,8 +346,8 @@ thread.
 
 | Method | Path | Role enforced | What it does |
 |---|---|---|---|
-| `GET` | `/integrity` | any session | Duplicate and orphan report over loaded chunks |
-| `POST` | `/integrity/reconcile` | any session | Unbind duplicates and orphans |
+| `GET` | `/integrity` | any role | Duplicate and orphan report over loaded chunks |
+| `POST` | `/integrity/reconcile` | `OPERATOR`+ (core) | Unbind duplicates and orphans |
 
 Both are documented in full, with their payloads and the reasoning behind them, in
 [integrity](integrity.md#the-dashboard-endpoints).

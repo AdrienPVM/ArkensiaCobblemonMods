@@ -275,9 +275,9 @@ stalls the tick. Keep them short.
 
 `POST /api/v1/store/playcosmetics/grant` and `/cosmetics grant <player> <id>` both
 grant ownership with **no debit and no price check**. That is how you test a cosmetic
-you have just authored, and it is also, because of
-[the missing role guards](dashboard.md#the-missing-role-guards), something any
-authenticated dashboard session can do.
+you have just authored, and it is also something any `OPERATOR` session can do: the
+route sits behind [the core's write guard](dashboard.md#what-the-core-actually-enforces)
+and nothing stricter.
 
 `/cosmetics grantall <player>` grants every enabled entry. There is no `revokeall`;
 undoing it is one `revoke` per id.

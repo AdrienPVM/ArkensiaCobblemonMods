@@ -189,9 +189,9 @@ courte :
 4. Lis [SECURITY.md](../../SECURITY.md).
 5. Réécris `store/cgv.html`. Les conditions livrées là appartiennent au serveur de
    quelqu'un d'autre.
-6. Ne donne à personne un compte CheeseDash que tu ne confierais pas avec tes clés
-   Stripe, pour la raison exposée dans
-   [l'API dashboard](dashboard.fr.md#les-gardes-de-rôle-manquants).
+6. Ne donne à personne un compte `OPERATOR` que tu ne confierais pas avec tes clés
+   Stripe : ce rôle peut les écraser, pour la raison exposée dans
+   [l'API dashboard](dashboard.fr.md#ce-que-le-cœur-applique-réellement).
 
 ---
 

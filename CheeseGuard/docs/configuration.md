@@ -73,7 +73,7 @@ The only file you have to create yourself. The mod reads it once, at `SERVER_STA
 Read at startup only. Changing it needs a restart. A missing file is not an error and not
 a warning: Discord posting is simply off, which makes a typo in the filename hard to
 notice. Grep the log for `Failed to load webhook config` if you expected posts and got
-none — and note that a *missing* file produces no line at all.
+none — and a *missing* file produces no line at all.
 
 The URL is a credential. Anyone holding it can post to your channel as the server.
 

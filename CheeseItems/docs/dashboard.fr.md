@@ -17,39 +17,65 @@ passer en `Authorization: Bearer <token>`.
 
 ## <a id="authentification-et-gardes-de-rôle"></a>Authentification et gardes de rôle
 
-Jusqu'au 29 octobre 2026, ni `ItemsApi` ni `MorphoCatalogApi` ne contenait le moindre
-appel à `WebDashboard.requireWrite(...)`. Chaque route était donc atteignable par
-n'importe quelle session authentifiée, `READ_ONLY` comprise — et comme une définition
-d'item peut porter des `useActions` dont les commandes sont exécutées en tant que console
-serveur au niveau de permission 4 ([pourquoi](items.fr.md#useactions)), un compte
-`READ_ONLY` pouvait créer un item dont l'utilisation lance `op <nom>` et le donner à un
-joueur. C'était un contournement d'autorisation débouchant sur une élévation de
-privilèges.
-
-Les deux dispatchers s'ouvrent désormais sur un garde unique :
+Les deux dispatchers, `ItemsApi` et `MorphoCatalogApi`, s'ouvrent sur un garde unique :
 
 ```java
 if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) return;
 ```
 
 **Toute route qui modifie quelque chose exige donc `OPERATOR` ou plus**, et les routes de
-lecture acceptent toujours tous les rôles, `READ_ONLY` comprise. Le garde porte sur la
-méthode HTTP plutôt que sur chaque branche, et c'est volontaire : une nouvelle route
-mutante ne peut pas être ajoutée sans en hériter, là où un garde par branche est à un
-`return` près d'être oublié.
+lecture acceptent tous les rôles, `READ_ONLY` comprise. Le garde porte sur la méthode
+HTTP plutôt que sur chaque branche, et c'est volontaire : une nouvelle route mutante ne
+peut pas être ajoutée sans en hériter, là où un garde par branche est à un `return` près
+d'être oublié.
 
-Deux détails à connaître si tu touches à ce code. `requireWrite` renvoie un booléen et
-répond lui-même à l'échange quand il refuse : son résultat **doit** donc être exploité —
-l'appeler en jetant sa valeur de retour répond `403` puis exécute le travail quand même,
-et c'est précisément le bug trouvé le même jour dans cinq autres mods de ce dépôt. Et les
-routes publiques, non authentifiées, ne sont pas concernées : elles passent par
+Cet appel est aussi de la forme correcte : `requireWrite` renvoie un booléen et répond
+lui-même à l'échange quand il refuse, donc son résultat **doit** être exploité ;
+l'appeler en jetant sa valeur de retour répond `403` puis exécute le travail quand même.
+
+### Ce que le cœur applique réellement
+
+La même frontière est appliquée une seconde fois, avant même que CheeseItems ne voie la
+requête, par le répartiteur de modules de CheeseDash dans `DashboardApi` :
+
+```java
+DashboardModule module = DashboardRegistry.getModule(prefix);
+if (module != null) {
+    if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+        return;
+    }
+    module.handleRequest(exchange, subRoute);
+    ...
+}
+```
+
+Toute requête non-`GET` vers n'importe quel module — pas seulement celui-ci — y est tenue
+à `OPERATOR`. Le garde local du module est donc de la défense en profondeur : utile, et
+redondante. Trois conséquences découlent de l'endroit où se trouve la vraie frontière :
+
+- **Aucune route de CheeseItems ne peut exiger `SUPER_ADMIN`.** Le garde central ne connaît
+  que `requireWrite` : `OPERATOR` est donc la barre maximale atteignable par son biais. Une
+  route qui mériterait `SUPER_ADMIN` devrait appeler `requireAdmin` elle-même ; aucune ne le
+  fait.
+- **Une route mutante exposée en `GET` ne serait gardée par aucune des deux couches** — le
+  garde central ne regarde que la méthode HTTP. Il n'en existe aucune ici aujourd'hui.
+- **Une seule modification de ce répartiteur ferait tomber le contrôle central partout d'un
+  coup**, sans qu'aucun module s'en aperçoive. Sur ce module, le garde local tiendrait
+  encore ; sur les modules qui n'en ont pas, plus rien ne tiendrait.
+
+La colonne « rôle » des tableaux qui suivent indique le rôle réellement exigé dans cette
+version.
+
+> ⚠️ Le garde trace la frontière des rôles ; il ne change pas ce qu'un `OPERATOR` peut
+> faire. Un opérateur peut toujours écrire un item dont les `useActions` lancent des
+> commandes arbitraires en tant que console serveur au niveau de permission 4
+> ([pourquoi](items.fr.md#useactions)) — par exemple un item dont l'utilisation lance
+> `op <nom>`, donné à un joueur. Sur ce module, `OPERATOR` équivaut à un accès console :
+> accorde ce rôle en conséquence.
+
+Les routes publiques, non authentifiées, sont en dehors de tout cela : elles passent par
 `handlePublicImage`, `handlePublicThumb` et `handlePublicRequest`, jamais par les
 dispatchers `handle` ci-dessus.
-
-> ⚠️ Le garde rétablit la frontière des rôles ; il ne change pas ce qu'un `OPERATOR` peut
-> faire. Un opérateur peut toujours écrire un item dont les `useActions` lancent des
-> commandes arbitraires au niveau 4. Sur ce module, `OPERATOR` équivaut à un accès
-> console : accorde ce rôle en conséquence.
 
 Les deux modules répondent `503 {"error":"CheeseItems not ready"}` (ou
 `"Server not ready"`) avant tout gestionnaire si la référence au serveur Minecraft est nulle
@@ -61,7 +87,8 @@ exception levée dans un gestionnaire est journalisée et répondue en
 
 ## Routes des items
 
-Base : `/api/v1/items`. Rôle requis : n'importe lequel (voir ci-dessus).
+Base : `/api/v1/items`. Rôles : `GET` accepte tous les rôles, `READ_ONLY` comprise ;
+toute autre méthode exige `OPERATOR` ou plus (voir ci-dessus).
 
 | Méthode | Chemin | Corps | Succès | Erreurs |
 |---|---|---|---|---|
@@ -149,7 +176,8 @@ voir [le resource pack](resource-pack.fr.md#le-pack-est-servi-en-http).
 
 ## Routes du catalogue de morphos
 
-Base : `/api/v1/morphos`. Rôle requis : n'importe lequel (voir ci-dessus).
+Base : `/api/v1/morphos`. Rôles : `GET` accepte tous les rôles, `READ_ONLY` comprise ;
+toute autre méthode exige `OPERATOR` ou plus (voir ci-dessus).
 
 | Méthode | Chemin | Corps | Succès | Erreurs |
 |---|---|---|---|---|

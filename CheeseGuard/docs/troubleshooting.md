@@ -159,16 +159,22 @@ reload. Confirm the module is live with
 
 ---
 
-## A READ_ONLY dashboard account deleted something
+## An OPERATOR deleted a zone, and I wanted that to need SUPER_ADMIN
 
-**Cause.** `ZonesApi`, `DimensionsApi`, `EventsApi`, `GroupsApi`, `PlayersApi` and
-`ChunksApi` never call `WebDashboard.requireWrite` or `requireAdmin`. Sixty-five mutating
-routes accept any authenticated session, whatever its role. Only `PrisonApi` and
-`RacesApi` enforce the role.
+**Cause.** No route in CheeseGuard can require `SUPER_ADMIN`. `ZonesApi`, `DimensionsApi`,
+`EventsApi`, `GroupsApi`, `PlayersApi` and `ChunksApi` never call `WebDashboard.requireWrite`
+or `requireAdmin`; what guards them is CheeseDash's module dispatcher, which applies
+`requireWrite` — `OPERATOR` or above — to every non-`GET` request to any module. The boundary
+does hold, and a `READ_ONLY` session can only read, but `OPERATOR` is the ceiling as well as
+the floor: deleting a zone, resetting a dimension from a snapshot and editing a flag are all
+at the same level.
 
-**Fix.** Until the guards are added, treat every CheeseDash account that can reach this
-mod as an operator. Do not hand out READ_ONLY accounts believing they are safe for
-CheeseGuard. See [architecture](architecture.md#known-weaknesses).
+**Fix.** Treat `OPERATOR` on this mod as full control and hand it out accordingly; `READ_ONLY`
+is the role for someone who should only look. If one specific route needs a higher bar, the
+check has to be added inside the module — `if (!WebDashboard.requireAdmin(exchange)) return;`
+at the top of that handler, the way `PrisonApi` does it for `requireWrite`. See
+[architecture](architecture.md#known-weaknesses) and
+[dashboard](dashboard.md#what-the-core-actually-enforces).
 
 ---
 

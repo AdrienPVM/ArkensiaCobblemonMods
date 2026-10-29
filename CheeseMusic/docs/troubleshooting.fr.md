@@ -175,17 +175,20 @@ module se charge mais chaque requête répond `503 {"error":"CheeseMusic not rea
 serveur. Présente, le mod est en bonne santé et le problème vient de la découverte par
 CheeseDash ; absente, le démarrage a échoué et la trace juste au-dessus est la réponse.
 
-## Une écriture renvoie 403 mais la modification a lieu quand même
+## Je veux qu'une route music exige `SUPER_ADMIN` et elle ne demande jamais qu'`OPERATOR`
 
-**Cause.** Une version antérieure au 29 octobre 2026. Les six routes d'écriture appelaient
-`WebDashboard.requireWrite(exchange);` en jetant le résultat, donc le `403` partait et la
-mutation s'exécutait quand même. Une session `READ_ONLY` pouvait éditer les assignations et
-supprimer des pistes.
+**Cause.** Le répartiteur de modules de CheeseDash monte la barre à `OPERATOR` pour toute
+requête non-`GET` et s'arrête là — `requireWrite` est le seul contrôle qu'il connaisse. Une
+route de module ne peut donc jamais être plus restrictive qu'`OPERATOR` par simple
+héritage, et rien dans `MusicApi` n'appelle `requireAdmin`.
 
-**Remède.** Utilise une version dont le `MusicApi` contient
-`if (!WebDashboard.requireWrite(exchange)) return;`. En attendant, traite chaque compte
-CheeseDash comme un opérateur, et audite `config/cheesemusic.json` et le répertoire du pack
-en les confrontant au journal d'audit de CheeseDash.
+**Remède.** Ajoute `if (!WebDashboard.requireAdmin(exchange)) return;` en première
+instruction du handler à restreindre. Attention à la forme `if (!…) return;` :
+`requireAdmin` envoie son propre `403` et renvoie un booléen, donc un appel nu enverrait le
+`403` puis laisserait le handler continuer. Les versions de ce mod antérieures au
+29 octobre 2026 contenaient exactement cette erreur sur les six routes d'écriture — un vrai
+défaut, mais pas exploitable, puisque le répartiteur du cœur avait déjà écarté toute
+session inférieure à `OPERATOR`.
 
 ## Mon édition manuelle de `config/cheesemusic.json` a disparu
 

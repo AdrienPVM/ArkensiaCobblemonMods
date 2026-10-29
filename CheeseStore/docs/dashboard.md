@@ -22,9 +22,12 @@ Those guards are described route by route below, and the payment path is traced 
 
 Both surfaces share the mod's one WebSocket channel, `store`, on port 44312.
 
-> ⚠️ **The admin surface has no role enforcement.** Read
-> [the missing role guards](#the-missing-role-guards) before you create a
-> `READ_ONLY` account and assume it is read-only. It is not.
+> ⚠️ **The admin surface's role boundary is held by CheeseDash, not by CheeseStore.**
+> It does hold — writes need `OPERATOR` — but read
+> [what the core actually enforces](#what-the-core-actually-enforces) for what that
+> buys you and what it does not. The public surface has no role boundary at all, by
+> design; one of its routes leaks more than you may expect — see
+> [`GET /players`](#catalogue-read-only).
 
 ---
 
@@ -43,7 +46,7 @@ but no completed `/store link` → `403 not_linked`.
 
 ---
 
-## The missing role guards
+## What the core actually enforces
 
 CheeseDash gives a module three helpers to gate a route by role:
 `WebDashboard.requireWrite(exchange)` for OPERATOR-or-higher,
@@ -56,49 +59,75 @@ if (!WebDashboard.requireWrite(exchange)) return;
 
 **`StoreApi.handle` calls none of them.** Not once, anywhere in the file — the
 strings `requireWrite`, `requireAdmin` and `getSession` do not appear in CheeseStore's
-source at all. Every mutating admin route listed on this page — every `POST`, `PUT`
-and `DELETE`, the whole of products, gallery, cosmetics, playable cosmetics, manual
-delivery, wallet balances and the Stripe configuration — therefore accepts **any
-authenticated CheeseDash session**, `READ_ONLY` included.
+source at all. What stands in for them is CheeseDash's own module dispatcher, in
+`DashboardApi`:
 
-The practical consequences, in plain terms. A holder of a `READ_ONLY` account can:
+```java
+DashboardModule module = DashboardRegistry.getModule(prefix);
+if (module != null) {
+    if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+        return;
+    }
+    module.handleRequest(exchange, subRoute);
+    ...
+}
+```
 
-- set any player's credit balance to any number (`PUT /wallets/:uuid`)
-- change a product's price, or its delivery commands (`PUT /products/:id`)
-- re-deliver an order (`POST /orders/:id/deliver`)
-- overwrite the Stripe secret key and webhook secret (`PUT /config`)
+That is the correct form — it tests the return value and returns — so in this build
+every non-`GET` request under `/api/v1/store/` does require `OPERATOR` or above, and
+`GET` requests accept any role including `READ_ONLY`. A `READ_ONLY` session cannot
+change a product price, set a wallet balance, re-deliver an order, or overwrite the
+Stripe keys. The boundary holds.
 
-The last one is the sharpest: `PUT /config` writing a new `stripeWebhookSecret`
-immediately invalidates signatures from the real Stripe endpoint, which silently
-stops all deliveries; writing a new `stripeSecretKey` points checkout at a different
-Stripe account.
+What does **not** hold is the reason it holds. The protection is a property of the
+core's dispatch, keyed purely on the HTTP method, and CheeseStore contributes nothing.
+Three consequences:
 
-This is documented rather than fixed, deliberately, because changing it changes
-behaviour for anyone already running the mod with non-SUPER_ADMIN accounts. Until it
-is fixed, treat **every** CheeseDash account that can reach this module as a full
-store operator. If you need a genuinely read-only viewer, do not give them a
-CheeseDash login.
+- **No route in CheeseStore can require `SUPER_ADMIN`.** `PUT /config`, which writes
+  the Stripe secret key and the webhook secret, is an `OPERATOR`-level operation,
+  because `OPERATOR` is the only bar the dispatcher knows. That is the sharpest one:
+  writing a new `stripeWebhookSecret` immediately invalidates signatures from the real
+  Stripe endpoint, which silently stops all deliveries, and writing a new
+  `stripeSecretKey` points checkout at a different Stripe account. Setting arbitrary
+  wallet balances (`PUT /wallets/:uuid`) sits at the same level.
+- **A mutating `GET` would be completely unguarded.** None exists today in
+  `StoreApi.handle`, but nothing in the module would stop one from being added, and
+  nothing would flag it.
+- **A change to the dispatcher removes every check at once.** CheeseStore's admin
+  surface has no second line of defence.
 
-The public routes are not affected by this gap. They never relied on role checks;
-they have their own guards, and those guards are present.
+So an `OPERATOR` on this server is a full store operator — that is the intended
+design, not an accident, but it is worth stating plainly before you hand out the role.
+If you need a genuinely read-only viewer, `READ_ONLY` is the role to give them, and it
+behaves as its name says.
+
+The public routes sit outside all of this. They are unauthenticated by design and
+never relied on role checks; they have their own guards — rate limits, same-origin,
+OAuth plus a linked account, HMAC — and those guards are present. One of them,
+`GET /players`, returns the full name-and-UUID roster to anyone who asks; see
+[the catalogue routes](#catalogue-read-only).
 
 ---
 
 ## Admin routes
 
-All paths below are relative to `/api/v1/store`. Required role is stated as the code
-actually behaves — see above for why it is uniform.
+All paths below are relative to `/api/v1/store`. The role stated is the role actually
+required in this build: every `GET` accepts any role, `READ_ONLY` included, and every
+non-`GET` requires `OPERATOR` or above. The `(core)` mark is a reminder that the
+guarantee comes from CheeseDash's dispatch and not from CheeseStore — see
+[what the core actually enforces](#what-the-core-actually-enforces). The rule is
+uniform across every table on this page, so only the first one carries the column.
 
 ### Products
 
-| Method | Path | Role in practice | Body | Response |
+| Method | Path | Role | Body | Response |
 |---|---|---|---|---|
-| `GET` | `/products` | any session | — | `200` array of full product objects |
-| `POST` | `/products` | any session | product object, optional `imageBase64` | `201` the created product |
-| `PUT` | `/products/:id` | any session | partial product, optional `imageBase64` | `200` the merged product |
-| `DELETE` | `/products/:id` | any session | — | `200 {"deleted":true}` |
-| `POST` | `/products/:id/image` | any session | `{"imageBase64":"..."}` | `200 {"ok":true}` |
-| `GET` | `/products/:id/image` | any session | — | `200 image/png`, or `404` |
+| `GET` | `/products` | any role | — | `200` array of full product objects |
+| `POST` | `/products` | `OPERATOR` (core) | product object, optional `imageBase64` | `201` the created product |
+| `PUT` | `/products/:id` | `OPERATOR` (core) | partial product, optional `imageBase64` | `200` the merged product |
+| `DELETE` | `/products/:id` | `OPERATOR` (core) | — | `200 {"deleted":true}` |
+| `POST` | `/products/:id/image` | `OPERATOR` (core) | `{"imageBase64":"..."}` | `200 {"ok":true}` |
+| `GET` | `/products/:id/image` | any role | — | `200 image/png`, or `404` |
 
 A product object, as returned by `StoreProduct.toJson()`:
 

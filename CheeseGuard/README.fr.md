@@ -35,12 +35,15 @@ sauf les quelques commandes ci-dessous vit dans le dashboard.
 
 ## ⚠️ À lire avant un serveur public
 
-**Six des huit API dashboard ne vérifient jamais le rôle du compte.** Soixante-cinq routes
-REST mutantes acceptent n'importe quelle session CheeseDash authentifiée, y compris une
-session READ_ONLY. Un compte en lecture seule peut supprimer une zone ou effacer une
-dimension. Ce n'est pas corrigé dans le code. Traite chaque compte capable d'atteindre la
-section CheeseGuard comme un opérateur.
-[Pourquoi, et le correctif d'une ligne](docs/architecture.fr.md#faiblesses-connues).
+**Six des huit API dashboard ne vérifient jamais le rôle du compte elles-mêmes.** La
+frontière des rôles tient quand même, mais elle est tenue par CheeseDash et non par
+CheeseGuard : le répartiteur de modules du cœur exige `OPERATOR` ou au-dessus pour toute
+requête non-`GET` vers un module, donc une session `READ_ONLY` peut lire et rien de plus.
+Ce que coûte l'absence de contrôles dans le module, c'est la précision — aucune route de
+CheeseGuard ne peut exiger `SUPER_ADMIN`, si bien que supprimer une zone ou effacer une
+dimension est à la même barre `OPERATOR` que modifier un flag, et soixante-cinq routes
+mutantes n'ont aucune seconde ligne de défense si ce répartiteur change un jour.
+[Pourquoi, et ce que cela implique](docs/architecture.fr.md#faiblesses-connues).
 
 **Sur un jar construit avant le 29 octobre 2026, quatre commandes mutantes n'avaient
 aucune garde de permission** — `/cg flag`, `/cg addmember`, `/cg removemember` et tout le

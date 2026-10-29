@@ -44,6 +44,31 @@ use them, including **READ_ONLY**. The three mutating routes call
 | `POST` | `/api/v1/raids/stop` | OPERATOR | stop and clean up a raid |
 | `POST` | `/api/v1/raids/reload` | OPERATOR | re-read the definition files |
 
+Those `requireWrite` calls are not the only thing enforcing that column. CheeseDash's
+module dispatch in `DashboardApi` gates every module before `RaidsApi` is reached:
+
+```java
+DashboardModule module = DashboardRegistry.getModule(prefix);
+if (module != null) {
+    if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+        return;
+    }
+    module.handleRequest(exchange, subRoute);
+```
+
+`RaidsApi`'s own three calls are therefore defence in depth: useful, and redundant in this
+configuration. Three consequences of the real boundary sitting in the core:
+
+- **No raid route can require `SUPER_ADMIN`.** The dispatch only knows `requireWrite`, so
+  `OPERATOR` is the ceiling unless a handler calls `requireAdmin` itself, and none does.
+  Starting a raid, stopping one, and reloading every definition file from disk are all
+  `OPERATOR`-level operations.
+- **A mutating `GET` would be caught only by the module.** The four read routes genuinely
+  only read, but the dispatch keys purely on the HTTP method and would wave such a route
+  straight through.
+- **A change to the dispatcher would not disarm these three routes**, because they check
+  the role themselves — unlike modules that guard nothing.
+
 Anything else under the prefix returns `404 {"error":"Not found"}`. A request that arrives
 before the server has finished starting returns `503 {"error":"CheeseRaids not ready"}`.
 An unhandled exception returns `500 {"error":"Internal server error"}` and logs the cause

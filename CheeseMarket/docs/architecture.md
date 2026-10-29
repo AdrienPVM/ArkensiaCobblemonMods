@@ -340,7 +340,11 @@ If you are adding to this mod rather than reading it:
 - **A new REST route.** Add it to `MarketApi.handle` before the final 404, validate the
   ids with `isValidId` first, and wrap any mutation in
   `WebDashboard.executeOnServerThread`. The role comes free from CheeseDash's dispatch:
-  `GET` is readable by anyone, anything else needs `OPERATOR`.
+  `GET` is readable by anyone, anything else needs `OPERATOR`. Two limits follow from
+  that. A route that mutates state must not be exposed as a `GET`, because the dispatch
+  keys only on the HTTP method and would not guard it. And if the route deserves
+  `SUPER_ADMIN`, the handler has to call `WebDashboard.requireAdmin` itself — the
+  dispatch only ever raises the bar to `OPERATOR`.
 - **A new WebSocket message.** Copy the guarded broadcast at the end of
   `handlePurchase`: check `isModLoaded("cheesedash")`, catch `NoClassDefFoundError`, and
   publish on the `market` channel.

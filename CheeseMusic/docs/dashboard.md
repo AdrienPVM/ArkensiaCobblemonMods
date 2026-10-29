@@ -50,13 +50,39 @@ So: **reads are open to any authenticated session including `READ_ONLY`; writes 
 `OPERATOR` or `SUPER_ADMIN`.** No route in this mod requires `SUPER_ADMIN`;
 `requireAdmin` is never called.
 
-> The guards were repaired on 29 October 2026. They were previously written
+Those calls are not, however, the boundary. CheeseDash's own module dispatch in
+`DashboardApi` already gates every module:
+
+```java
+DashboardModule module = DashboardRegistry.getModule(prefix);
+if (module != null) {
+    if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+        return;
+    }
+    module.handleRequest(exchange, subRoute);
+```
+
+Every non-`GET` request to `/api/v1/music/` therefore needs `OPERATOR` before `MusicApi`
+is ever reached. `MusicApi`'s own six calls are defence in depth: useful, and redundant
+in this configuration. Three consequences of where the real boundary sits:
+
+- **No music route can require `SUPER_ADMIN` from the dispatch alone.** The core only
+  knows `requireWrite`, so `OPERATOR` is the ceiling unless a handler calls
+  `requireAdmin` itself. None here does.
+- **A mutating `GET` would be guarded only by the module.** None exists today — the five
+  read routes are genuinely read-only — but the core would not catch one.
+- **A change to the dispatcher would not disarm this mod.** Unlike modules that call no
+  guard at all, `MusicApi`'s six write routes would still check the role themselves.
+
+> The module-level guards were repaired on 29 October 2026. They were previously written
 > `WebDashboard.requireWrite(exchange);` as a bare statement, with the return value
-> discarded — which sent the `403` and then carried on and applied the change anyway. A
-> `READ_ONLY` session could edit assignments, upload tracks and delete them while being
-> told it was forbidden. The current form is `if (!WebDashboard.requireWrite(exchange))
-> return;` on all six write routes, so the role is now genuinely enforced. If you are
-> reading an older build of this mod, audit that jar rather than trusting this page.
+> discarded — which sent the `403` and then carried on and applied the change anyway.
+> That was a real defect in the module, but it was not an exploitable hole through
+> CheeseDash: the core dispatch above had already rejected any non-`GET` request from a
+> session below `OPERATOR`, so a `READ_ONLY` account never reached those handlers. The
+> current form is `if (!WebDashboard.requireWrite(exchange)) return;` on all six write
+> routes, so the module enforces the role on its own as well. If you are reading an older
+> build of this mod, audit that jar rather than trusting this page.
 
 ## Module readiness
 

@@ -107,11 +107,13 @@ instances en cours avec échec forcé et sortie forcée, statistiques, historiqu
 et classement. Cinq messages `dungeon_*` sont poussés sur le WebSocket CheeseDash, canal
 `dungeons`.
 
-⚠️ `DungeonsApi` n'appelle jamais `WebDashboard.requireWrite` ni `requireAdmin`. Huit routes
-mutantes — dont la suppression d'un donjon et l'échec forcé d'une partie en cours — sont donc
-ouvertes à **toute** session authentifiée, `READ_ONLY` comprise. Traite tout compte de
-dashboard comme un opérateur pour ce module en attendant que cela change ; la liste complète
-et le correctif d'une ligne sont dans [la page dashboard](docs/dashboard.fr.md).
+`DungeonsApi` n'appelle lui-même jamais `WebDashboard.requireWrite` ni `requireAdmin`, mais
+la frontière des rôles tient quand même : le répartiteur de modules de CheeseDash exige
+`OPERATOR` ou au-dessus pour toute requête non-`GET` vers n'importe quel module. Les huit
+routes mutantes — dont la suppression d'un donjon et l'échec forcé d'une partie en cours —
+sont donc de niveau `OPERATOR`, et les routes `GET` acceptent tous les rôles, `READ_ONLY`
+compris. La barre est posée par le cœur et non par le module, ce qui signifie qu'aucune route
+ici ne peut exiger `SUPER_ADMIN`. Détails dans [la page dashboard](docs/dashboard.fr.md).
 
 CheeseGuard peut aussi piloter le mod pendant un événement minuté via trois types d'effet,
 `DUNGEON_OPEN`, `DUNGEON_TICKET_GIVE` et `DUNGEON_MODIFIER` — le dernier ne faisant,

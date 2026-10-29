@@ -281,9 +281,15 @@ que ce soit, recopie la chaîne de gardes de `handlePlayCosmeticBuy` à l'identi
 même origine, limitation de débit, session, liaison, double vérification du solde —
 plutôt que d'en écrire une nouvelle.
 
-**Une nouvelle route d'administration** va dans `StoreApi.handle`, et devrait commencer
-par `if (!WebDashboard.requireWrite(exchange)) return;` même si aucune route existante
-ne le fait. Voir ci-dessous.
+**Une nouvelle route d'administration** va dans `StoreApi.handle`. Le répartiteur de
+CheeseDash exige déjà `OPERATOR` pour tout non-`GET`, donc une route mutante est gardée
+que tu ajoutes quelque chose ou non ; commencer quand même par
+`if (!WebDashboard.requireWrite(exchange)) return;` relève de la défense en profondeur,
+et c'est la seule façon de documenter l'intention dans le gestionnaire lui-même. Deux
+cas où tu dois l'écrire toi-même : une route qui doit exiger `SUPER_ADMIN` (utilise
+`requireAdmin` — le répartiteur ne sait pas l'exprimer), et un `GET` qui change l'état
+(le répartiteur ne garde rien sur `GET` ; mieux encore, n'en écris pas). Voir
+ci-dessous.
 
 ---
 
@@ -292,15 +298,18 @@ ne le fait. Voir ci-dessous.
 Énoncées sans détour, parce que celui qui maintiendra ce mod ensuite les rencontrera
 toutes.
 
-**Aucun contrôle de rôle sur la surface d'administration.** `StoreApi.handle`
-n'appelle jamais `requireWrite` ni `requireAdmin` — les chaînes n'apparaissent pas du
-tout dans le mod — donc chaque route admin mutante accepte n'importe quelle session
-CheeseDash authentifiée, `READ_ONLY` comprise. Cela inclut fixer des soldes de
-portefeuille, réécrire des commandes de livraison, et écraser le secret Stripe et le
-secret du webhook. Le correctif fait une ligne par gestionnaire ; il n'a pas été
-appliqué ici parce qu'il change le comportement pour quiconque fait déjà tourner des
-comptes non SUPER_ADMIN. Décrit en entier dans
-[l'API dashboard](dashboard.fr.md#les-gardes-de-rôle-manquants).
+**La frontière des rôles de la surface d'administration appartient au cœur, pas à ce
+mod.** `StoreApi.handle` n'appelle jamais `requireWrite` ni `requireAdmin` — les
+chaînes n'apparaissent pas du tout dans le mod. C'est le répartiteur de modules de
+CheeseDash qui fournit le contrôle à la place, pour toute requête non-`GET`, donc les
+écritures exigent bien `OPERATOR` et une session `READ_ONLY` est réellement en lecture
+seule. Trois choses en découlent. Aucune route d'ici ne peut exiger `SUPER_ADMIN` :
+fixer des soldes de portefeuille, réécrire des commandes de livraison et écraser le
+secret Stripe et le secret du webhook sont donc toutes des opérations de niveau
+`OPERATOR`. Un `GET` mutant, si l'on en ajoutait un, serait sans garde — le répartiteur
+ne se fonde que sur la méthode HTTP. Et une modification de ce répartiteur ferait
+tomber tous les contrôles d'un coup, sans seconde ligne de défense dans ce mod. Décrit
+en entier dans [l'API dashboard](dashboard.fr.md#ce-que-le-cœur-applique-réellement).
 
 **L'UUID d'un acheteur par carte n'est pas vérifié.**
 `POST /store/api/checkout` accepte `playerUUID` et `playerName` depuis le corps de la
@@ -311,7 +320,7 @@ elles résolvent l'UUID depuis une session liée — mais le parcours carte, si.
 `saveBase64Image` décode le corps en base64 et l'écrit dans `<id>.png` sans vérifier
 qu'il s'agit d'une image et sans limite de longueur. Un gros corps est un pic mémoire et
 une écriture disque ; un non-image est servi aux navigateurs avec un type de contenu
-PNG. N'importe quelle session authentifiée peut le faire.
+PNG. N'importe quel `OPERATOR` peut le faire.
 
 **Écritures du fichier entier, non atomiques.** Aucun fichier temporaire suivi d'un
 renommage. Un crash en pleine écriture peut tronquer un fichier, et chaque chargeur

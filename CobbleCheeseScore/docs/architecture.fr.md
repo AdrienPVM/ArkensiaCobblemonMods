@@ -172,14 +172,27 @@ d'authentification, pour qu'un cadre d'image en jeu puisse récupérer un PNG sa
 Le module lui-même ne détient que la référence au `MinecraftServer` et répond `503` tant
 qu'elle est null. Tout le reste est délégué à `ScoresApi` par un appel statique.
 
-### Aucun contrôle de rôle
+### Aucun contrôle de rôle qui lui soit propre
 
-`ScoresApi` n'appelle jamais `WebDashboard.requireWrite` ni `requireAdmin`. Toutes les
-routes, y compris celles qui mutent, sont ouvertes à n'importe quelle session authentifiée,
-quel que soit son rôle. Il ne s'agit pas d'une subtilité sur la façon d'employer
-`requireWrite` — dans ce dépôt elle renvoie un booléen et doit être gardée par
-`if (!WebDashboard.requireWrite(exchange)) return;`, et ignorer sa valeur de retour serait
-pire qu'inutile — les appels sont simplement absents. Documenté avec ses conséquences dans
+`ScoresApi` n'appelle jamais `WebDashboard.requireWrite` ni `requireAdmin`. La frontière des
+rôles est pourtant appliquée — par le cœur, pas par ce module. Le répartiteur de modules de
+CheeseDash, dans `DashboardApi`, teste `requireWrite` sur toute requête non-`GET` avant de
+rendre la main :
+
+```java
+if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+    return;
+}
+module.handleRequest(exchange, subRoute);
+```
+
+Donc dans cette version, toute écriture sous `/api/v1/scores/` exige `OPERATOR` ou au-dessus,
+et tout `GET` est ouvert à tous les rôles, `READ_ONLY` compris. Ce que coûte l'absence
+d'appels locaux est ailleurs : aucune route de ce module ne peut exiger `SUPER_ADMIN`, parce
+qu'`OPERATOR` est la seule barre que le répartiteur connaisse ; une route mutante exposée en
+`GET` ne serait pas gardée du tout, le répartiteur ne regardant que la méthode HTTP ; et une
+seule modification de ce répartiteur ferait tomber tous les contrôles d'un coup, sans seconde
+ligne de défense ici pour la rattraper. Documenté avec ses conséquences dans
 [dashboard](dashboard.fr.md#rôle-requis).
 
 ## Mixins
@@ -222,9 +235,10 @@ fin d'`updateAll` donnerait au dashboard des notifications de rafraîchissement 
 
 Lis cette section avant de changer quoi que ce soit.
 
-**Aucun contrôle de rôle sur l'API REST.** La plus grave. Un compte de dashboard READ_ONLY
-peut réécrire les titres de classements, créer et supprimer des mini-jeux, supprimer des
-sessions enregistrées et forcer des rafraîchissements.
+**Aucun contrôle de rôle propre sur l'API REST.** Les écritures sont barrées à `OPERATOR`
+par le répartiteur de CheeseDash, donc la frontière tient aujourd'hui. Le coût est
+structurel : aucune route ici ne peut demander `SUPER_ADMIN`, un `GET` mutant serait sans
+garde, et tout le module perd sa protection si ce seul contrôle du répartiteur change.
 
 **La course au rafraîchissement.** Décrite plus haut. Des `HashMap` ordinaires mutées depuis
 deux sortes de threads sans aucune synchronisation.

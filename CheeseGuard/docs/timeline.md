@@ -209,7 +209,7 @@ of the effect. The default of 1200 ticks (60 s) against a 1 s tick is deliberate
 The weighted-random block reads `cmd0`, `cmd1`, … until a key is missing, with `weightN`
 defaulting to 1. A gap in the numbering silently truncates the list.
 
-Note that `COMMAND` on a duration block fires at *start* **and** on every tick. A block with
+`COMMAND` on a duration block fires at *start* **and** on every tick. A block with
 `duration: 60` and no `repeat` runs its command 61 times. Use `duration: 0` for a one-shot.
 
 ### Zones

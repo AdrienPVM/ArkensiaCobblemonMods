@@ -259,7 +259,7 @@ Animating state 'a1b2c3d4' on zone 'market_square'...
 
 The feedback means "started". The rebuild runs over the following ticks. All fourteen
 directions and eighteen particles are listed in
-[commands](commands.md#cg-state-apply) — and note that a typo in either one silently
+[commands](commands.md#cg-state-apply) — and a typo in either one silently
 falls back to the default rather than erroring.
 
 ## 9. Set up the prison
@@ -338,10 +338,12 @@ Open `http://<server>:44311`, log in, and pick **CheeseGuard** in the sidebar. T
 you created in this walkthrough are listed, with their flags as a grid rather than one
 command per flag.
 
-⚠️ One thing to know before you create dashboard accounts for other people: six of
-CheeseGuard's eight APIs never check the account's role, so a READ_ONLY account can delete
-a zone or wipe a dimension through this mod. Treat any account that can reach the
-CheeseGuard section as an operator until that is fixed. The detail is in
+⚠️ One thing to know before you create dashboard accounts for other people: a `READ_ONLY`
+account can only read here — CheeseDash's own dispatcher requires `OPERATOR` or above for
+every non-`GET` request to a module — but an `OPERATOR` can do everything this mod offers.
+Six of CheeseGuard's eight APIs check no role themselves, so nothing can sit above
+`OPERATOR`: deleting a zone and wiping a dimension are at the same bar as editing a flag.
+Hand out `OPERATOR` only to people you would trust with the whole mod. The detail is in
 [architecture](architecture.md#known-weaknesses).
 
 ## Where to go next

@@ -17,37 +17,61 @@ need a session: `POST /api/v1/auth/login` returns a token you pass as
 
 ## <a id="authentication-and-role-guards"></a>Authentication and role guards
 
-Until 29 October 2026, neither `ItemsApi` nor `MorphoCatalogApi` contained a single call
-to `WebDashboard.requireWrite(...)`. Every route was reachable by any authenticated
-session, `READ_ONLY` included — and because an item definition can carry `useActions`
-whose commands run as the server console at permission level 4
-([why](items.md#useactions)), a `READ_ONLY` account could create an item whose use runs
-`op <name>` and hand it to a player. That was an authorisation bypass ending in a
-privilege escalation.
-
-Both dispatchers now open with a single guard:
+Both dispatchers, `ItemsApi` and `MorphoCatalogApi`, open with a single guard:
 
 ```java
 if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) return;
 ```
 
 So **every route that changes anything requires `OPERATOR` or above**, and the read
-routes still accept any role, `READ_ONLY` included. The guard sits on the HTTP method
-rather than on each branch, which is deliberate: a new mutating route cannot be added
-without inheriting it, whereas a per-branch guard is one `return` away from being
-forgotten.
+routes accept any role, `READ_ONLY` included. The guard sits on the HTTP method rather
+than on each branch, which is deliberate: a new mutating route cannot be added without
+inheriting it, whereas a per-branch guard is one `return` away from being forgotten.
 
-Two details worth knowing if you touch this code. `requireWrite` returns a boolean and
-answers the exchange itself when it denies, so its result **must** be acted on — calling
-it and discarding the result answers `403` and then does the work anyway, which is the
-bug that was found in five other mods of this repository on the same day. And the public,
-unauthenticated routes are unaffected, because they are served by `handlePublicImage`,
-`handlePublicThumb` and `handlePublicRequest`, never by the `handle` dispatchers above.
+That call is also the correct form — `requireWrite` returns a boolean and answers the
+exchange itself when it denies, so its result **must** be acted on; calling it and
+discarding the result answers `403` and then does the work anyway.
 
-> ⚠️ The guard restores the role boundary; it does not change what an `OPERATOR` can do.
-> An operator can still author an item whose `useActions` run arbitrary commands at
-> level 4. On this module, `OPERATOR` is equivalent to console access, so grant it
-> accordingly.
+### What the core actually enforces
+
+The same boundary is applied a second time, before CheeseItems sees the request at all,
+by CheeseDash's module dispatcher in `DashboardApi`:
+
+```java
+DashboardModule module = DashboardRegistry.getModule(prefix);
+if (module != null) {
+    if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+        return;
+    }
+    module.handleRequest(exchange, subRoute);
+    ...
+}
+```
+
+Every non-`GET` request to any module — not just this one — is held to `OPERATOR` there.
+The module's own guard is therefore defence in depth: useful, and redundant. Three
+consequences follow from where the real boundary sits:
+
+- **No route in CheeseItems can require `SUPER_ADMIN`.** The central guard only knows
+  `requireWrite`, so `OPERATOR` is the highest bar reachable through it. A route that
+  deserved `SUPER_ADMIN` would have to call `requireAdmin` itself; none does.
+- **A mutating route exposed as `GET` would not be guarded at all**, by either layer —
+  the central guard keys purely on the HTTP method. None exists here today.
+- **A single change to that dispatcher would drop the central check everywhere at once**,
+  with no module noticing. On this module the local guard would still hold; on modules
+  without one, nothing would.
+
+The role column in the tables below states the role actually required in this build.
+
+> ⚠️ The guard draws the role boundary; it does not change what an `OPERATOR` can do.
+> An operator can still author an item whose `useActions` run arbitrary commands as the
+> server console at permission level 4 ([why](items.md#useactions)) — for instance an
+> item whose use runs `op <name>`, handed to a player. On this module, `OPERATOR` is
+> equivalent to console access, so grant it accordingly.
+
+The public, unauthenticated routes are outside all of this, because they are served by
+`handlePublicImage`, `handlePublicThumb` and `handlePublicRequest`, never by the `handle`
+dispatchers above.
 
 Both modules answer `503 {"error":"CheeseItems not ready"}` (or `"Server not ready"`)
 before any handler runs if the Minecraft server reference is null — during startup, or
@@ -59,7 +83,8 @@ exception thrown inside a handler is logged and answered as
 
 ## Item routes
 
-Base: `/api/v1/items`. Required role: any (see above).
+Base: `/api/v1/items`. Roles: `GET` accepts any role, including `READ_ONLY`; every other
+method requires `OPERATOR` or above (see above).
 
 | Method | Path | Body | Success | Errors |
 |---|---|---|---|---|
@@ -146,7 +171,8 @@ must be reachable from the outside; see
 
 ## Morpho catalog routes
 
-Base: `/api/v1/morphos`. Required role: any (see above).
+Base: `/api/v1/morphos`. Roles: `GET` accepts any role, including `READ_ONLY`; every
+other method requires `OPERATOR` or above (see above).
 
 | Method | Path | Body | Success | Errors |
 |---|---|---|---|---|

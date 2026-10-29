@@ -183,8 +183,9 @@ list:
    succeeded — that the *commands ran*.
 4. Read [SECURITY.md](../../SECURITY.md).
 5. Rewrite `store/cgv.html`. The terms shipped there belong to someone else's server.
-6. Give nobody a CheeseDash account you would not trust with your Stripe keys, for the
-   reason in [the dashboard API](dashboard.md#the-missing-role-guards).
+6. Give nobody an `OPERATOR` account you would not trust with your Stripe keys: that
+   role can overwrite them, for the reason in
+   [the dashboard API](dashboard.md#what-the-core-actually-enforces).
 
 ---
 

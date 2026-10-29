@@ -290,9 +290,10 @@ bloquante dans cette liste bloque le tick. Garde-les courtes.
 
 `POST /api/v1/store/playcosmetics/grant` et `/cosmetics grant <player> <id>` accordent
 tous deux la possession **sans débit et sans contrôle de prix**. C'est ainsi qu'on teste
-un cosmétique qu'on vient de créer, et c'est aussi, à cause des
-[gardes de rôle manquants](dashboard.fr.md#les-gardes-de-rôle-manquants), quelque chose
-que n'importe quelle session de dashboard authentifiée peut faire.
+un cosmétique qu'on vient de créer, et c'est aussi quelque chose que n'importe quelle
+session `OPERATOR` peut faire : la route n'est protégée que par
+[le garde d'écriture du cœur](dashboard.fr.md#ce-que-le-cœur-applique-réellement), rien
+de plus strict.
 
 `/cosmetics grantall <player>` accorde chaque entrée activée. Il n'existe aucun
 `revokeall` ; défaire cela veut dire un `revoke` par identifiant.

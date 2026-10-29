@@ -131,7 +131,8 @@ That is the only placeholder.
 `server.getCommandManager().executeWithPrefix(server.getCommandSource(), cmd)`. That is
 permission level 4. A right-click by any player can therefore run `op`, `ban`, `stop` or
 anything else — the item definition is the security boundary, and the dashboard routes
-that write definitions [check no role](dashboard.md#authentication-and-role-guards).
+that write definitions require only `OPERATOR`
+([why](dashboard.md#authentication-and-role-guards)).
 
 The delayed command runs from a list the mod ticks itself. It is in-memory: a restart
 between the use and the delay drops the follow-up silently. The countdown is pushed once

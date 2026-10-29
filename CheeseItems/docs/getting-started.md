@@ -246,7 +246,7 @@ dashboard-authored morpho. Neither needed a restart, and neither required writin
 - How the pack is built and what it overwrites: [resource pack](resource-pack.md)
 - The catalog, the Codex and the endurance pool: [morphos](morphos.md)
 - ⚠️ Before you hand dashboard accounts to anyone else: read
-  [the missing role guards](dashboard.md#authentication-and-role-guards)
+  [what the role guards do and do not cover](dashboard.md#authentication-and-role-guards)
 
 ---
 

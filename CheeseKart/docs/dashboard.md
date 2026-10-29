@@ -23,18 +23,46 @@ Authorization: Bearer <session-token>
 Get one from `POST /api/v1/auth/login`. Read routes accept any role, including
 `READ_ONLY`.
 
-> ⚠️ **The write guard on this module does not actually stop anything.** Every mutating
-> route calls `WebDashboard.requireWrite(exchange)` and **discards its return value**.
-> That method does not throw — it sends the `403` itself and reports the outcome as a
-> boolean. The correct call is `if (!WebDashboard.requireWrite(exchange)) return;`, which
-> is what CheeseDash's own routes do. Here, a `READ_ONLY` session receives a `403`
-> **and** the action is carried out anyway.
->
-> So treat the roles below as the intent, not as an enforced boundary: in this build, any
-> authenticated session of any role can start a kart, stop one, or create, edit and delete
-> presets. Until it is fixed, do not hand out `READ_ONLY` accounts expecting them to be
-> read-only. The same mistake is present in CheeseMusic, CheesePatrol, CobbleCap and
-> CheeseGuard's races module.
+## What the core actually enforces
+
+Every mutating branch in `KartApi.handle` guards itself in the correct form — it tests the
+return value and returns:
+
+```java
+} else if (path.equals("/presets") && method.equals("POST")) {
+    if (!WebDashboard.requireWrite(exchange)) return;
+    handleCreatePreset(exchange);
+```
+
+`requireWrite` does not throw: it sends the `403` itself and reports the outcome as a
+boolean, so its result has to be acted on, and here it is.
+
+The same boundary is applied a second time, before CheeseKart sees the request at all, by
+CheeseDash's module dispatcher in `DashboardApi`:
+
+```java
+DashboardModule module = DashboardRegistry.getModule(prefix);
+if (module != null) {
+    if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+        return;
+    }
+    module.handleRequest(exchange, subRoute);
+    ...
+}
+```
+
+So the roles listed below are enforced: `GET` accepts any role including `READ_ONLY`, and
+every other method requires `OPERATOR` or above. The module's own guards are defence in
+depth — useful, and redundant with the central one. Three consequences follow from where
+the real boundary sits:
+
+- **No route in CheeseKart can require `SUPER_ADMIN`.** The central guard only knows
+  `requireWrite`, so `OPERATOR` is the highest bar reachable through it. A route that
+  deserved more would have to call `requireAdmin` itself; none does.
+- **A mutating route exposed as `GET` would not be guarded centrally at all** — the
+  dispatcher keys purely on the HTTP method. None exists here today.
+- **A single change to that dispatcher would drop the central check everywhere at once**,
+  with no module noticing. On this module the per-branch guards would still hold.
 
 If CheeseKart has not finished starting — or the server is not up — every route answers
 `503` with `{"error":"CheeseKart not ready"}` instead of failing in an unhelpful way.

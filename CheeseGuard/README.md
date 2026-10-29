@@ -31,11 +31,14 @@ a chat window: everything but the few commands below lives in the dashboard.
 
 ## ⚠️ Read this before a public server
 
-**Six of the eight dashboard APIs never check the account's role.** Sixty-five mutating
-REST routes accept any authenticated CheeseDash session, including a READ_ONLY one. A
-read-only account can delete a zone or wipe a dimension. This is not fixed in the code.
-Treat every account that can reach the CheeseGuard section as an operator.
-[Why, and the one-line fix](docs/architecture.md#known-weaknesses).
+**Six of the eight dashboard APIs never check the account's role themselves.** The role
+boundary still holds, but it is held by CheeseDash rather than by CheeseGuard: the core's
+module dispatcher requires `OPERATOR` or above for every non-`GET` request to any module,
+so a `READ_ONLY` session can read and nothing more. What the missing module-level checks
+cost is precision — no CheeseGuard route can require `SUPER_ADMIN`, so deleting a zone and
+wiping a dimension sit at the same `OPERATOR` bar as editing a flag, and sixty-five
+mutating routes have no second line of defence if that dispatcher ever changes.
+[Why, and what it means](docs/architecture.md#known-weaknesses).
 
 **On a jar built before 29 October 2026, four mutating commands had no permission gate**
 — `/cg flag`, `/cg addmember`, `/cg removemember` and the whole `/cg group` subtree were

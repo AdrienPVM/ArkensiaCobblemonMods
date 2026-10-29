@@ -310,17 +310,20 @@ when the immediate peer is loopback or RFC1918 (`10.`, `192.168.`,
 proxy's single IP. Either move the proxy onto a private address, or edit
 `isTrustedProxy` in `StoreApi.java`.
 
-## A READ_ONLY dashboard account changed something
+## An OPERATOR changed the Stripe keys, and I wanted that to need SUPER_ADMIN
 
-**Cause.** Not a bug you can configure away. `StoreApi.handle` never calls
-`WebDashboard.requireWrite` or `requireAdmin`, so every mutating admin route accepts
-any authenticated session regardless of role — products, orders, wallet balances and
-the Stripe keys included.
+**Cause.** Not a bug, and not something you can configure away. `StoreApi.handle`
+never calls `WebDashboard.requireWrite` or `requireAdmin`; CheeseDash's module
+dispatcher applies the check instead, and it only knows one bar — `OPERATOR` for any
+non-`GET`. So `OPERATOR` is the ceiling for everything on this module: products,
+orders, wallet balances and the Stripe keys. A `READ_ONLY` account cannot write any of
+them; an `OPERATOR` can write all of them.
 
-**Fix.** There is no setting. Until the guards are added, do not issue a CheeseDash
-account to anyone you would not trust with your Stripe secret key. Full description,
-and the one-line shape of the fix, in
-[the dashboard API](dashboard.md#the-missing-role-guards).
+**Fix.** Give `OPERATOR` only to people you would trust with your Stripe secret key,
+and `READ_ONLY` to everyone who just needs to look. If a route genuinely has to
+require `SUPER_ADMIN`, that has to be added inside the handler with `requireAdmin` —
+the dispatcher cannot express it. Full description in
+[the dashboard API](dashboard.md#what-the-core-actually-enforces).
 
 ---
 

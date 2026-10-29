@@ -329,17 +329,21 @@ en RFC1918 (`10.`, `192.168.`, `172.16`–`172.31`) ; depuis toute autre adresse
 requête est comptée contre l'unique IP du proxy. Soit déplace le proxy sur une adresse
 privée, soit édite `isTrustedProxy` dans `StoreApi.java`.
 
-## Un compte READ_ONLY du dashboard a modifié quelque chose
+## Un OPERATOR a changé les clés Stripe, et je voulais que ça exige SUPER_ADMIN
 
-**Cause.** Pas un bug que tu peux régler par configuration. `StoreApi.handle` n'appelle
-jamais `WebDashboard.requireWrite` ni `requireAdmin` : chaque route admin mutante accepte
-donc n'importe quelle session authentifiée quel que soit son rôle — produits, commandes,
-soldes de portefeuille et clés Stripe compris.
+**Cause.** Pas un bug, et rien que tu puisses régler par configuration.
+`StoreApi.handle` n'appelle jamais `WebDashboard.requireWrite` ni `requireAdmin` ;
+c'est le répartiteur de modules de CheeseDash qui applique le contrôle à la place, et
+il ne connaît qu'une seule barre — `OPERATOR` pour tout non-`GET`. `OPERATOR` est donc
+le plafond pour tout sur ce module : produits, commandes d'achat, soldes de
+portefeuille et clés Stripe. Un compte `READ_ONLY` ne peut écrire aucun d'entre eux ;
+un `OPERATOR` peut tous les écrire.
 
-**Remède.** Il n'y a aucun réglage. Jusqu'à ce que les gardes soient ajoutés, ne délivre
-pas de compte CheeseDash à quelqu'un à qui tu ne confierais pas ta clé secrète Stripe.
-Description complète, et forme du correctif en une ligne, dans
-[l'API dashboard](dashboard.fr.md#les-gardes-de-rôle-manquants).
+**Remède.** Ne donne `OPERATOR` qu'à des personnes à qui tu confierais ta clé secrète
+Stripe, et `READ_ONLY` à tous ceux qui ont seulement besoin de regarder. Si une route
+doit réellement exiger `SUPER_ADMIN`, cela doit être ajouté dans le gestionnaire avec
+`requireAdmin` — le répartiteur ne sait pas l'exprimer. Description complète dans
+[l'API dashboard](dashboard.fr.md#ce-que-le-cœur-applique-réellement).
 
 ---
 

@@ -261,9 +261,14 @@ touch points, all small, none hidden.
 the guard chain from `handlePlayCosmeticBuy` verbatim — same-origin, rate limit,
 session, link, double balance check — rather than writing a new one.
 
-**A new admin route** goes in `StoreApi.handle`, and should open with
-`if (!WebDashboard.requireWrite(exchange)) return;` even though no existing route
-does. See below.
+**A new admin route** goes in `StoreApi.handle`. CheeseDash's dispatcher already
+requires `OPERATOR` for any non-`GET`, so a mutating route is guarded whether or not
+you add anything; opening with `if (!WebDashboard.requireWrite(exchange)) return;`
+anyway is defence in depth, and it is the only way to document the intent in the
+handler itself. Two cases where you must write it yourself: a route that has to
+require `SUPER_ADMIN` (use `requireAdmin` — the dispatcher cannot express it), and a
+`GET` that changes state (the dispatcher guards nothing on `GET`; better still, do not
+write one). See below.
 
 ---
 
@@ -271,14 +276,17 @@ does. See below.
 
 Stated plainly, because whoever maintains this next will meet all of them.
 
-**No role enforcement on the admin surface.** `StoreApi.handle` never calls
-`requireWrite` or `requireAdmin` — the strings do not occur in the mod at all — so
-every mutating admin route accepts any authenticated CheeseDash session, `READ_ONLY`
-included. That includes setting wallet balances, rewriting delivery commands, and
-overwriting the Stripe secret and webhook secret. The fix is one line per handler;
-it has not been applied here because it changes behaviour for anyone already running
-non-SUPER_ADMIN accounts. Fully described in
-[the dashboard API](dashboard.md#the-missing-role-guards).
+**The admin surface's role boundary belongs to the core, not to this mod.**
+`StoreApi.handle` never calls `requireWrite` or `requireAdmin` — the strings do not
+occur in the mod at all. CheeseDash's module dispatcher supplies the check instead,
+for every non-`GET` request, so writes do require `OPERATOR` and a `READ_ONLY` session
+really is read-only. Three things follow. No route here can require `SUPER_ADMIN`, so
+setting wallet balances, rewriting delivery commands and overwriting the Stripe secret
+and webhook secret are all `OPERATOR`-level operations. A mutating `GET`, if one were
+ever added, would be unguarded — the dispatcher keys only on the HTTP method. And a
+change to that dispatcher would drop every check at once, with no second line of
+defence in this mod. Fully described in
+[the dashboard API](dashboard.md#what-the-core-actually-enforces).
 
 **A paying buyer's UUID is unverified.** `POST /store/api/checkout` accepts
 `playerUUID` and `playerName` from the request body and takes them on trust. The
@@ -288,7 +296,7 @@ but the card path does.
 **No PNG validation, no size cap on uploads.** `saveBase64Image` base64-decodes the
 body and writes it to `<id>.png` with no check that it is an image and no limit on
 length. A large body is a memory spike and a disk write; a non-image is served to
-browsers with a PNG content type. Any authenticated session can do it.
+browsers with a PNG content type. Any `OPERATOR` can do it.
 
 **Non-atomic whole-file writes.** No temp-and-rename. A crash mid-write can truncate
 a file, and every loader degrades a corrupt file to empty rather than failing loudly.

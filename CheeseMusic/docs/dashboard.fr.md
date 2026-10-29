@@ -53,14 +53,42 @@ Donc : **les lectures sont ouvertes à n'importe quelle session authentifiée, `
 comprise ; les écritures exigent `OPERATOR` ou `SUPER_ADMIN`.** Aucune route de ce mod
 n'exige `SUPER_ADMIN` ; `requireAdmin` n'est jamais appelée.
 
-> Les gardes ont été réparés le 29 octobre 2026. Ils étaient auparavant écrits
-> `WebDashboard.requireWrite(exchange);` en instruction nue, la valeur de retour jetée — ce
-> qui envoyait le `403` puis appliquait quand même la modification. Une session
-> `READ_ONLY` pouvait éditer les assignations, téléverser des pistes et les supprimer tout
-> en se faisant répondre que c'était interdit. La forme actuelle est
-> `if (!WebDashboard.requireWrite(exchange)) return;` sur les six routes d'écriture : le
-> rôle est désormais réellement appliqué. Si tu lis une version plus ancienne de ce mod,
-> audite ce jar plutôt que de te fier à cette page.
+Ces appels ne sont cependant pas la frontière. Le répartiteur de modules de CheeseDash,
+dans `DashboardApi`, garde déjà tous les modules :
+
+```java
+DashboardModule module = DashboardRegistry.getModule(prefix);
+if (module != null) {
+    if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+        return;
+    }
+    module.handleRequest(exchange, subRoute);
+```
+
+Toute requête non-`GET` vers `/api/v1/music/` exige donc `OPERATOR` avant même d'atteindre
+`MusicApi`. Les six appels de `MusicApi` sont de la défense en profondeur : utiles, et
+redondants dans cette configuration. Trois conséquences de l'endroit où se trouve la vraie
+frontière :
+
+- **Aucune route music ne peut exiger `SUPER_ADMIN` par le seul répartiteur.** Le cœur ne
+  connaît que `requireWrite` : `OPERATOR` est donc le plafond, à moins qu'un handler
+  n'appelle `requireAdmin` lui-même. Aucun ne le fait ici.
+- **Un `GET` qui modifierait quelque chose ne serait gardé que par le module.** Il n'en
+  existe aucun aujourd'hui — les cinq routes de lecture ne font bien que lire — mais le
+  cœur ne l'attraperait pas.
+- **Une modification du répartiteur ne désarmerait pas ce mod.** Contrairement aux modules
+  qui n'appellent aucun garde, les six routes d'écriture de `MusicApi` continueraient de
+  vérifier le rôle elles-mêmes.
+
+> Les gardes au niveau du module ont été réparés le 29 octobre 2026. Ils étaient
+> auparavant écrits `WebDashboard.requireWrite(exchange);` en instruction nue, la valeur de
+> retour jetée — ce qui envoyait le `403` puis appliquait quand même la modification.
+> C'était un vrai défaut du module, mais pas un trou exploitable à travers CheeseDash : le
+> répartiteur ci-dessus avait déjà rejeté toute requête non-`GET` venant d'une session
+> inférieure à `OPERATOR`, donc un compte `READ_ONLY` n'atteignait jamais ces handlers. La
+> forme actuelle est `if (!WebDashboard.requireWrite(exchange)) return;` sur les six routes
+> d'écriture : le module applique désormais le rôle de lui-même aussi. Si tu lis une
+> version plus ancienne de ce mod, audite ce jar plutôt que de te fier à cette page.
 
 ## Disponibilité du module
 

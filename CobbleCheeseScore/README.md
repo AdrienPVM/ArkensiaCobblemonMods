@@ -97,11 +97,12 @@ public route at `/scores/api/images/…` so that something inside Minecraft can 
 without a token. No WebSocket channel: the module broadcasts nothing, so a dashboard view
 has to poll.
 
-⚠️ **No route in this module checks the caller's role.** `ScoresApi` contains no call to
-`WebDashboard.requireWrite` or `requireAdmin`, so a **READ_ONLY** CheeseDash account can
-rewrite board titles and colours, create and delete mini-games, delete recorded sessions
-and force refreshes. Hand out accounts accordingly. Details in
-[dashboard](docs/dashboard.md#required-role).
+**No route in this module checks the caller's role itself.** `ScoresApi` contains no call
+to `WebDashboard.requireWrite` or `requireAdmin`; the boundary is held one level up, by
+CheeseDash's module dispatcher, which requires `OPERATOR` or above on every non-`GET`
+request and lets any role read. So reads are open to `READ_ONLY` and every write needs
+`OPERATOR` — but no route here can ask for `SUPER_ADMIN`, and a mutating route exposed as a
+`GET` would slip through. Details in [dashboard](docs/dashboard.md#required-role).
 
 ## Honest warnings
 

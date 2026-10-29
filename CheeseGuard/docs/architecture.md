@@ -273,20 +273,36 @@ CheeseGuard is polled over REST. The routes are documented in [dashboard](dashbo
 
 Stated plainly, because they are the things that will cost you an afternoon.
 
-**The dashboard APIs have almost no authorisation.** CheeseDash provides
-`WebDashboard.requireWrite(exchange)` and `requireAdmin(exchange)` so a READ_ONLY account
-cannot mutate. `ZonesApi`, `DimensionsApi`, `EventsApi`, `GroupsApi`, `PlayersApi` and
-`ChunksApi` **never call either one** — 65 mutating routes with no role check at all.
-Any authenticated session, including a READ_ONLY one, can delete a zone, wipe a dimension
-or kick a player. `PrisonApi` and `RacesApi` do it correctly, and are the pattern to copy:
+**The dashboard APIs delegate all of their authorisation to the core.** CheeseDash provides
+`WebDashboard.requireWrite(exchange)` and `requireAdmin(exchange)`, and `ZonesApi`,
+`DimensionsApi`, `EventsApi`, `GroupsApi`, `PlayersApi` and `ChunksApi` **never call either
+one** — 65 mutating routes with no role check inside the module. Only `PrisonApi` and
+`RacesApi` guard themselves:
 
 ```java
 if (!WebDashboard.requireWrite(exchange)) return;
 ```
 
-The guard both answers the request with a 403 and returns `false`; ignoring its return
-value — which `RacesApi` did until 29 October 2026 — sends the 403 and then performs the
-action anyway. Per-route detail belongs in [dashboard](dashboard.md).
+The boundary nonetheless holds, because CheeseDash's module dispatcher in `DashboardApi`
+applies `requireWrite` to every non-`GET` request before any module sees it. A `READ_ONLY`
+session can read and nothing else, on every route of this mod. What does not hold is the
+reason it holds — the protection is a property of the core's dispatch, keyed purely on the
+HTTP method, and the module contributes nothing. Three consequences:
+
+- **No CheeseGuard route can require `SUPER_ADMIN`.** `requireWrite` is the only bar the
+  dispatcher knows, so resetting a dimension from a snapshot, deleting region files from the
+  world save and editing a flag all sit at `OPERATOR`. A route that deserves a higher bar has
+  to call `requireAdmin` itself.
+- **A mutating route exposed as a `GET` would be unguarded entirely.** None exists today in
+  these six APIs, but nothing in the module would stop one from being added, and nothing
+  would flag it.
+- **One change to that dispatcher drops all 65 checks at once**, and no module would notice.
+
+A local `requireWrite` call, as in `PrisonApi`, is therefore defence in depth: useful, but
+redundant — it is not the boundary itself. The guard both answers the request with a 403 and
+returns `false`; ignoring its return value — which `RacesApi` did until 29 October 2026 —
+sends the 403 and then performs the action anyway. Per-route detail, and the role column that
+marks which guarantees come from the core, belong in [dashboard](dashboard.md).
 
 **The command gates were wrong for a long time.** `/cg flag`, `/cg addmember`,
 `/cg removemember` and the whole `/cg group` subtree had no `requires` clause at all until

@@ -352,7 +352,11 @@ Si tu ajoutes à ce mod plutôt que de le lire :
 - **Une nouvelle route REST.** Ajoute-la à `MarketApi.handle` avant le 404 final, valide
   les identifiants avec `isValidId` en premier, et enveloppe toute mutation dans
   `WebDashboard.executeOnServerThread`. Le rôle vient gratuitement du dispatch de
-  CheeseDash : `GET` est lisible par tout le monde, tout le reste exige `OPERATOR`.
+  CheeseDash : `GET` est lisible par tout le monde, tout le reste exige `OPERATOR`. Deux
+  limites en découlent. Une route qui modifie quelque chose ne doit pas être exposée en
+  `GET`, parce que le dispatch ne regarde que la méthode HTTP et ne la garderait pas. Et
+  si la route mérite `SUPER_ADMIN`, le handler doit appeler `WebDashboard.requireAdmin`
+  lui-même — le dispatch ne monte jamais la barre plus haut qu'`OPERATOR`.
 - **Un nouveau message WebSocket.** Copie la diffusion protégée à la fin de
   `handlePurchase` : vérifie `isModLoaded("cheesedash")`, attrape `NoClassDefFoundError`,
   et publie sur le canal `market`.

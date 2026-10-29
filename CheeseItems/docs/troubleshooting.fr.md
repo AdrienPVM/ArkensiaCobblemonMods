@@ -228,21 +228,29 @@ que chaque requête répond `503 {"error":"CheeseItems not ready"}`, la référe
 est encore nulle — c'est normal pendant le démarrage et cela signifie que quelque chose
 retarde `SERVER_STARTED`.
 
-## Un compte `READ_ONLY` peut modifier les items
+## Ma route ne peut pas exiger `SUPER_ADMIN`
 
-**Cause.** Tu fais tourner une version antérieure au 29 octobre 2026. Ni `ItemsApi` ni
-`MorphoCatalogApi` ne vérifiait le rôle de l'appelant : n'importe quelle session
-authentifiée pouvait créer, modifier, supprimer et donner des items — et comme les
-`useActions` d'un item tournent en tant que console au niveau de permission 4, cela
-revenait à une exécution de commandes complète.
+**Cause.** L'application des rôles pour les routes de module se trouve dans le répartiteur
+de CheeseDash, et il ne connaît que `requireWrite` : `OPERATOR` ou au-dessus pour toute
+requête non-`GET`, n'importe quel rôle pour un `GET`. `OPERATOR` est donc la barre maximale
+qu'une route de module atteint par défaut, quelle que soit la sensibilité de l'opération.
 
-**Remède.** Mets le mod à jour. Les versions actuelles gardent chaque route non-`GET` par
-`requireWrite`, et les écritures exigent donc `OPERATOR`. Pour savoir de quel côté tu te
-trouves, appelle `POST /api/v1/items/reload` avec une session `READ_ONLY` : un `403`
-signifie que tu es protégé, un `200` que tu ne l'es pas.
+**Remède.** Appelle `WebDashboard.requireAdmin(exchange)` en tête de ce gestionnaire et
+exploite sa valeur de retour, comme les gardes existants exploitent celle de
+`requireWrite` :
 
-Sur ce module, `OPERATOR` reste équivalent à un accès console, par conception.
-[Détails](dashboard.fr.md#authentification-et-gardes-de-rôle).
+```java
+if (!WebDashboard.requireAdmin(exchange)) return;
+```
+
+Aucune route de CheeseItems ne le fait aujourd'hui. Note aussi qu'une route mutante exposée
+en `GET` ne serait gardée par aucune des deux couches, puisque le contrôle central ne
+regarde que la méthode HTTP.
+
+Par ailleurs, sur ce module un `OPERATOR` équivaut à un accès console, par conception : les
+`useActions` d'un item tournent en tant que console au niveau de permission 4, donc
+quiconque peut écrire une définition d'item peut tout lancer. Accorde ce rôle en
+conséquence. [Détails](dashboard.fr.md#authentification-et-gardes-de-rôle).
 
 ## Rédiger un rapport de bug utile
 

@@ -106,10 +106,12 @@ CRUD, track upload and delete, the CheeseGuard region list, global config, and w
 currently hearing what. In the sidebar it appears as **CheeseMusic** 🎵 with the
 description *Musique de zones*. It publishes nothing on any WebSocket channel.
 
-Reads are open to any authenticated session; the six write routes require `OPERATOR` or
-above. Those guards were repaired on 29 October 2026 — an earlier build sent the `403`
-and applied the change anyway, so a `READ_ONLY` account could edit assignments. If you
-run an older jar, read [dashboard](docs/dashboard.md#roles) before trusting its roles.
+Reads are open to any authenticated session; writes require `OPERATOR` or above. That is
+enforced twice over: CheeseDash's module dispatch demands `OPERATOR` for every non-`GET`
+request before the module is reached, and the six write routes check it again themselves.
+No route here can require `SUPER_ADMIN` — `requireAdmin` is never called, and the dispatch
+only ever raises the bar to `OPERATOR`. See
+[dashboard](docs/dashboard.md#roles) for what that does and does not guarantee.
 
 ## Honest status
 

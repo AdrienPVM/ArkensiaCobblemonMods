@@ -141,7 +141,7 @@ pendant le démarrage peut donc renvoyer un objet partiel, voire `{}`.
 ## Zones
 
 `ZonesApi`, 1056 lignes, la plus grosse des huit. Le sens des champs est dans
-[Zones et flags](zones-and-flags.fr.md) ; voici la surface des routes.
+[Zones et flags](zones-and-flags.fr.md) ; cette page couvre la surface des routes.
 
 | Méthode | Chemin | Corps / paramètres | Réponse | Statuts | Rôle |
 |---|---|---|---|---|---|

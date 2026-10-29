@@ -26,35 +26,67 @@ public, `scores` également, ce qui lui donne une route non authentifiée sous
 
 ## Rôle requis
 
-**Toutes les routes authentifiées de ce module n'exigent qu'une session valide.**
-`ScoresApi` ne contient aucun appel à `WebDashboard.requireWrite` ni à
-`WebDashboard.requireAdmin` — cherche-les dans le fichier et tu ne trouveras rien. Le seul
-verrou est le middleware `/api/` de CheeseDash, qui rejette en `401` une requête sans
-`Authorization: Bearer <token>` valide et laisse passer tout le reste, quel que soit le rôle
-de la session.
+**`ScoresApi` ne contient aucun contrôle de rôle qui lui soit propre.** Cherche-y
+`WebDashboard.requireWrite` ou `WebDashboard.requireAdmin` et tu ne trouveras rien — pas une
+fois, sur ses huit routes qui modifient quelque chose.
 
-⚠️ Cela signifie qu'un compte **READ_ONLY** peut créer un mini-jeu, supprimer une session,
-réécrire le titre et les couleurs d'un classement, et forcer un rafraîchissement. Si cela
-t'importe, ne distribue pas de comptes READ_ONLY en pensant qu'ils seront en lecture seule
-sur ce module.
+Ce qui tient lieu de ces contrôles, c'est le répartiteur de modules de CheeseDash, dans
+`DashboardApi` :
 
-Pour mémoire, la forme correcte dans ce dépôt est :
+```java
+DashboardModule module = DashboardRegistry.getModule(prefix);
+if (module != null) {
+    if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+        return;
+    }
+    module.handleRequest(exchange, subRoute);
+    ...
+}
+```
+
+C'est la forme correcte — elle teste la valeur de retour et rend la main — donc dans cette
+version, toute requête non-`GET` vers n'importe quelle route sous `/api/v1/scores/` exige
+bien `OPERATOR` ou au-dessus, et les requêtes `GET` acceptent tous les rôles, `READ_ONLY`
+compris. La frontière tient.
+
+Ce qui ne tient pas, c'est la raison pour laquelle elle tient. La protection est une
+propriété du répartiteur du cœur, fondée uniquement sur la méthode HTTP, et le module n'y
+contribue en rien. Trois conséquences :
+
+- **Aucune route de ce module ne peut exiger `SUPER_ADMIN`.** Supprimer un mini-jeu avec
+  toutes ses sessions, réécrire le titre et les couleurs d'un classement et forcer un
+  rafraîchissement complet sont toutes des opérations de niveau `OPERATOR`, parce
+  qu'`OPERATOR` est la seule barre que le répartiteur connaisse.
+- **Un `GET` qui modifierait quelque chose serait totalement sans garde.** Il n'en existe
+  aucun aujourd'hui — toutes les écritures ici sont des `POST`, `PUT` ou `DELETE` — mais rien
+  dans le module n'empêcherait d'en ajouter un, et rien ne le signalerait.
+- **Une modification du répartiteur supprimerait tous les contrôles d'un coup.** `ScoresApi`
+  n'a pas de seconde ligne de défense.
+
+C'est documenté plutôt que corrigé, délibérément. L'indication de rôle sur chaque route
+ci-dessous donne le rôle **réellement** exigé dans cette version, et marque par (cœur) les
+cas où la garantie vient du répartiteur de CheeseDash et non du module.
+
+Pour mémoire, `requireWrite` signifie `OPERATOR` ou au-dessus et `requireAdmin` signifie
+`SUPER_ADMIN` ; les deux envoient leur propre `403` et rendent le verdict sous forme de
+booléen, si bien que la forme locale correcte est :
 
 ```java
 if (!WebDashboard.requireWrite(exchange)) return;
 ```
 
-`requireWrite` renvoie un booléen et envoie le `403` elle-même ; ignorer sa valeur de retour
-envoie le 403 **puis continue d'exécuter le handler**, ce qui est pire que de ne pas
-l'appeler. Ce module ne fait ni l'un ni l'autre — il ne l'appelle pas du tout. La colonne
-des rôles ci-dessous rapporte ce que le code impose réellement, pas ce que la route devrait
-sans doute imposer.
+Ignorer sa valeur de retour envoie le 403 **puis continue d'exécuter le handler**, ce qui est
+pire que de ne pas l'appeler. Un module qui écrit cette ligne correctement ajoute de la
+défense en profondeur ; il ne déplace pas la frontière, que le répartiteur tient déjà.
 
 | Rôle | Ce qu'il peut faire ici |
 |---|---|
-| READ_ONLY | tout |
-| OPERATOR | tout |
-| SUPER_ADMIN | tout |
+| READ_ONLY | toutes les routes `GET` — classements, rangs, images, config, stats, mini-jeux |
+| OPERATOR | tout ce qui précède, plus toutes les routes non-`GET` (appliqué par le cœur) |
+| SUPER_ADMIN | la même chose qu'OPERATOR — aucune route ici n'en demande davantage |
+
+Toute requête non-`GET` est aussi écrite dans le journal d'audit de CheeseDash sous la forme
+`scores.<méthode>` avec le chemin complet.
 
 ---
 
@@ -132,8 +164,8 @@ classements ; `0` signifie qu'aucun rafraîchissement n'est encore allé au bout
 
 ### `PUT /api/v1/scores/scoreboards/:id`
 
-Modifie la présentation d'un classement. Rôle : **n'importe lequel** — voir
-l'avertissement plus haut. Le corps est un objet partiel ; seules les clés présentes sont
+Modifie la présentation d'un classement. Rôle : **OPERATOR** (cœur) — voir
+[rôle requis](#rôle-requis). Le corps est un objet partiel ; seules les clés présentes sont
 appliquées.
 
 | Clé du corps | Type | Effet |
@@ -213,8 +245,7 @@ décodeur d'image.
 
 ### `POST /api/v1/scores/refresh`
 
-Force une recollecte et un nouveau rendu complets. Rôle : **n'importe lequel** — voir
-l'avertissement plus haut. Aucun corps.
+Force une recollecte et un nouveau rendu complets. Rôle : **OPERATOR** (cœur). Aucun corps.
 
 ```bash
 curl -X POST -H "Authorization: Bearer $TOKEN" \
@@ -285,7 +316,7 @@ tout, bien que les trois dernières aient bel et bien un effet. Voir
 
 ### `PUT /api/v1/scores/config`
 
-Rôle : **n'importe lequel** — voir l'avertissement plus haut.
+Rôle : **OPERATOR** (cœur).
 
 ⚠️ **Cette route ne change presque rien.** Lis `handleUpdateConfig` : elle fait exactement
 deux choses. Si le corps contient à la fois `scoreboardId` et `enabled`, elle retrouve le
@@ -345,19 +376,20 @@ route répond `200` avec tous les compteurs à `0` et sans clé `updateIntervalM
 
 ## Routes mini-jeux
 
-Le modèle et la règle de notation sont décrits dans [mini-jeux](minigames.fr.md). Toutes
-ces routes n'exigent qu'une session valide.
+Le modèle et la règle de notation sont décrits dans [mini-jeux](minigames.fr.md). Les
+lectures acceptent tous les rôles ; les cinq écritures exigent `OPERATOR` ou au-dessus,
+appliqué par le répartiteur du cœur.
 
-| Méthode | Chemin | Objet |
-|---|---|---|
-| `GET` | `/minigames` | tous les jeux, avec leur nombre de sessions et leur meilleur joueur |
-| `POST` | `/minigames` | créer un jeu |
-| `GET` | `/minigames/global` | classement agrégé sur tous les jeux |
-| `GET` | `/minigames/:id` | un jeu, ses sessions de la plus récente à la plus ancienne, et son classement |
-| `PUT` | `/minigames/:id` | renommer un jeu |
-| `DELETE` | `/minigames/:id` | supprimer un jeu et toutes ses sessions |
-| `POST` | `/minigames/:id/sessions` | enregistrer le résultat d'une session |
-| `DELETE` | `/minigames/:id/sessions/:idx` | supprimer une session par son indice |
+| Méthode | Chemin | Objet | Rôle |
+|---|---|---|---|
+| `GET` | `/minigames` | tous les jeux, avec leur nombre de sessions et leur meilleur joueur | tous |
+| `POST` | `/minigames` | créer un jeu | `OPERATOR` (cœur) |
+| `GET` | `/minigames/global` | classement agrégé sur tous les jeux | tous |
+| `GET` | `/minigames/:id` | un jeu, ses sessions de la plus récente à la plus ancienne, et son classement | tous |
+| `PUT` | `/minigames/:id` | renommer un jeu | `OPERATOR` (cœur) |
+| `DELETE` | `/minigames/:id` | supprimer un jeu et toutes ses sessions | `OPERATOR` (cœur) |
+| `POST` | `/minigames/:id/sessions` | enregistrer le résultat d'une session | `OPERATOR` (cœur) |
+| `DELETE` | `/minigames/:id/sessions/:idx` | supprimer une session par son indice | `OPERATOR` (cœur) |
 
 `/minigames/global` est capturée avant `/minigames/:id` : `global` est donc un identifiant
 réservé, et un jeu créé sous ce nom peut être listé mais jamais récupéré individuellement.

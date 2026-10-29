@@ -191,7 +191,7 @@ first:
 | `extendMs` | `endsAt + extendMs` — the only field that adds to the current end |
 
 An `endsAt` in the past is refused with `400 endsAt must be in the future`, so you cannot
-release someone this way; use `DELETE`. Note that `durationMs` and `duration` recompute from
+release someone this way; use `DELETE`. `durationMs` and `duration` recompute from
 `startedAt`: sending `{"duration":"1h"}` to someone two hours into a sentence sets an end
 time in the past and is refused, which surprises people who expected "one more hour".
 

@@ -172,7 +172,13 @@ le brancher est une modification de deux lignes dans le tracker.
 
 **Une route dashboard.** Ajoute une branche à `MusicApi.handle`. Suis la forme existante :
 garde les écritures avec `if (!WebDashboard.requireWrite(exchange)) return;` en première
-instruction, valide avant de muter, et appelle `config.save()` après.
+instruction, valide avant de muter, et appelle `config.save()` après. Ce garde est de la
+défense en profondeur plutôt que la frontière — le répartiteur de modules de CheeseDash
+exige déjà `OPERATOR` pour toute requête non-`GET` avant d'atteindre `MusicApi`. Deux
+choses que le répartiteur ne fera pas à ta place : il ne regarde que la méthode HTTP, donc
+un `GET` qui modifierait quelque chose arriverait sans garde ; et il ne monte jamais la
+barre au-dessus d'`OPERATOR`, donc une route qui mérite `SUPER_ADMIN` doit appeler
+`WebDashboard.requireAdmin` elle-même, dans la même forme `if (!…) return;`.
 
 **Un canal WebSocket.** Rien n'existe aujourd'hui. `ZoneMusicTracker.tickPlayer` est
 l'endroit où une diffusion de changement de zone appartient, puisqu'il est déjà le point de

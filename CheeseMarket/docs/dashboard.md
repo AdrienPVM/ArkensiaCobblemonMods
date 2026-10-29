@@ -37,24 +37,35 @@ if (module != null) {
 
 That matters because in this repository `WebDashboard.requireWrite(exchange)` **returns
 a boolean and blocks nothing on its own** — ignoring its result lets the request through.
-The dispatch above uses the correct form, `if (!…) return;`, so the guard is real.
+The dispatch above uses the correct form, `if (!…) return;`, so the guard is real: in this
+build every non-`GET` request to any route under `/api/v1/market/` does require
+`OPERATOR` or above, and `GET` requests accept any role including `READ_ONLY`. The
+boundary holds.
 
-The rule that follows from it, and it is a blanket rule rather than a per-route one:
+The rule that follows from it is a blanket rule rather than a per-route one:
 
 | Method | Role required |
 |---|---|
 | `GET` | any authenticated session — `READ_ONLY` is enough |
-| `POST`, `PUT`, `DELETE` | `OPERATOR` or higher |
+| `POST`, `PUT`, `DELETE` | `OPERATOR` or higher — enforced by the core (core) |
 
-**No market route requires `SUPER_ADMIN`.** Deleting a shop, with its items, its sales
-configuration and its uploaded images, is an `OPERATOR` action.
+What does **not** hold is the reason it holds. The protection is a property of the core's
+dispatch, keyed purely on the HTTP method, and `MarketApi` contributes nothing. Three
+consequences:
 
-Two consequences of the guard living upstream rather than in `MarketApi`:
+- **No market route can require `SUPER_ADMIN`.** Deleting a shop, with its items, its
+  sales configuration and its uploaded images, is an `OPERATOR` action, because
+  `OPERATOR` is the only bar the dispatcher knows. A route that deserved `SUPER_ADMIN`
+  would have to call `requireAdmin` itself, and none does.
+- **A mutating `GET` would be completely unguarded.** None exists today in `MarketApi`,
+  but nothing in the module would stop one from being added, and nothing would flag it.
+- **A change to the dispatcher removes every check at once.** `MarketApi` has no second
+  line of defence; if this module were ever mounted anywhere other than CheeseDash's
+  module dispatch, it would have no authorization at all.
 
-- a `READ_ONLY` session can read every shop definition, every price, the full
-  transaction log with player names and UUIDs, and every uploaded image;
-- if this module were ever mounted anywhere other than CheeseDash's module dispatch, it
-  would have no authorization at all. Nothing in the mod enforces a role by itself.
+A `READ_ONLY` session can therefore read every shop definition, every price, the full
+transaction log with player names and UUIDs, and every uploaded image — that part is by
+design, and is the same for every CheeseDash module.
 
 Every non-GET module request is also written to CheeseDash's audit log by the same
 dispatch, as `market.post`, `market.put` or `market.delete` with the full path.

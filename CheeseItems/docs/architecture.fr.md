@@ -138,9 +138,10 @@ item personnalisé peut utiliser sans danger la texture du totem.
 
 1. **Ici, un `OPERATOR` est une console.** Les `useActions` d'un item lancent des commandes
    arbitraires au niveau de permission 4 : quiconque peut écrire un item peut donc tout
-   lancer. Les gardes de rôle étaient absents des deux fichiers d'API jusqu'au 29 octobre
-   2026, ce qui rendait cela atteignable par une session `READ_ONLY` ; un garde posé sur la
-   méthode HTTP restreint désormais toute route mutante à `OPERATOR`. Le chemin d'élévation
+   lancer. Toute route mutante est restreinte à `OPERATOR` par un garde posé sur la méthode
+   HTTP dans les deux fichiers d'API, et une seconde fois par le répartiteur de modules de
+   CheeseDash — qui est aussi le plafond : comme le garde central ne connaît que
+   `requireWrite`, aucune route d'ici ne peut exiger `SUPER_ADMIN`. Le chemin d'élévation
    depuis `OPERATOR` subsiste, par conception.
    [Détails](dashboard.fr.md#authentification-et-gardes-de-rôle).
 2. **`soulbound` supprime les items.** `UseHandler.onPlayerDeath` met de côté les piles

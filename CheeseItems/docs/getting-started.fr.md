@@ -257,7 +257,7 @@ Java.
 - Comment le pack est construit et ce qu'il écrase : [resource pack](resource-pack.fr.md)
 - Le catalogue, le Codex et la réserve d'endurance : [morphos](morphos.fr.md)
 - ⚠️ Avant de confier des comptes dashboard à quelqu'un d'autre, lis
-  [les gardes de rôle manquantes](dashboard.fr.md#authentification-et-gardes-de-rôle)
+  [ce que les gardes de rôle couvrent, et ce qu'ils ne couvrent pas](dashboard.fr.md#authentification-et-gardes-de-rôle)
 
 ---
 

@@ -169,17 +169,23 @@ que le module est vivant avec `GET /api/v1/cheeseguard/status`.
 
 ---
 
-## Un compte dashboard READ_ONLY a supprimé quelque chose
+## Un OPERATOR a supprimé une zone, et je voulais que cela exige SUPER_ADMIN
 
-**Cause.** `ZonesApi`, `DimensionsApi`, `EventsApi`, `GroupsApi`, `PlayersApi` et
-`ChunksApi` n'appellent jamais `WebDashboard.requireWrite` ni `requireAdmin`.
-Soixante-cinq routes mutantes acceptent n'importe quelle session authentifiée, quel que
-soit son rôle. Seuls `PrisonApi` et `RacesApi` imposent le rôle.
+**Cause.** Aucune route de CheeseGuard ne peut exiger `SUPER_ADMIN`. `ZonesApi`,
+`DimensionsApi`, `EventsApi`, `GroupsApi`, `PlayersApi` et `ChunksApi` n'appellent jamais
+`WebDashboard.requireWrite` ni `requireAdmin` ; ce qui les garde, c'est le répartiteur de
+modules de CheeseDash, qui applique `requireWrite` — `OPERATOR` ou au-dessus — à toute
+requête non-`GET` vers un module. La frontière tient donc, et une session `READ_ONLY` ne peut
+que lire, mais `OPERATOR` est autant le plafond que le plancher : supprimer une zone,
+réinitialiser une dimension depuis un snapshot et modifier un flag sont tous au même niveau.
 
-**Remède.** En attendant que les gardes soient ajoutées, traite chaque compte CheeseDash
-qui peut atteindre ce mod comme un opérateur. Ne distribue pas de comptes READ_ONLY en
-croyant qu'ils sont sans danger pour CheeseGuard. Voir
-[l'architecture](architecture.fr.md#faiblesses-connues).
+**Remède.** Considère `OPERATOR` sur ce mod comme un contrôle total et distribue-le en
+conséquence ; `READ_ONLY` est le rôle de qui ne doit que regarder. Si une route précise
+mérite une barre plus haute, le contrôle doit être ajouté dans le module —
+`if (!WebDashboard.requireAdmin(exchange)) return;` en tête du handler concerné, comme
+`PrisonApi` le fait pour `requireWrite`. Voir
+[l'architecture](architecture.fr.md#faiblesses-connues) et
+[l'API dashboard](dashboard.fr.md#ce-que-le-cœur-applique-réellement).
 
 ---
 

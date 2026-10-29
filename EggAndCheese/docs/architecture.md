@@ -185,9 +185,11 @@ helpers or your pattern will show a vertical seam.
 
 **A new API route.** Add a branch in `EggsApi.handle` or
 `EggsApi.handleCollectibleRoutes`. Follow the existing shape: validate first, wrap state
-access in `executeOnServerThread`, respond with Gson. And start any mutating handler with
-`if (!WebDashboard.requireWrite(exchange)) return;` — none of them do today, and that is
-the gap listed below.
+access in `executeOnServerThread`, respond with Gson. Keep mutations on `POST`, `PUT` or
+`DELETE`: CheeseDash's dispatcher is what enforces `OPERATOR` on this module, and it keys
+purely on the HTTP method, so a mutating `GET` would arrive unguarded. Starting a mutating
+handler with `if (!WebDashboard.requireWrite(exchange)) return;` adds a second line of
+defence — none of them do today; see below.
 
 **A new pedestal variant.** One entry in `ModBlocks`, one in `ModItems`, one in the
 `ModBlockEntities.PEDESTAL` builder's block list, a `PedestalVariant` constant, blockstate
@@ -201,11 +203,16 @@ and model JSON, a recipe, and two lang keys. Nothing else.
 
 Stated plainly, because whoever maintains this next will hit them.
 
-**No role checks in the API.** `EggsApi` contains no call to `requireWrite` or
-`requireAdmin`. Every route is open to any authenticated CheeseDash session, including
-`READ_ONLY`. The correct form in this repository is
+**The API's role boundary lives entirely in the core.** `EggsApi` contains no call to
+`requireWrite` or `requireAdmin`. Writes are still `OPERATOR`-only, because CheeseDash's
+module dispatcher rejects any non-`GET` request that fails `requireWrite` before the module
+is called, and `GET` stays open to every role including `READ_ONLY`. The boundary holds;
+what is weak is where it sits. No route in this mod can require `SUPER_ADMIN`, since
+`OPERATOR` is the only bar the dispatcher knows; a mutating `GET` would be unguarded, and
+nothing here would flag it; and one change to that dispatcher would drop every check at
+once, with no second line of defence in `EggsApi`. The form that would provide one is
 `if (!WebDashboard.requireWrite(exchange)) return;` — the method returns a boolean and
-enforces nothing if its result is ignored. This is the most serious issue on the page.
+enforces nothing if its result is ignored.
 
 **Rename orphans the world block.** `POST /collectibles/:id/rename` changes the registry
 key and leaves the block entity carrying the old `registryId`. The result is one orphan

@@ -343,9 +343,11 @@ dans l'ordre :
    écrites pour un serveur précis, dans une juridiction précise. Les publier comme les
    tiennes est pire que de n'en avoir aucune.
 4. **Lis [SECURITY.md](../../SECURITY.md).**
-5. **Traite chaque compte CheeseDash comme un exploitant de boutique à part entière.**
-   Une session `READ_ONLY` peut fixer des soldes de portefeuille et écraser tes clés
-   Stripe — [pourquoi](dashboard.fr.md#les-gardes-de-rôle-manquants).
+5. **Traite chaque compte `OPERATOR` comme un exploitant de boutique à part entière.**
+   Les écritures exigent bien `OPERATOR` — une session `READ_ONLY` est réellement en
+   lecture seule — mais aucune route d'ici ne peut exiger davantage, donc `OPERATOR`
+   suffit pour fixer des soldes de portefeuille et écraser tes clés Stripe.
+   [Pourquoi](dashboard.fr.md#ce-que-le-cœur-applique-réellement).
 6. **Décide comment tu remarqueras une commande `FAILED`.** Rien ne t'alerte. Le
    compteur est dans `GET /api/v1/store/stats`, et c'est tout le mécanisme.
 7. **Échange les clés de test contre les clés de production, et crée un nouvel endpoint

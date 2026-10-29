@@ -39,25 +39,36 @@ if (module != null) {
 Cela compte, parce que dans ce dépôt `WebDashboard.requireWrite(exchange)` **renvoie un
 booléen et ne bloque rien par lui-même** : ignorer son résultat laisse passer la requête.
 Le dispatch ci-dessus utilise la forme correcte, `if (!…) return;`, donc le garde est
-réel.
+réel : dans cette version, toute requête non-`GET` vers n'importe quelle route sous
+`/api/v1/market/` exige bien `OPERATOR` ou au-dessus, et les requêtes `GET` acceptent tous
+les rôles, `READ_ONLY` compris. La frontière tient.
 
-La règle qui en découle, et c'est une règle globale plutôt que route par route :
+La règle qui en découle est une règle globale plutôt que route par route :
 
 | Méthode | Rôle requis |
 |---|---|
 | `GET` | n'importe quelle session authentifiée — `READ_ONLY` suffit |
-| `POST`, `PUT`, `DELETE` | `OPERATOR` ou plus |
+| `POST`, `PUT`, `DELETE` | `OPERATOR` ou plus — appliqué par le cœur (cœur) |
 
-**Aucune route market n'exige `SUPER_ADMIN`.** Supprimer une boutique, avec ses items, sa
-configuration de ventes et ses images téléversées, est une action `OPERATOR`.
+Ce qui ne tient pas, c'est la raison pour laquelle elle tient. La protection est une
+propriété du répartiteur du cœur, fondée uniquement sur la méthode HTTP, et `MarketApi`
+n'y contribue en rien. Trois conséquences :
 
-Deux conséquences du fait que le garde vit en amont et non dans `MarketApi` :
+- **Aucune route market ne peut exiger `SUPER_ADMIN`.** Supprimer une boutique, avec ses
+  items, sa configuration de ventes et ses images téléversées, est une action `OPERATOR`,
+  parce qu'`OPERATOR` est la seule barre que le répartiteur connaisse. Une route qui
+  mériterait `SUPER_ADMIN` devrait appeler `requireAdmin` elle-même, et aucune ne le fait.
+- **Un `GET` qui modifierait quelque chose serait totalement sans garde.** Il n'en existe
+  aucun aujourd'hui dans `MarketApi`, mais rien dans le module n'empêcherait d'en ajouter
+  un, et rien ne le signalerait.
+- **Une modification du répartiteur supprimerait tous les contrôles d'un coup.**
+  `MarketApi` n'a pas de seconde ligne de défense ; si ce module était un jour monté
+  ailleurs que dans le dispatch de modules de CheeseDash, il n'aurait aucune autorisation
+  du tout.
 
-- une session `READ_ONLY` peut lire toutes les définitions de boutiques, tous les prix, le
-  journal complet des transactions avec noms de joueurs et UUID, et toutes les images
-  téléversées ;
-- si ce module était un jour monté ailleurs que dans le dispatch de modules de CheeseDash,
-  il n'aurait aucune autorisation du tout. Rien dans le mod n'impose un rôle par lui-même.
+Une session `READ_ONLY` peut donc lire toutes les définitions de boutiques, tous les prix,
+le journal complet des transactions avec noms de joueurs et UUID, et toutes les images
+téléversées — c'est voulu, et c'est identique pour tous les modules CheeseDash.
 
 Chaque requête de module non-GET est aussi inscrite au journal d'audit de CheeseDash par
 le même dispatch, sous `market.post`, `market.put` ou `market.delete`, avec le chemin

@@ -34,19 +34,52 @@ starting, or CobbleCap's initializer did not run.
 ## Roles
 
 CheeseDash accounts carry one of three roles: `READ_ONLY`, `OPERATOR`, `SUPER_ADMIN`.
-CobbleCap only ever calls `WebDashboard.requireWrite(exchange)`, never `requireAdmin`, so
-the ceiling for this module is OPERATOR. Routes that do not call a guard at all are
-readable by any authenticated session, `READ_ONLY` included.
 
-⚠️ The four write guards were broken until **29 October 2026**. They were written
+**The role boundary for this module is held by the core, not by CobbleCap.** CheeseDash's
+module dispatcher, in `DashboardApi`, checks the method and the role before it hands a
+request to any module:
+
+```java
+DashboardModule module = DashboardRegistry.getModule(prefix);
+if (module != null) {
+    if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+        return;
+    }
+    module.handleRequest(exchange, subRoute);
+    ...
+}
+```
+
+That is the correct form — it tests the return value and returns — so every non-`GET`
+request to any route under `/api/v1/cobblecap/` requires `OPERATOR` or above, and every
+`GET` is open to any role including `READ_ONLY`. Nothing a module does or omits changes
+that.
+
+CobbleCap also calls `WebDashboard.requireWrite(exchange)` itself in `handleSetCap`,
+`handleToggleExpLock`, `handleChampions` (the `PUT` branch), `handleConfig` (the `PUT`
+branch) and the `/fireworks/test` dispatch. Those calls are **defence in depth** — useful,
+but redundant with the check that already ran. They are not the boundary, and a write route
+that lacked one would be gated at `OPERATOR` just the same.
+
+What the core's design does cost, here as in every module:
+
+- **No route in CobbleCap can require `SUPER_ADMIN`.** `requireAdmin` is never called, and
+  the dispatcher only knows the `OPERATOR` bar, so rewriting the whole champion list sits at
+  the same level as toggling one player's XP lock. A route that deserves more has to call
+  `WebDashboard.requireAdmin` itself.
+- **A mutating route exposed as a `GET` would not be guarded at all.** None exists today —
+  every write here is a `POST` or a `PUT` — but the dispatcher keys purely on the HTTP
+  method, so nothing would catch one.
+- **A single change to that dispatcher would drop the checks for every module at once.**
+  CobbleCap's own `requireWrite` calls are the reason it would survive that, which is
+  exactly what defence in depth is for.
+
+Historical note: until **29 October 2026** four of CobbleCap's own guards were written
 `WebDashboard.requireWrite(exchange);` as a bare statement, discarding the boolean return
-value, which meant the 403 was sent *and the handler carried on anyway* — a `READ_ONLY`
-account could change caps. They are now `if (!WebDashboard.requireWrite(exchange)) return;`
-in `handleSetCap`, `handleToggleExpLock`, `handleChampions` (the `PUT` branch) and
-`handleConfig` (the `PUT` branch). The fifth call site, `/fireworks/test`, was always
-written as a guarded `else if` in the dispatcher and was never affected. If you run a
-build older than that date, treat every write route as unauthenticated-by-role and give
-nobody a `READ_ONLY` account.
+value, so the 403 was sent *and the handler carried on anyway*. On those builds the module
+contributed nothing and `OPERATOR` was enforced by the dispatcher alone. They now read
+`if (!WebDashboard.requireWrite(exchange)) return;`. The fifth call site,
+`/fireworks/test`, was always a guarded `else if` and was never affected.
 
 ---
 

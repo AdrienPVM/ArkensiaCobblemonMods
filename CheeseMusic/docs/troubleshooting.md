@@ -169,16 +169,19 @@ before the config was built, in which case the module loads but every request an
 Present means the mod is healthy and the problem is CheeseDash's discovery; absent means
 start-up failed and the stack trace above it is the answer.
 
-## A write returns 403 but the change happens anyway
+## I want a music route to require `SUPER_ADMIN` and it only ever asks for `OPERATOR`
 
-**Cause.** A build from before 29 October 2026. The six write routes called
-`WebDashboard.requireWrite(exchange);` and discarded the result, so the `403` was sent and
-the mutation still ran. A `READ_ONLY` session could edit assignments and delete tracks.
+**Cause.** CheeseDash's module dispatch raises the bar to `OPERATOR` for every non-`GET`
+request and stops there — `requireWrite` is the only check it knows. A module route can
+therefore never be more restrictive than `OPERATOR` by inheritance alone, and nothing in
+`MusicApi` calls `requireAdmin`.
 
-**Fix.** Use a build whose `MusicApi` reads
-`if (!WebDashboard.requireWrite(exchange)) return;`. Until then, treat every CheeseDash
-account as an operator, and audit `config/cheesemusic.json` and the pack directory against
-CheeseDash's audit log.
+**Fix.** Add `if (!WebDashboard.requireAdmin(exchange)) return;` as the first statement of
+the handler you want to restrict. Note the `if (!…) return;` form: `requireAdmin` sends its
+own `403` and returns a boolean, so a bare call would send the `403` and then let the
+handler run on. Builds of this mod from before 29 October 2026 contained exactly that
+mistake on the six write routes — a real defect, though not an exploitable one, since the
+core dispatch had already turned away any session below `OPERATOR`.
 
 ## My hand-edit to `config/cheesemusic.json` disappeared
 

@@ -433,8 +433,8 @@ s'exécutent quand même.
 ]
 ```
 
-Donner à un joueur un déclencheur de commande de niveau opérateur est aussi puissant que ça
-en a l'air. Une zone dans laquelle n'importe qui peut entrer, avec `op {player}` dans sa
+Donner à un joueur un déclencheur de commande de niveau opérateur est exactement aussi
+lourd de conséquences qu'il y paraît. Une zone dans laquelle n'importe qui peut entrer, avec `op {player}` dans sa
 liste d'entrée, offre ton serveur. Relis ces listes comme tu relirais une fonction de
 datapack.
 

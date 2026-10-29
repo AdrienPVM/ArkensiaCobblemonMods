@@ -102,8 +102,12 @@ screen is there and works.
 Registers under the `market` prefix, so everything lives at `/api/v1/market/*`: shop,
 set and item CRUD, the layout editor's own routes, PNG asset upload, layout templates,
 the transaction log and statistics. `GET` is readable by any authenticated session;
-every other method needs `OPERATOR`. No route requires `SUPER_ADMIN` — deleting a shop
-is an operator action.
+every other method needs `OPERATOR` — a rule enforced by CheeseDash's own module
+dispatch, not by this mod, which never calls `requireWrite` itself. No market route can
+require `SUPER_ADMIN`, because `OPERATOR` is the only bar that dispatch knows: deleting
+a shop is an operator action. See
+[the dashboard page](docs/dashboard.md#required-roles) for what that does and does not
+guarantee.
 
 A `market_purchase` message goes out on the `market` WebSocket channel after every
 successful purchase, and CheeseDash forwards it to Discord if a webhook is configured.

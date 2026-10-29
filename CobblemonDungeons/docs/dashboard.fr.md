@@ -20,19 +20,48 @@ répond `503` avec `{"error":"CobblemonDungeons not ready"}` à toute requête a
 
 ---
 
-## ⚠️ Toutes les routes sont accessibles à tous les rôles authentifiés
+## Ce que le cœur applique réellement
 
-`DungeonsApi` n'appelle jamais `WebDashboard.requireWrite` ni `WebDashboard.requireAdmin`.
-Pas une seule fois, nulle part dans le fichier. CheeseDash vérifie qu'une session existe
-avant de router vers un module, mais la vérification du rôle est la responsabilité de chaque
-module, et ce module ne l'effectue pas.
+`DungeonsApi` ne contient aucun contrôle de rôle qui lui soit propre. Il n'appelle jamais
+`WebDashboard.requireWrite` ni `WebDashboard.requireAdmin` — pas une seule fois, nulle part
+dans le fichier, sur ses huit routes mutantes.
 
-L'effet pratique : un compte `READ_ONLY` peut créer, modifier et supprimer des
-configurations de donjons, réécrire des fichiers de dresseurs, changer les modèles de
-tickets, déclencher un rechargement, faire échouer de force une partie en cours et expulser
-un joueur d'un donjon. Huit routes mutantes, aucun contrôle de rôle :
+Ce qui tient lieu de ces contrôles, c'est le répartiteur de modules de CheeseDash, dans
+`DashboardApi` :
 
-| Route | Ce qu'une session READ_ONLY peut en faire |
+```java
+DashboardModule module = DashboardRegistry.getModule(prefix);
+if (module != null) {
+    if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+        return;
+    }
+    module.handleRequest(exchange, subRoute);
+    ...
+}
+```
+
+C'est la forme correcte — elle teste la valeur de retour et rend la main — donc dans cette
+version, toute requête non-`GET` vers n'importe quelle route sous `/api/v1/dungeons/` exige
+bien `OPERATOR` ou au-dessus, et les requêtes `GET` acceptent tous les rôles, `READ_ONLY`
+compris. La frontière tient.
+
+Ce qui ne tient pas, c'est la raison pour laquelle elle tient. La protection est une
+propriété du répartiteur du cœur, fondée uniquement sur la méthode HTTP, et le module n'y
+contribue en rien. Trois conséquences :
+
+- **Aucune route de CobblemonDungeons ne peut exiger `SUPER_ADMIN`.** Supprimer un donjon et
+  son fichier, écraser n'importe quel JSON de dresseur et faire échouer de force une partie
+  en cours sont toutes des opérations de niveau `OPERATOR`, parce qu'`OPERATOR` est la seule
+  barre que le répartiteur connaisse.
+- **Un `GET` qui modifierait quelque chose serait totalement sans garde.** Il n'en existe
+  aucun aujourd'hui, mais rien dans le module n'empêcherait d'en ajouter un, et rien ne le
+  signalerait.
+- **Une modification du répartiteur supprimerait tous les contrôles d'un coup.** Cette API
+  n'a pas de seconde ligne de défense.
+
+Les huit routes mutantes, toutes `OPERATOR` ou au-dessus par le répartiteur du cœur :
+
+| Route | Ce qu'elle fait |
 |---|---|
 | `POST /configs` | Créer un donjon |
 | `PUT /configs/:id` | Écraser toute la configuration d'un donjon |
@@ -43,26 +72,21 @@ un joueur d'un donjon. Huit routes mutantes, aucun contrôle de rôle :
 | `POST /active/fail` | Faire échouer de force un donjon en cours |
 | `POST /active/leave` | Retirer un joueur d'un donjon en cours |
 
-Le correctif, pour qui s'en chargera, tient en une ligne au début de chaque gestionnaire
-mutant :
+Un `if (!WebDashboard.requireWrite(exchange)) return;` local au début de chacun de ces
+gestionnaires relèverait de la défense en profondeur — utile, mais redondant avec le
+répartiteur, et ce n'est pas la frontière elle-même.
 
-```java
-if (!WebDashboard.requireWrite(exchange)) return;
-```
-
-`requireWrite` admet `OPERATOR` et au-dessus et répond lui-même à la requête quand il
-refuse : le retour immédiat est donc correct. En attendant que cela soit fait, traite tout
-compte ayant accès au dashboard comme un opérateur pour ce module, et ne distribue pas de
-session `READ_ONLY` en croyant qu'elle est en lecture seule.
-
-La colonne « rôle » des tableaux ci-dessous consigne ce que le code impose aujourd'hui, pas
-ce que chaque route devrait exiger.
+Pour mémoire, `requireWrite` signifie `OPERATOR` ou au-dessus et `requireAdmin` signifie
+`SUPER_ADMIN` ; les deux envoient leur propre `403` et rendent le verdict sous forme de
+booléen. La colonne « rôle » des tableaux qui suivent indique le rôle **réellement** exigé
+dans cette version, et marque par (cœur) les cas où la garantie vient du répartiteur de
+CheeseDash et non du module.
 
 ## Les configurations de donjons
 
 ### `GET /configs`
 
-Résumés de chaque donjon enregistré. Rôle : toute session authentifiée.
+Résumés de chaque donjon enregistré. Rôle : tous les rôles, `READ_ONLY` compris.
 
 ```json
 [
@@ -87,7 +111,7 @@ sont comptés en direct depuis les tables d'instances.
 ### `GET /configs/:id`
 
 Le `DungeonConfig` complet du donjon, sérialisé par Gson exactement comme le serait le
-fichier sur le disque. Rôle : toute session authentifiée. `404` avec
+fichier sur le disque. Rôle : tous les rôles, `READ_ONLY` compris. `404` avec
 `{"error":"Dungeon not found"}` si l'identifiant est inconnu.
 
 Les identifiants dans le chemin sont validés : un identifiant contenant `..`, `/`, `\` ou
@@ -96,7 +120,7 @@ Les identifiants dans le chemin sont validés : un identifiant contenant `..`, `
 
 ### `POST /configs`
 
-Crée un donjon. Rôle : **toute session authentifiée** (voir l'avertissement ci-dessus).
+Crée un donjon. Rôle : `OPERATOR` ou au-dessus (cœur).
 
 ```json
 { "id": "ruins_of_arkensia", "name": "Ruins of Arkensia" }
@@ -118,7 +142,7 @@ le message de l'exception.
 
 ### `PUT /configs/:id`
 
-Remplace toute la configuration. Rôle : **toute session authentifiée**. Le corps est un
+Remplace toute la configuration. Rôle : `OPERATOR` ou au-dessus (cœur). Le corps est un
 document `DungeonConfig` complet ; tout ce que tu omets revient à la valeur par défaut du
 champ, donc il s'agit d'un remplacement et non d'une fusion. Le `general.id` du corps est
 ignoré — l'identifiant du chemin gagne toujours, donc un donjon ne peut pas être renommé par
@@ -134,7 +158,7 @@ Réponses : `200` avec la configuration stockée, `404` si inconnue, `400`
 ### `DELETE /configs/:id`
 
 Supprime le fichier, puis exécute un `ConfigLoader.load()` complet pour reconstruire le
-registre. Rôle : **toute session authentifiée**. Répond `200 {"deleted":true}`, ou `404` si
+registre. Rôle : `OPERATOR` ou au-dessus (cœur). Répond `200 {"deleted":true}`, ou `404` si
 inconnu.
 
 Une partie en cours du donjon supprimé continue : son instance détient son propre objet de
@@ -144,7 +168,7 @@ configuration.
 
 `ConfigLoader.load()` sur le thread serveur : vide le registre, relit `config.json`,
 `dungeon_tickets.json`, chaque `dungeons/*.json`, puis l'historique des parties, les
-cooldowns et le classement. Rôle : **toute session authentifiée**. Répond
+cooldowns et le classement. Rôle : `OPERATOR` ou au-dessus (cœur). Répond
 `200 {"reloaded":true}`.
 
 Les dresseurs ne sont **pas** rechargés — `TrainerLoader.load` ne tourne qu'au démarrage du
@@ -154,7 +178,7 @@ serveur.
 
 ### `GET /tickets`
 
-Le contenu brut de `dungeon_tickets.json`. Rôle : toute session authentifiée.
+Le contenu brut de `dungeon_tickets.json`. Rôle : tous les rôles, `READ_ONLY` compris.
 
 ```json
 { "tickets": [ { "dungeonId": "generic_dungeon", "itemName": "§6Copper Dungeon Ticket", "tier": 1 } ] }
@@ -162,8 +186,8 @@ Le contenu brut de `dungeon_tickets.json`. Rôle : toute session authentifiée.
 
 ### `PUT /tickets`
 
-Remplace la configuration des tickets et l'enregistre sur le disque. Rôle : **toute session
-authentifiée**. Renvoie la configuration stockée.
+Remplace la configuration des tickets et l'enregistre sur le disque. Rôle : `OPERATOR` ou
+au-dessus (cœur). Renvoie la configuration stockée.
 
 Un corps qui n'est pas du JSON valide est avalé : `ConfigLoader.updateTicketConfig` capture
 l'exception, journalise `Failed to update dungeon tickets config from server`, et la route
@@ -177,8 +201,8 @@ leur prochaine connexion.
 
 ### `GET /trainers`
 
-Liste les fichiers de `config/cobblemon_dungeons/trainers/`. Rôle : toute session
-authentifiée.
+Liste les fichiers de `config/cobblemon_dungeons/trainers/`. Rôle : tous les rôles,
+`READ_ONLY` compris.
 
 ```json
 [ { "id": "example_trainer", "filename": "example_trainer.json" } ]
@@ -188,13 +212,14 @@ Un dossier absent donne un tableau vide.
 
 ### `GET /trainers/:id`
 
-Le contenu brut du fichier `<id>.json`, servi tel quel. Rôle : toute session authentifiée.
+Le contenu brut du fichier `<id>.json`, servi tel quel. Rôle : tous les rôles, `READ_ONLY`
+compris.
 `404` `{"error":"Trainer file not found"}` si le fichier n'existe pas.
 
 ### `PUT /trainers/:id`
 
 Valide que le corps s'analyse comme du JSON, crée le dossier si besoin, et écrit le corps
-tel quel dans `<id>.json`. Rôle : **toute session authentifiée**. Renvoie le corps en cas de
+tel quel dans `<id>.json`. Rôle : `OPERATOR` ou au-dessus (cœur). Renvoie le corps en cas de
 succès, `400` `{"error":"Invalid JSON: …"}` sinon.
 
 Seule la syntaxe JSON est vérifiée — pas le fait que RCTApi puisse en faire un dresseur. Un
@@ -210,7 +235,7 @@ configuration, donc le chemin ne peut pas sortir du dossier des dresseurs.
 ### `GET /active`
 
 Chaque instance vivante, dédoublonnée — la table d'instances étant indexée par joueur, un
-groupe de quatre apparaîtrait sinon quatre fois. Rôle : toute session authentifiée.
+groupe de quatre apparaîtrait sinon quatre fois. Rôle : tous les rôles, `READ_ONLY` compris.
 
 ```json
 {
@@ -244,8 +269,8 @@ démarrage, pas un nombre d'instances.
 
 ### `POST /active/fail`
 
-Fait échouer de force la partie dans laquelle se trouve le joueur donné. Rôle : **toute
-session authentifiée**.
+Fait échouer de force la partie dans laquelle se trouve le joueur donné. Rôle : `OPERATOR`
+ou au-dessus (cœur).
 
 ```json
 { "playerUuid": "0b1c…" }
@@ -262,8 +287,8 @@ même `200 {"failed":true}` — le travail est planifié et ne fait rien, silenc
 
 ### `POST /active/leave`
 
-Retire un seul joueur de sa partie, en y laissant le reste du groupe. Rôle : **toute session
-authentifiée**. Même forme de corps. Le joueur voit *Vous avez été retiré du donjon par un
+Retire un seul joueur de sa partie, en y laissant le reste du groupe. Rôle : `OPERATOR` ou
+au-dessus (cœur). Même forme de corps. Le joueur voit *Vous avez été retiré du donjon par un
 administrateur.* et passe par le chemin de sortie normal, ce qui, sur une partie non
 terminée, signifie que sa progression dans le donjon n'est pas sauvegardée.
 
@@ -275,8 +300,8 @@ effet qui rapporte malgré tout un succès.
 
 ### `GET /stats`
 
-Agrégats calculés à la volée depuis l'historique des parties en mémoire. Rôle : toute
-session authentifiée. Les définitions exactes sont dans
+Agrégats calculés à la volée depuis l'historique des parties en mémoire. Rôle : tous les
+rôles, `READ_ONLY` compris. Les définitions exactes sont dans
 [classements et historique des parties](records.fr.md#les-statistiques).
 
 ```json
@@ -291,8 +316,8 @@ session authentifiée. Les définitions exactes sont dans
 
 ### `GET /stats/history?n=50`
 
-Les parties les plus récentes, les plus récentes d'abord. Rôle : toute session
-authentifiée.
+Les parties les plus récentes, les plus récentes d'abord. Rôle : tous les rôles,
+`READ_ONLY` compris.
 
 | Paramètre | Type | Défaut | Plage |
 |---|---|---|---|
@@ -307,7 +332,7 @@ authentifiée.
 
 ### `GET /leaderboard` et `GET /leaderboard/:dungeonId`
 
-Rôle : toute session authentifiée. Les deux renvoient la même forme imbriquée —
+Rôle : tous les rôles, `READ_ONLY` compris. Les deux renvoient la même forme imbriquée —
 identifiant de donjon, puis tier en clé de type chaîne, puis un tableau d'entrées triées du
 plus rapide au plus lent :
 
@@ -326,8 +351,8 @@ enregistré renvoie `{"<dungeonId>": {}}`.
 
 ### `GET /config`
 
-Le contenu de `config.json`, avec `database.password` remplacé par `"***"`. Rôle : toute
-session authentifiée.
+Le contenu de `config.json`, avec `database.password` remplacé par `"***"`. Rôle : tous
+les rôles, `READ_ONLY` compris.
 
 ```json
 { "database": { "useSql": false, "host": "localhost", "port": 3306,

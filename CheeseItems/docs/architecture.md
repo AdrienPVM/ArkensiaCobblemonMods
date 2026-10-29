@@ -132,10 +132,11 @@ safely use the totem texture.
 Written down because the next person will hit them.
 
 1. **An `OPERATOR` here is a console.** An item's `useActions` run arbitrary commands at
-   permission level 4, so anyone able to author an item can run anything. Role guards
-   were absent from both API files until 29 October 2026, which made that reachable by a
-   `READ_ONLY` session; a method-level guard now restricts every mutating route to
-   `OPERATOR`. The escalation path from `OPERATOR` remains by design.
+   permission level 4, so anyone able to author an item can run anything. Mutating routes
+   are restricted to `OPERATOR` by a method-level guard in both API files, and again by
+   CheeseDash's module dispatcher — which is also the ceiling: because the central guard
+   only knows `requireWrite`, no route here can require `SUPER_ADMIN`. The escalation path
+   from `OPERATOR` remains by design.
    [Details](dashboard.md#authentication-and-role-guards).
 2. **`soulbound` deletes items.** `UseHandler.onPlayerDeath` stashes soulbound stacks and
    clears them from the inventory; `onPlayerRespawn`, which would give them back, has no

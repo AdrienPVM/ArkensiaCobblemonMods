@@ -79,7 +79,7 @@ joueurs peuvent réellement atteindre. Parcours complet :
 | [Items personnalisés](docs/items.fr.md) | Le modèle d'un item : identité, options, utilisations, cooldowns, effets, actions de commande, conditions, endurance par item, et les options qui ne font rien |
 | [Resource pack](docs/resource-pack.fr.md) | Comment les PNG envoyés deviennent un pack, l'attribution des CustomModelData, la police de la barre d'endurance, ce que le pack écrase |
 | [Morphos](docs/morphos.fr.md) | Le catalogue, le Codex par joueur, l'interface, l'activation, la réserve d'endurance, comment CobbleShift est piloté |
-| [API dashboard](docs/dashboard.fr.md) | Les deux modules, chaque route REST, les formes de requête et de réponse, les deux canaux WebSocket, et les gardes de rôle manquantes |
+| [API dashboard](docs/dashboard.fr.md) | Les deux modules, chaque route REST, les formes de requête et de réponse, les deux canaux WebSocket, et ce que les gardes de rôle couvrent ou non |
 | [Architecture](docs/architecture.fr.md) | Arborescence des packages, responsabilités des classes, moments d'écriture disque, threading, le mixin du totem, points d'extension, faiblesses connues |
 | [Dépannage](docs/troubleshooting.fr.md) | Symptôme, cause, remède — dont les trois façons qu'a un item de ne rien faire en silence |
 
@@ -114,10 +114,10 @@ et la boutique web les récupèrent.
 
 > ⚠️ **Sur ce module, un `OPERATOR` équivaut à un accès console.** Un item peut porter des
 > `useActions` dont les commandes s'exécutent au niveau de permission 4 : quiconque peut
-> écrire un item peut donc tout lancer. Les gardes de rôle étaient totalement absents
-> jusqu'au 29 octobre 2026, ce qui rendait cela atteignable par une session `READ_ONLY` ;
-> ils sont désormais en place et les routes d'écriture exigent `OPERATOR`. Accorde ce rôle
-> en conséquence. Détails dans
+> écrire un item peut donc tout lancer. Les routes d'écriture exigent `OPERATOR` ou plus —
+> appliqué à la fois par le module et par le répartiteur de CheeseDash — et `OPERATOR` est
+> aussi la barre maximale qu'une route de module puisse atteindre. Accorde ce rôle en
+> conséquence. Détails dans
 > [dashboard](docs/dashboard.fr.md#authentification-et-gardes-de-rôle).
 
 ## Avertissements honnêtes

@@ -110,11 +110,13 @@ configuration globale, et qui écoute quoi en ce moment. Dans la barre latérale
 apparaît comme **CheeseMusic** 🎵 avec la description *Musique de zones*. Il ne publie rien
 sur aucun canal WebSocket.
 
-Les lectures sont ouvertes à n'importe quelle session authentifiée ; les six routes
-d'écriture exigent `OPERATOR` ou plus. Ces gardes ont été réparés le 29 octobre 2026 — une
-version antérieure envoyait le `403` puis appliquait quand même la modification, de sorte
-qu'un compte `READ_ONLY` pouvait éditer les assignations. Si tu fais tourner un jar plus
-ancien, lis [dashboard](docs/dashboard.fr.md#rôles) avant de te fier à ses rôles.
+Les lectures sont ouvertes à n'importe quelle session authentifiée ; les écritures exigent
+`OPERATOR` ou plus. C'est appliqué deux fois : le répartiteur de modules de CheeseDash
+exige `OPERATOR` pour toute requête non-`GET` avant d'atteindre le module, et les six
+routes d'écriture le revérifient elles-mêmes. Aucune route ici ne peut exiger
+`SUPER_ADMIN` — `requireAdmin` n'est jamais appelée, et le répartiteur ne monte jamais la
+barre plus haut qu'`OPERATOR`. Voir [dashboard](docs/dashboard.fr.md#rôles) pour ce que
+cela garantit et ce que cela ne garantit pas.
 
 ## État réel du mod
 

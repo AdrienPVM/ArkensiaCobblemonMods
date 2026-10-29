@@ -278,9 +278,14 @@ rendu : manquer l'un des deux donne un nom impossible à régler, ou un nom qui 
 n'affiche rien.
 
 **Une nouvelle route REST.** Ajoute une branche dans `CheesePatrolApi.handle`. Écris le
-garde de rôle sous la forme `if (!WebDashboard.requireWrite(exchange)) return;` — et non
-sous la forme utilisée par la route `/tp` existante. Enveloppe tout ce qui touche au monde
-dans `WebDashboard.executeOnServerThread`.
+garde de rôle sous la forme `if (!WebDashboard.requireWrite(exchange)) return;`, celle
+qu'utilise déjà `/tp` — c'est le fait de tester la valeur de retour qui en fait un garde.
+Enveloppe tout ce qui touche au monde dans `WebDashboard.executeOnServerThread`. Ce garde
+local est de la défense en profondeur : le répartiteur de modules de CheeseDash exige déjà
+`OPERATOR` pour toute requête non-`GET` avant que le module ne s'exécute. Deux choses qu'il
+ne fera pas à ta place : il ne regarde que la méthode HTTP, donc un `GET` qui modifierait
+quelque chose arriverait sans garde ; et il ne monte jamais la barre au-dessus d'`OPERATOR`,
+donc une route qui mérite `SUPER_ADMIN` doit appeler `WebDashboard.requireAdmin` elle-même.
 
 **Des mises à jour WebSocket.** Rien n'existe encore. `DashboardRegistry.broadcast(...)`
 depuis le thread serveur est le mécanisme ; `advanceToNextWaypoint` et les transitions
@@ -350,9 +355,11 @@ Dites franchement, parce que les découvrir par surprise est pire.
   pleine écriture perd tous les trajets.
 - **`fromJson` ne borne pas.** Des valeurs éditées à la main hors des plages documentées sont
   acceptées et utilisées.
-- **`POST /tp` ignore la valeur de retour de `requireWrite`** : une session READ_ONLY reçoit
-  un 403 et la téléportation. Défaut partagé avec `KartApi` et `RacesApi` ; à corriger d'une
-  passe sur tout le dépôt.
+- **Aucune route ne peut être plus stricte qu'`OPERATOR`.** `/tp` se garde elle-même avec
+  `requireWrite`, et le répartiteur de modules de CheeseDash applique de toute façon le même
+  contrôle à toute requête non-`GET` ; rien n'appelle `requireAdmin`, et le répartiteur
+  n'offre aucun moyen de réclamer `SUPER_ADMIN`. Un opérateur peut donc téléporter n'importe
+  quel joueur connecté, et c'est voulu.
 - **`GET /list` lit des entités depuis le thread HTTP** sans passer par le thread serveur.
 - **La comptabilité des chunks d'une patrouille peut annuler un `/forceload`
   d'administrateur** sur un chunk qu'une patrouille traverse. Voir

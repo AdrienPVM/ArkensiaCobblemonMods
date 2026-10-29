@@ -292,18 +292,21 @@ rien, et aucun package `commands/` n'existe. Chaque opération passe par le dash
 l'API REST. Si une autre documentation t'a donné une commande `/cobblecheesescore …`, elle
 n'existe pas dans cette version.
 
-## Un compte READ_ONLY a changé quelque chose
+## Un OPERATOR a changé quelque chose que je voulais verrouillé
 
-**Cause.** `ScoresApi` ne contient aucun appel à `WebDashboard.requireWrite` ni à
-`requireAdmin`. Le seul verrou est le middleware d'authentification de CheeseDash, qui
-vérifie que la session est valide et ne vérifie pas son rôle. Toutes les routes du module —
-y compris `PUT /scoreboards/:id`, `POST /refresh` et toutes les mutations de mini-jeux —
-sont ouvertes à n'importe quelle session authentifiée.
+**Cause.** C'est voulu, et c'est le plafond. `ScoresApi` ne contient aucun appel à
+`WebDashboard.requireWrite` ni à `requireAdmin` : le seul contrôle de rôle est celui que le
+répartiteur de modules de CheeseDash applique à toute requête non-`GET`, soit `OPERATOR` ou
+au-dessus. Cela couvre `PUT /scoreboards/:id`, `POST /refresh`, `PUT /config` et les cinq
+mutations de mini-jeux — une session `READ_ONLY` est refusée en `403` sur chacune, mais un
+`OPERATOR` est autorisé sur toutes indifféremment. Il n'y a pas de distinction plus fine à
+l'intérieur du module.
 
-**Remède.** Il n'y a aucune configuration pour cela ; il faut une modification de code, une
-clause de garde par handler mutant. En attendant, considère un compte CheeseDash READ_ONLY
-comme ayant un accès complet en écriture sur ce module, et restreins les comptes en
-conséquence. Tous les détails dans [dashboard](dashboard.fr.md#rôle-requis).
+**Remède.** Rien ici ne peut exiger `SUPER_ADMIN` sans modification de code : le répartiteur
+ne connaît que la barre `OPERATOR`, et une route qui demanderait davantage doit appeler
+`WebDashboard.requireAdmin` elle-même. En attendant qu'une route le fasse, ne donne
+`OPERATOR` qu'à des gens à qui tu confierais toutes les écritures de ce module. Tous les
+détails dans [dashboard](dashboard.fr.md#rôle-requis).
 
 ## Le classement d'un mini-jeu est à l'envers
 
@@ -380,8 +383,8 @@ Ouvre-le sur
    Cette seule commande sépare un problème de serveur d'un problème de client.
 
 N'ouvre pas d'issue publique pour un problème de sécurité — `SECURITY.md` à la racine du
-dépôt explique où l'envoyer. L'absence de contrôles de rôle documentée ci-dessus est déjà
-connue.
+dépôt explique où l'envoyer. L'absence de contrôles de rôle locaux documentée ci-dessus est
+déjà connue, de même que le fait que le répartiteur du cœur y pourvoie.
 
 ---
 

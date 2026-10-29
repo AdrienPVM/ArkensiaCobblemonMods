@@ -23,20 +23,48 @@ Authorization: Bearer <session-token>
 Obtiens-en une auprès de `POST /api/v1/auth/login`. Les routes de lecture acceptent tous
 les rôles, `READ_ONLY` compris.
 
-> ⚠️ **Le garde d'écriture de ce module n'empêche en réalité rien.** Chaque route qui
-> modifie quelque chose appelle `WebDashboard.requireWrite(exchange)` et **jette sa
-> valeur de retour**. Cette méthode ne lève pas d'exception : elle envoie le `403`
-> elle-même et rend le verdict sous forme de booléen. L'appel correct est
-> `if (!WebDashboard.requireWrite(exchange)) return;`, et c'est ce que font les routes
-> de CheeseDash lui-même. Ici, une session `READ_ONLY` reçoit un `403` **et** l'action
-> est exécutée quand même.
->
-> Prends donc les rôles indiqués ci-dessous comme une intention, pas comme une frontière
-> appliquée : dans cette version, n'importe quelle session authentifiée, quel que soit
-> son rôle, peut démarrer un kart, en arrêter un, ou créer, modifier et supprimer des
-> presets. Tant que ce n'est pas corrigé, ne distribue pas de comptes `READ_ONLY` en
-> comptant sur le fait qu'ils soient en lecture seule. La même erreur est présente dans
-> CheeseMusic, CheesePatrol, CobbleCap et le module de courses de CheeseGuard.
+## Ce que le cœur applique réellement
+
+Chaque branche mutante de `KartApi.handle` se garde elle-même sous la forme correcte —
+elle teste la valeur de retour et rend la main :
+
+```java
+} else if (path.equals("/presets") && method.equals("POST")) {
+    if (!WebDashboard.requireWrite(exchange)) return;
+    handleCreatePreset(exchange);
+```
+
+`requireWrite` ne lève pas d'exception : elle envoie le `403` elle-même et rend le verdict
+sous forme de booléen, donc son résultat doit être exploité — et il l'est ici.
+
+La même frontière est appliquée une seconde fois, avant même que CheeseKart ne voie la
+requête, par le répartiteur de modules de CheeseDash dans `DashboardApi` :
+
+```java
+DashboardModule module = DashboardRegistry.getModule(prefix);
+if (module != null) {
+    if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+        return;
+    }
+    module.handleRequest(exchange, subRoute);
+    ...
+}
+```
+
+Les rôles indiqués ci-dessous sont donc bien appliqués : `GET` accepte tous les rôles,
+`READ_ONLY` compris, et toute autre méthode exige `OPERATOR` ou au-dessus. Les gardes
+propres au module sont de la défense en profondeur — utiles, et redondants avec le garde
+central. Trois conséquences découlent de l'endroit où se trouve la vraie frontière :
+
+- **Aucune route de CheeseKart ne peut exiger `SUPER_ADMIN`.** Le garde central ne connaît
+  que `requireWrite` : `OPERATOR` est donc la barre maximale atteignable par son biais. Une
+  route qui mériterait davantage devrait appeler `requireAdmin` elle-même ; aucune ne le
+  fait.
+- **Une route mutante exposée en `GET` ne serait pas gardée du tout par le cœur** — le
+  répartiteur ne regarde que la méthode HTTP. Il n'en existe aucune ici aujourd'hui.
+- **Une seule modification de ce répartiteur ferait tomber le contrôle central partout d'un
+  coup**, sans qu'aucun module s'en aperçoive. Sur ce module, les gardes par branche
+  tiendraient encore.
 
 Si CheeseKart n'a pas fini de démarrer — ou si le serveur n'est pas en marche — chaque
 route répond `503` avec `{"error":"CheeseKart not ready"}`, plutôt que d'échouer d'une

@@ -105,8 +105,12 @@ Enregistré sous le préfixe `market` : tout vit donc sur `/api/v1/market/*` —
 boutiques, des sets et des items, les routes propres à l'éditeur de mise en page, le
 téléversement d'assets PNG, les templates de mise en page, le journal des transactions et
 les statistiques. `GET` est lisible par toute session authentifiée ; toute autre méthode
-exige `OPERATOR`. Aucune route n'exige `SUPER_ADMIN` — supprimer une boutique est une
-action d'opérateur.
+exige `OPERATOR` — une règle appliquée par le dispatch de modules de CheeseDash, pas par
+ce mod, qui n'appelle jamais `requireWrite` lui-même. Aucune route market ne peut exiger
+`SUPER_ADMIN`, parce qu'`OPERATOR` est la seule barre que ce dispatch connaisse :
+supprimer une boutique est une action d'opérateur. Voir
+[la page dashboard](docs/dashboard.fr.md#rôles-requis) pour ce que cela garantit et ce
+que cela ne garantit pas.
 
 Un message `market_purchase` part sur le canal WebSocket `market` après chaque achat
 réussi, et CheeseDash le relaie vers Discord si un webhook est configuré.

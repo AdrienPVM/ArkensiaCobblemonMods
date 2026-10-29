@@ -332,9 +332,11 @@ The test loop working is necessary, not sufficient. Go through this, in order:
    specific server, in one jurisdiction. Publishing them as your own is worse than
    having none.
 4. **Read [SECURITY.md](../../SECURITY.md).**
-5. **Treat every CheeseDash account as a full store operator.** A `READ_ONLY` session
-   can set wallet balances and overwrite your Stripe keys —
-   [why](dashboard.md#the-missing-role-guards).
+5. **Treat every `OPERATOR` account as a full store operator.** Writes do require
+   `OPERATOR` — a `READ_ONLY` session is genuinely read-only — but no route here can
+   require more than that, so `OPERATOR` is enough to set wallet balances and
+   overwrite your Stripe keys.
+   [Why](dashboard.md#what-the-core-actually-enforces).
 6. **Decide how you will notice a `FAILED` order.** Nothing alerts you. The counter
    is in `GET /api/v1/store/stats`, and that is the whole mechanism.
 7. **Swap test keys for live keys, and create a new webhook endpoint.** The signing

@@ -133,8 +133,8 @@ La raison d'être du mod. Chaque entrée lance une commande serveur quand l'item
 `server.getCommandManager().executeWithPrefix(server.getCommandSource(), cmd)`. C'est le
 niveau de permission 4. Un clic droit par n'importe quel joueur peut donc lancer `op`,
 `ban`, `stop` ou n'importe quoi d'autre — la définition de l'item est la frontière de
-sécurité, et les routes du dashboard qui écrivent les définitions
-[ne vérifient aucun rôle](dashboard.fr.md#authentification-et-gardes-de-rôle).
+sécurité, et les routes du dashboard qui écrivent les définitions n'exigent qu'`OPERATOR`
+([pourquoi](dashboard.fr.md#authentification-et-gardes-de-rôle)).
 
 La commande différée est lancée depuis une liste que le mod fait avancer lui-même. Elle est
 en mémoire : un redémarrage entre l'utilisation et l'échéance abandonne la suite en

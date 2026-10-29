@@ -75,7 +75,7 @@ actually reach. Full walkthrough: [installation](docs/installation.md).
 | [Custom items](docs/items.md) | The item model: identity, flags, uses, cooldowns, effects, command actions, conditions, per-item endurance, and which flags do nothing |
 | [Resource pack](docs/resource-pack.md) | How uploaded PNGs become a pack, the CustomModelData assignment, the endurance bar font, what the pack overwrites |
 | [Morphos](docs/morphos.md) | The catalog, the per-player Codex, the GUI, the toggle, the endurance pool, how CobbleShift is driven |
-| [Dashboard API](docs/dashboard.md) | Both modules, every REST route, request and response shapes, the two WebSocket channels, and the missing role guards |
+| [Dashboard API](docs/dashboard.md) | Both modules, every REST route, request and response shapes, the two WebSocket channels, and what the role guards do and do not cover |
 | [Architecture](docs/architecture.md) | Package layout, class responsibilities, persistence timing, threading, the totem mixin, extension points, known weaknesses |
 | [Troubleshooting](docs/troubleshooting.md) | Symptom, cause, fix — including the three ways an item silently does nothing |
 
@@ -109,9 +109,9 @@ images, which is how the in-game GUI and the public store fetch them.
 
 > ⚠️ **An `OPERATOR` on this module is equivalent to console access.** Items can carry
 > `useActions` whose commands run at permission level 4, so anyone who can author an item
-> can run anything. Role guards were missing entirely until 29 October 2026 — any
-> `READ_ONLY` session could do this — and are now in place, so write routes require
-> `OPERATOR`. Grant that role accordingly. Details in
+> can run anything. Write routes require `OPERATOR` or above — enforced both by the module
+> and by CheeseDash's own dispatcher — and `OPERATOR` is also the highest bar any module
+> route can reach. Grant that role accordingly. Details in
 > [dashboard](docs/dashboard.md#authentication-and-role-guards).
 
 ## Honest warnings

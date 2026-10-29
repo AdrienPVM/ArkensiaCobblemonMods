@@ -122,9 +122,10 @@ behind it. Creating and editing circuits is commands-only.
   standing behind a wall, and will not resume while they stay there.
 - **Patrol NPCs cannot be killed** while their patrol is registered. `/kill` is blocked
   by a mixin. Run `/npcpatrol clear` first.
-- ⚠️ **`POST /api/v1/patrol/tp` does not enforce its role check.** The call that should
-  reject a READ_ONLY session ignores its own result, so the teleport happens anyway. See
-  [dashboard](docs/dashboard.md#post-tp).
+- **No patrol route can require SUPER_ADMIN.** `POST /api/v1/patrol/tp` needs OPERATOR,
+  enforced both by the route itself and by CheeseDash's module dispatch; OPERATOR is also
+  the ceiling, because the dispatch knows no stricter check and neither handler calls
+  `requireAdmin`. See [dashboard](docs/dashboard.md#post-tp).
 - Only ever run against EasyNPC. Behaviour with another NPC mod is an expectation, not a
   measurement.
 

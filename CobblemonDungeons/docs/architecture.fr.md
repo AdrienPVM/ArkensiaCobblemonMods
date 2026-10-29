@@ -243,9 +243,15 @@ données et n'est lu par rien.
 journalise et annonce, et son propre commentaire dit que l'intégration avec `DungeonManager`
 est un travail futur.
 
-**Le dashboard n'impose aucun rôle.** `DungeonsApi` n'appelle jamais `requireWrite` ni
-`requireAdmin` : huit routes mutantes sont ouvertes à toute session authentifiée, y compris
-`READ_ONLY`. Documenté en détail dans [la page dashboard](dashboard.fr.md).
+**La frontière des rôles du dashboard vit dans le cœur, pas ici.** `DungeonsApi` n'appelle
+jamais `requireWrite` ni `requireAdmin`. La frontière tient quand même — le répartiteur de
+modules de CheeseDash exige `OPERATOR` ou au-dessus pour toute requête non-`GET` vers
+n'importe quel module, donc les huit routes mutantes sont de niveau `OPERATOR` et les `GET`
+acceptent tous les rôles. Mais la garantie est une propriété du répartiteur du cœur, fondée
+uniquement sur la méthode HTTP : aucune route ici ne peut exiger `SUPER_ADMIN`, un `GET` qui
+modifierait quelque chose serait sans garde, et une seule modification de ce répartiteur
+ferait tomber tous les contrôles d'un coup, sans seconde ligne de défense dans cette API.
+Documenté en détail dans [la page dashboard](dashboard.fr.md).
 
 **Le `deathCount` de l'historique est dérivé et faux pour les groupes ayant perdu des
 membres**, parce que le total de vies de départ est recalculé depuis le nombre de joueurs au

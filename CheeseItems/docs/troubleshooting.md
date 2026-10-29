@@ -215,19 +215,26 @@ server so CheeseDash re-runs discovery. If the module shows but every request an
 `503 {"error":"CheeseItems not ready"}`, the server reference is still null — that is
 normal during startup and means something is holding `SERVER_STARTED` up.
 
-## A `READ_ONLY` account can edit items
+## My route cannot require `SUPER_ADMIN`
 
-**Cause.** You are running a build from before 29 October 2026. Neither `ItemsApi` nor
-`MorphoCatalogApi` checked the caller's role, so any authenticated session could create,
-edit, delete and give items — and item `useActions` run as the console at permission
-level 4, which turns that into full command execution.
+**Cause.** Role enforcement for module routes lives in CheeseDash's dispatcher, and it
+only knows `requireWrite` — `OPERATOR` or above for every non-`GET` request, any role for
+`GET`. `OPERATOR` is therefore the highest bar a module route reaches by default, however
+sensitive the operation.
 
-**Fix.** Update the mod. Current builds guard every non-`GET` route with
-`requireWrite`, so writes need `OPERATOR`. To confirm which build you have, call
-`POST /api/v1/items/reload` with a `READ_ONLY` session: a `403` means you are guarded, a
-`200` means you are not.
+**Fix.** Call `WebDashboard.requireAdmin(exchange)` at the top of that handler and act on
+its return value, the same way the existing guards act on `requireWrite`:
 
-`OPERATOR` is still equivalent to console access on this module, by design.
+```java
+if (!WebDashboard.requireAdmin(exchange)) return;
+```
+
+No route in CheeseItems does this today. Note also that a mutating route exposed as `GET`
+would be guarded by neither layer, since the central check keys purely on the HTTP method.
+
+Separately, an `OPERATOR` is equivalent to console access on this module, by design: item
+`useActions` run as the console at permission level 4, so anyone who can write an item
+definition can run anything. Grant the role accordingly.
 [Details](dashboard.md#authentication-and-role-guards).
 
 ## Filing a useful bug report

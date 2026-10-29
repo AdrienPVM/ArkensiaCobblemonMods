@@ -133,8 +133,8 @@ Téléporte un **joueur** au point de passage situé un cran au-delà de celui v
 NPC marche actuellement, pour que le joueur arrive devant le NPC et non derrière. La
 commande ne déplace pas le NPC.
 
-**Rôle requis : OPERATOR ou plus** — en intention. ⚠️ Voir l'avertissement ci-dessous : ce
-n'est pas appliqué.
+**Rôle requis : OPERATOR ou plus.** Appliqué deux fois — voir
+[la note sur l'endroit où vit le contrôle de rôle](#où-vit-le-contrôle-de-rôle) ci-dessous.
 
 **Corps de la requête :**
 
@@ -180,23 +180,48 @@ pas celle du joueur, et conserve son yaw et son pitch.
 | `400` | `{"error":"Dimension not found: <id>"}` | la dimension de la patrouille n'est pas chargée sur ce serveur |
 | `404` | `{"error":"Patrol not found"}` | aucune patrouille pour cet UUID |
 | `404` | `{"error":"Player not found: <name>"}` | pas connecté |
+| `403` | celui de CheeseDash | le rôle de la session est inférieur à OPERATOR |
 | `500` | `{"error":"<message d'exception>"}` | tout le reste, y compris un JSON malformé |
 
-⚠️ **Le contrôle de rôle ne fonctionne pas.** Le dispatcher appelle :
+### Où vit le contrôle de rôle
+
+`CheesePatrolApi` garde cette route lui-même, dans la forme correcte :
 
 ```java
-WebDashboard.requireWrite(exchange);
-handleTp(exchange, server);
+} else if (path.equals("/tp") && method.equals("POST")) {
+    if (!WebDashboard.requireWrite(exchange)) return;
+    handleTp(exchange, server);
 ```
 
-`requireWrite` envoie un `403` et renvoie `false` quand la session n'a pas OPERATOR, mais la
-valeur de retour est jetée et `handleTp` s'exécute quand même. Une session `READ_ONLY`
-reçoit donc un 403 **et** voit la téléportation programmée. La forme correcte, utilisée
-ailleurs dans le dépôt, est `if (!WebDashboard.requireWrite(exchange)) return;`. C'est la
-même erreur que font `KartApi` de CheeseKart et `RacesApi` de CheeseGuard : c'est donc un
-motif présent dans tout le dépôt, à corriger d'une seule passe, plutôt qu'un oubli propre à
-CheesePatrol. En attendant, considère que les comptes `READ_ONLY` peuvent téléporter des
-joueurs.
+`requireWrite` envoie le `403` et renvoie `false` quand la session n'a pas OPERATOR, et
+c'est le fait de tester la valeur de retour qui rend le garde réel — un
+`WebDashboard.requireWrite(exchange);` nu enverrait le `403` puis exécuterait quand même le
+handler.
+
+Cet appel local n'est pourtant pas la seule chose qui fasse barrage. Le répartiteur de
+modules de CheeseDash, dans `DashboardApi`, garde déjà tous les modules avant que le module
+ne voie la requête :
+
+```java
+DashboardModule module = DashboardRegistry.getModule(prefix);
+if (module != null) {
+    if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+        return;
+    }
+    module.handleRequest(exchange, subRoute);
+```
+
+L'appel propre au module est donc de la défense en profondeur : utile, et redondant dans
+cette configuration. Trois conséquences du fait que la vraie frontière vit dans le cœur :
+
+- **Aucune route patrol ne peut exiger `SUPER_ADMIN`.** Le répartiteur ne connaît que
+  `requireWrite` : `OPERATOR` est donc le plafond, à moins qu'un handler n'appelle
+  `requireAdmin` lui-même. Aucun des deux ne le fait.
+- **Un `GET` qui modifierait quelque chose ne serait attrapé que par le module.** `/tp` est
+  un `POST`, donc le point est théorique ici, mais le répartiteur ne regarde que la méthode
+  HTTP et laisserait passer tel quel un `GET` mutant.
+- **Une modification du répartiteur ne désarmerait pas `/tp`**, grâce à l'appel local — à la
+  différence des modules qui ne se gardent pas eux-mêmes.
 
 **Le 200 signifie « programmé », pas « fait ».** La téléportation passe par
 `WebDashboard.executeOnServerThread`, qui attend jusqu'à 5 secondes que le thread serveur

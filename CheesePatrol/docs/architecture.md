@@ -262,8 +262,13 @@ validation, and only the switch feeds rendering, so missing either gives you a n
 cannot be set or a name that sets but shows nothing.
 
 **A new REST route.** Add a branch in `CheesePatrolApi.handle`. Write the role guard as
-`if (!WebDashboard.requireWrite(exchange)) return;` — not the form the existing `/tp` route
-uses. Wrap anything touching the world in `WebDashboard.executeOnServerThread`.
+`if (!WebDashboard.requireWrite(exchange)) return;`, the form `/tp` already uses — testing
+the return value is what makes it a guard. Wrap anything touching the world in
+`WebDashboard.executeOnServerThread`. That local guard is defence in depth: CheeseDash's
+module dispatch already demands `OPERATOR` for every non-`GET` request before the module
+runs. Two things it will not do for you: it keys only on the HTTP method, so a mutating
+`GET` would arrive unguarded; and it never raises the bar above `OPERATOR`, so a route
+that deserves `SUPER_ADMIN` must call `WebDashboard.requireAdmin` itself.
 
 **WebSocket updates.** Nothing exists yet. `DashboardRegistry.broadcast(...)` from the
 server thread is the mechanism; `advanceToNextWaypoint` and the active/inactive transitions
@@ -328,8 +333,10 @@ Stated plainly, because finding these by surprise is worse.
   every route.
 - **`fromJson` does not clamp.** Hand-edited values outside the documented ranges are
   accepted and used.
-- **`POST /tp` ignores `requireWrite`'s return value**, so a READ_ONLY session gets a 403
-  and the teleport. Shared with `KartApi` and `RacesApi`; worth one repo-wide fix.
+- **No route can be stricter than `OPERATOR`.** `/tp` guards itself with `requireWrite`,
+  and CheeseDash's module dispatch applies the same check to every non-`GET` request
+  anyway; nothing calls `requireAdmin`, and the dispatch offers no way to ask for
+  `SUPER_ADMIN`. An operator here can teleport any online player, by design.
 - **`GET /list` reads entities from the HTTP thread** without hopping to the server thread.
 - **Patrol chunk bookkeeping can cancel an admin `/forceload`** on a chunk a patrol walks
   through. See [keeping NPCs alive](resilience.md#patrol-chunk-tracking-can-cancel-your-own-forceload).

@@ -71,7 +71,7 @@ enforcement while the Battle Tower forces levels. CobbleCap's absence changes no
 
 A server-only install is perfectly valid and loses only the client-side pieces. A
 client-only install gets the four cosmetic mixins and the resource-pack activator, and
-nothing else — ⚠️ note that the activator rewrites the player's `options.txt` on first
+nothing else — ⚠️ the activator rewrites the player's `options.txt` on first
 launch, which is the one thing in this jar that changes a file outside `config/`.
 
 ---

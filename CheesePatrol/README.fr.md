@@ -125,9 +125,11 @@ circuits passent uniquement par les commandes.
   un joueur planté derrière un mur, et ne reprend pas sa route tant qu'il y reste.
 - **Les NPC de patrouille ne peuvent pas être tués** tant que leur patrouille est
   enregistrée : `/kill` est bloqué par un mixin. Passe `/npcpatrol clear` d'abord.
-- ⚠️ **`POST /api/v1/patrol/tp` n'applique pas son contrôle de rôle.** L'appel censé
-  rejeter une session READ_ONLY ignore son propre résultat, donc la téléportation a lieu
-  malgré tout. Voir [dashboard](docs/dashboard.fr.md#post-tp).
+- **Aucune route patrol ne peut exiger SUPER_ADMIN.** `POST /api/v1/patrol/tp` exige
+  OPERATOR, appliqué à la fois par la route elle-même et par le répartiteur de modules de
+  CheeseDash ; OPERATOR est aussi le plafond, parce que le répartiteur ne connaît pas de
+  contrôle plus strict et qu'aucun des deux handlers n'appelle `requireAdmin`. Voir
+  [dashboard](docs/dashboard.fr.md#post-tp).
 - Jamais exécuté avec autre chose qu'EasyNPC. Le comportement avec un autre mod de NPC est
   une attente, pas une mesure.
 

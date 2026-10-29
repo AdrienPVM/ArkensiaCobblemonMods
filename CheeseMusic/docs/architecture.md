@@ -167,7 +167,13 @@ sent; wiring it up is a two-line change in the tracker.
 
 **A dashboard route.** Add a branch to `MusicApi.handle`. Follow the existing shape:
 guard writes with `if (!WebDashboard.requireWrite(exchange)) return;` as the first
-statement, validate before mutating, and call `config.save()` after.
+statement, validate before mutating, and call `config.save()` after. That guard is
+defence in depth rather than the boundary — CheeseDash's module dispatch already demands
+`OPERATOR` for any non-`GET` request before `MusicApi` is reached. Two things the dispatch
+will not do for you: it keys only on the HTTP method, so a mutating `GET` would arrive
+unguarded; and it never raises the bar above `OPERATOR`, so a route that deserves
+`SUPER_ADMIN` must call `WebDashboard.requireAdmin` itself, in the same `if (!…) return;`
+form.
 
 **A WebSocket channel.** Nothing exists today. `ZoneMusicTracker.tickPlayer` is where a
 zone-change broadcast belongs, since it is already the single choke point for every

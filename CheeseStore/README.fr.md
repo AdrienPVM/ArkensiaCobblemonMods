@@ -133,15 +133,21 @@ S'enregistre sous le préfixe `store`, avec deux surfaces distinctes :
   autrement — limitation de débit par IP, vérification de même origine sur tout ce qui
   dépense, et vérification de signature HMAC sur le webhook.
 
-> ⚠️ **La surface d'administration n'applique aucun contrôle de rôle.**
-> `StoreApi.handle` n'appelle jamais `WebDashboard.requireWrite` ni `requireAdmin` :
-> **n'importe quelle** session CheeseDash authentifiée — `READ_ONLY` comprise — peut
-> donc changer les prix et les commandes de livraison d'un produit, relivrer une
-> commande, fixer le solde de crédits de n'importe quel joueur, et écraser ta clé
-> secrète Stripe et ton secret de webhook. Tant que ce n'est pas corrigé, considère
-> chaque compte CheeseDash capable d'atteindre ce module comme un exploitant de
-> boutique à part entière.
-> [Le détail, et la forme du correctif](docs/dashboard.fr.md#les-gardes-de-rôle-manquants).
+> ⚠️ **La frontière des rôles de la surface d'administration est celle de CheeseDash,
+> pas celle de CheeseStore.** `StoreApi.handle` n'appelle jamais
+> `WebDashboard.requireWrite` ni `requireAdmin` ; le répartiteur de modules du cœur le
+> fait pour toute requête non-`GET`, donc les écritures exigent bien `OPERATOR` et une
+> session `READ_ONLY` est réellement en lecture seule. La conséquence est le plafond :
+> aucune route d'ici ne peut exiger `SUPER_ADMIN`, donc un `OPERATOR` peut changer les
+> prix et les commandes de livraison d'un produit, relivrer une commande, fixer le
+> solde de crédits de n'importe quel joueur, et écraser ta clé secrète Stripe et ton
+> secret de webhook.
+> [Le détail](docs/dashboard.fr.md#ce-que-le-cœur-applique-réellement).
+>
+> ⚠️ **`GET /store/api/players` est publique.** Servie par `handlePublic`, sans aucune
+> authentification, elle renvoie tous les pseudos et UUID connus à quiconque atteint le
+> port. Si cette liste est privée pour toi, garde le 44311 derrière un proxy capable de
+> la restreindre.
 
 ## Limites assumées
 

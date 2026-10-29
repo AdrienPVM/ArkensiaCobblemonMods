@@ -290,21 +290,40 @@ CheeseGuard se consulte par scrutation sur REST. Les routes sont documentées da
 
 Dites franchement, parce que ce sont elles qui te coûteront un après-midi.
 
-**Les API dashboard n'ont presque aucune autorisation.** CheeseDash fournit
-`WebDashboard.requireWrite(exchange)` et `requireAdmin(exchange)` pour qu'un compte
-READ_ONLY ne puisse pas muter. `ZonesApi`, `DimensionsApi`, `EventsApi`, `GroupsApi`,
-`PlayersApi` et `ChunksApi` **n'appellent jamais ni l'un ni l'autre** — 65 routes mutantes
-sans le moindre contrôle de rôle. N'importe quelle session authentifiée, READ_ONLY
-comprise, peut supprimer une zone, effacer une dimension ou expulser un joueur. `PrisonApi`
-et `RacesApi` le font correctement, et sont le schéma à copier :
+**Les API dashboard délèguent toute leur autorisation au cœur.** CheeseDash fournit
+`WebDashboard.requireWrite(exchange)` et `requireAdmin(exchange)`, et `ZonesApi`,
+`DimensionsApi`, `EventsApi`, `GroupsApi`, `PlayersApi` et `ChunksApi` **n'appellent jamais
+ni l'un ni l'autre** — 65 routes mutantes sans aucun contrôle de rôle à l'intérieur du
+module. Seules `PrisonApi` et `RacesApi` se gardent elles-mêmes :
 
 ```java
 if (!WebDashboard.requireWrite(exchange)) return;
 ```
 
-La garde répond elle-même à la requête par un 403 et renvoie `false` ; ignorer sa valeur de
-retour — ce que `RacesApi` faisait jusqu'au 29 octobre 2026 — envoie le 403 puis exécute
-l'action quand même. Le détail par route appartient au [dashboard](dashboard.fr.md).
+La frontière tient pourtant, parce que le répartiteur de modules de CheeseDash, dans
+`DashboardApi`, applique `requireWrite` à toute requête non-`GET` avant qu'aucun module ne la
+voie. Une session `READ_ONLY` peut lire et rien d'autre, sur toutes les routes de ce mod. Ce
+qui ne tient pas, c'est la raison pour laquelle elle tient : la protection est une propriété
+du répartiteur du cœur, fondée uniquement sur la méthode HTTP, et le module n'y contribue en
+rien. Trois conséquences :
+
+- **Aucune route de CheeseGuard ne peut exiger `SUPER_ADMIN`.** `requireWrite` est la seule
+  barre que le répartiteur connaisse : réinitialiser une dimension depuis un snapshot,
+  supprimer des fichiers de région de la sauvegarde du monde et modifier un flag sont donc
+  tous au niveau `OPERATOR`. Une route qui mériterait une barre plus haute doit appeler
+  `requireAdmin` elle-même.
+- **Une route mutante exposée en `GET` ne serait gardée par rien du tout.** Il n'en existe
+  aucune aujourd'hui dans ces six API, mais rien dans le module n'empêcherait d'en ajouter
+  une, et rien ne le signalerait.
+- **Une seule modification de ce répartiteur ferait tomber les 65 contrôles d'un coup**, sans
+  qu'aucun module s'en aperçoive.
+
+Un appel local à `requireWrite`, comme dans `PrisonApi`, est donc de la défense en profondeur :
+utile, mais redondante — ce n'est pas la frontière elle-même. La garde répond elle-même à la
+requête par un 403 et renvoie `false` ; ignorer sa valeur de retour — ce que `RacesApi`
+faisait jusqu'au 29 octobre 2026 — envoie le 403 puis exécute l'action quand même. Le détail
+par route, et la colonne « rôle » qui marque les garanties venant du cœur, appartiennent au
+[dashboard](dashboard.fr.md).
 
 **Les gardes de commande ont été fausses longtemps.** `/cg flag`, `/cg addmember`,
 `/cg removemember` et tout le sous-arbre `/cg group` n'avaient aucune clause `requires`
