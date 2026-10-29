@@ -4,8 +4,8 @@
 
 A dungeon is one JSON file in `config/cobblemon_dungeons/dungeons/`. The file name does
 not matter for identification — the `general.id` field inside it does — but the dashboard
-and the reload path both write a dungeon back to `<id>.json`, so keeping the file named
-after its id avoids duplicate registrations.
+writes a dungeon back to `<id>.json` (and `DELETE` only removes `<id>.json`), so keeping the
+file named after its id avoids duplicate files.
 
 Every field below is a field of `DungeonConfig` (or one of its nested classes) in
 `src/main/java/com/sebastian/cobblemondungeons/config/DungeonConfig.java`. The default
@@ -31,10 +31,10 @@ initialiser, so a partial file is valid and the rest is defaulted.
 | `lootPools` | array | `[]` | Chest contents, keyed by chest id and tier |
 | `completionRewards` | array | `[]` | Items rolled for every player when the boss dies |
 
-`rewardCap` counts only rewards actually handed over. A roll that produces an invalid
-item (an unknown item id resolves to `minecraft:air`) is logged and does not consume a
-slot, which is why a misspelled item id shows up in the log as
-`Attempted to give 'Air' reward to <player>` rather than silently eating someone's cap.
+`rewardCap` counts only rewards actually handed over. A roll whose item id is unknown (and
+matches no ticket name) produces an empty stack: it is logged as
+`Unknown loot item ID or ticket name: <item>` and does not consume a slot, rather than
+silently eating someone's cap.
 
 ## `general`
 
@@ -65,8 +65,8 @@ mod you are using:
   prepared. No proxy, no player-data serialisation, no `targetServer`.
 - **`CROSS_SERVER`** — the default. The leader's client is first asked for the player
   count of `targetServer` over the BungeeCord plugin channel; if the answer never comes
-  within 60 ticks the attempt is dropped, and if the server reports as offline the leader
-  is told *Dungeon server is offline. Please try again later.* Only then does the
+  within 60 ticks, or if the server reports as offline, the attempt is dropped and the
+  leader is told *Dungeon server is offline. Please try again later.* Only then does the
   countdown start. At the end of it each member receives a `DungeonJoinPayload` carrying
   their serialised data and is transferred to `targetServer` 40 ticks later.
 
@@ -97,9 +97,16 @@ Each location object holds five positions. A position is `{x, y, z, dimension}` 
 sitting on. With no additional locations there is exactly one slot, and a second party
 gets *Dungeons are full! Please try again later.*
 
-Slot allocation only happens in `SAME_SERVER` mode. In `CROSS_SERVER` mode the
-`locationIndex` stays `-1`, `getActiveLocations()` falls back to `locations`, and nothing
-stops two parties from being dropped into the same coordinates.
+In `CROSS_SERVER` mode the main server allocates nothing (its countdown carries
+`locationIndex` `-1`); the slot is allocated on the dungeon server, by `findAvailableSlot`
+in `handleCrossServerJoin`, when the first member of a party arrives. A party that finds
+every slot busy is told *Dungeons are full!* and sent back to `mainServer`.
+
+⚠️ Three teleports ignore the allocated slot and always use the **first** `locations`
+block: the move from the hub to `spawnPos` once preparation is done, the boss-prompt
+teleport to `bossRoomPos`, and the team-wipe teleport. Scans, the boss spawn, rejoin and
+respawn do use the active slot. With `additionalLocations`, a party on slot 2 is therefore
+prepared around its own `spawnPos` but delivered to slot 1's.
 
 ## `requirements`
 
@@ -156,7 +163,9 @@ which loot pools, boss entries, Alpha entries and Guardian entries apply — eac
 carries its own `tier` field where `0` means "any tier".
 
 `tierLevels` maps a tier to the level content spawns at. A tier with no entry in the
-table gets no level override from it.
+table falls back to a built-in table in `resolveTierLevel`: tier 1 → 15, 2 → 30, 3 → 60,
+4 → 85, 5 → 115; any other tier gets `0`, meaning no override. Tiers 1 to 5 therefore always
+have a level, even with `tierLevels: []`.
 
 ## `spawning`
 
@@ -176,14 +185,21 @@ table gets no level override from it.
 | `chestIds` | array of int | `[]` | Which numbered chest variants — also the loot pool id |
 | `spawnerScanVerticalRange` | int | `64` | Vertical half-range of the block scan |
 | `guardianPool` | array | `[]` | Candidate Guardian trainers, weighted |
-| `guardianTrainerIds` | array of strings | `[]` | Trainer ids spawned unconditionally, outside the weighted pool |
-| `spawnProtectionRadius` | double | `100.0` | Radius inside which dungeon entities are protected from stray damage |
+| `guardianTrainerIds` | array of strings | `[]` | Extra trainer **names** that count as a Guardian when a player beats them. Nothing is spawned from this list |
+| `spawnProtectionRadius` | double | `100.0` | Declared but never read by any code path |
 
 The numbered id lists are how two dungeons share one world without stealing each other's
 furniture. The mod registers 20 Alpha spawner block variants (`alpha_spawner`,
 `alpha_spawner_2` … `alpha_spawner_20`) and 10 each of Guardian spawner, Stake spawner,
 Portal and Dungeon Chest. A dungeon only reacts to the variants listed in its own
-`*Ids` array, so `alphaSpawnerIds: [1]` makes a dungeon blind to `alpha_spawner_2`.
+`*Ids` array, so `alphaSpawnerIds: [1]` makes a dungeon blind to `alpha_spawner_2`. An
+empty array — the default — means no filter: every variant is used.
+
+⚠️ Two variant families are discovered but never activated. `checkPortalActivation` only
+lights blocks that are the base `portal` block, so `portal_2` … `portal_10` never become
+visible and cannot be used; and `spawnStakes` only sets a Stake on the base `stake_spawner`,
+so `stake_spawner_2` … `stake_spawner_10` never hold one — a dungeon relying on them can
+never reach `requiredStakes`. Use variant 1 of both (`portal`, `stake_spawner`).
 
 `chestIds` does double duty: the chest variant number is also the `id` a loot pool must
 carry to be used for that chest.
@@ -199,9 +215,13 @@ cost preparation time rather than TPS.
 |---|---|---|---|
 | `species` | string | `"ghastly"` | Cobblemon species name |
 | `tier` | int | `0` | Tier this entry belongs to. `0` means any tier |
-| `minLevel` | int | `10` | Lower bound of the rolled level |
-| `maxLevel` | int | `20` | Upper bound |
+| `minLevel` | int | `10` | Lower bound of the rolled level — only when the tier level is `0` |
+| `maxLevel` | int | `20` | Upper bound — same condition |
 | `weight` | int | `10` | Relative selection weight |
+
+Whenever the run's tier resolves to a level above zero — always the case for tiers 1 to 5,
+see [`scaling`](#scaling) — the Alpha spawns at exactly that level and `minLevel` /
+`maxLevel` are ignored.
 
 The stock default `"ghastly"` is a typo for Gastly that has never been corrected in the
 data class. An unknown species is logged once and skipped, so a pool of nothing but
@@ -239,7 +259,7 @@ boss from `species`, `level`, `customName` and `isShiny`. Use `pool` for anythin
 |---|---|---|---|
 | `species` | string | `"pikachu"` | Cobblemon species name |
 | `tier` | int | `0` | Tier this entry belongs to. `0` means any tier |
-| `level` | int | `50` | Boss level |
+| `level` | int | `50` | Boss level. `0` or less uses the tier level |
 | `customName` | string | `"Dungeon Boss"` | Name shown above the entity |
 | `isShiny` | boolean | `false` | Spawn it shiny |
 | `weight` | int | `10` | Relative selection weight within the matching tier |
@@ -275,11 +295,12 @@ item can come up twice in one chest. If the weights sum to zero nothing is gener
 | `min` | int | `1` | Lower bound of the stack size |
 | `max` | int | `1` | Upper bound |
 | `weight` | int | `10` | Relative weight |
-| `nbt` | string | `""` | Raw NBT applied to the stack |
+| `nbt` | string | `""` | SNBT string, parsed and stored as the stack's `custom_data` component |
 
 Putting a ticket in a chest is done by naming it, not by item id: the generated example
 file uses `"§6Copper Dungeon Ticket"` as the `item` value, which matches a ticket by its
-configured `itemName`. See [tickets](tickets.md).
+configured `itemName` (case-insensitively, and `&` may stand in for `§`). See
+[tickets](tickets.md).
 
 ## `completionRewards`
 
@@ -291,13 +312,48 @@ configured `itemName`. See [tickets](tickets.md).
 | `max` | int | `1` | Upper bound |
 | `chance` | double | `100.0` | Percent chance this reward is rolled |
 | `tier` | int | `0` | Tier this reward serves. `0` means any tier |
-| `nbt` | string | `""` | Raw NBT applied to the stack |
+| `nbt` | string | `""` | SNBT string, stored as the stack's `custom_data` component |
 
 Completion rewards are rolled per player when the boss dies. Eligible rewards are those
 whose `tier` is `0` or equals the run's tier, plus the boss entry's `customRewards`. The
 list is shuffled per player before rolling, so when `rewardCap` bites, which rewards a
 player gets is random rather than being the first ones in the file. A reward that does not
 fit in the inventory is dropped at the player's feet.
+
+## Outside the file: hazards and named entities
+
+Two parts of a dungeon are built in the world rather than declared in the JSON.
+
+### Hazards
+
+All four items are in the **Cobblemon Dungeons** creative tab. Hazards work anywhere in the
+world, inside a run or not.
+
+| Item | Effect |
+|---|---|
+| `poison_water_bucket` | Places poison water. Standing in it (feet or eyes) gives Poison II for 5 seconds, refreshed while you stay in |
+| `poison_gas` | A block with no collision. Standing in it gives Poison I for 3 seconds |
+| `gas_mask` | Helmet. Worn, or held in either hand, it makes the wearer immune and clears Poison |
+| `gas_detector` | Held in either hand, shows *⚠ Poison Gas Detected Nearby! ⚠* in the action bar, once a second, when a gas block is within 5 blocks horizontally (2 below, 5 above) |
+
+A Pokémon of the Poison type, or one holding a gas mask as its Cobblemon held item, is immune
+too.
+
+### Named entities
+
+`InteractionHandler` reacts to a right-click on any entity whose custom name contains one of
+these words, case-insensitively, tested in this order:
+
+| Name contains | Effect |
+|---|---|
+| `dungeon master` | Opens the dungeon selection GUI, for anyone |
+| `key` | For a player in a run: collects a key named exactly like the entity — the string `requirements.requiredKeyItems` must list — and removes the entity |
+| `gem` | For a player in a run: counts one Gem and removes the entity |
+| `stake` | For a player in a run: counts one Stake and removes the entity |
+| `boss altar` | For a player in a run: spawns the boss if every objective is complete, otherwise *You need all objectives completed to summon the boss!*; *The boss has already appeared!* / *The boss has already been defeated!* afterwards |
+
+The first word that matches wins, so an entity named "Boss Altar Key" is a key. Named armour
+stands are the usual carrier.
 
 ---
 

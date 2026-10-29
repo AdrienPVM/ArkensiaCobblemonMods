@@ -215,9 +215,9 @@ Stated plainly, because finding these by surprise is worse.
 - **An unused import.** `NumismaticCheesePurse` imports `net.minecraft.util.Identifier`
   and never uses it; the identifier is built inside `ToggleAutoCollectPayload`. Harmless,
   and a sign that nobody has run a cleanup pass.
-- **Two French comments in an otherwise English codebase**, in
-  `NumismaticCheesePurseClient` and `AutoCollectButton`. Worth normalising if you touch
-  those files.
+- **French comments in an otherwise English codebase**, in three files:
+  `NumismaticCheesePurseClient`, `AutoCollectButton` and `InventoryScreenMixin`. Worth
+  normalising if you touch those files.
 - **The button position assumes a vanilla-sized inventory GUI**, 176×166, hard-coded in
   the mixin. A resource pack that resizes it misplaces the button.
 - **There is no way to turn the feature off server-wide** short of removing the jar. On a

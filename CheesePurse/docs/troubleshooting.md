@@ -209,8 +209,8 @@ Include these, in this order:
    ```
 
 4. **A `DEBUG`-level excerpt of the sweep**, if the problem is about coins moving or not
-   moving. Raise the level for `com.roicheese.numismaticheesepurse` and reproduce; the
-   lines you want are:
+   moving. Raise the level of the `numismatic-cheesepurse` logger (named after the mod
+   id, not the package) and reproduce; the lines you want are:
 
    ```text
    [NumismaticCheesePurse] Auto-collect ENABLED for <player>

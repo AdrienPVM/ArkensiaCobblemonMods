@@ -57,8 +57,11 @@ autre que 1.21.1.
 
 ## *Cette commande n'est disponible que sur le serveur principal.*
 
-**Cause.** Le rôle de ce serveur est `dungeon`. `/dungeons`, `/dungeon` et tout l'arbre
-`/DungeonsParty` y sont refusés à dessein ; seul `/dungeons leave` fonctionne.
+**Cause.** Le rôle de ce serveur est `dungeon`. `/dungeons` et `/dungeon` sans
+sous-commande y affichent ce message à dessein, et tout l'arbre `/DungeonsParty` y est
+masqué (*Commande inconnue ou incomplète*). `/dungeons leave` fonctionne — de même, pour les
+opérateurs, que `sql test` et `partydebug`, dont la vérification de rôle est écrasée dans le
+source (voir [les commandes](commands.fr.md#dungeons-sql-test)).
 
 **Remède.** Si c'est censé être le serveur principal, retire
 `-Dcobblemon.dungeons.serverRole=dungeon` de la ligne de lancement, supprime
@@ -109,8 +112,9 @@ une par fichier réellement chargé.
 
 ## *Les donjons sont pleins ! Veuillez réessayer plus tard.*
 
-**Cause.** Le mode `SAME_SERVER` alloue un emplacement de localisation par partie
-simultanée, et tous sont occupés. Un donjon sans `additionalLocations` n'a qu'un seul
+**Cause.** Un emplacement de localisation est alloué par partie simultanée — sur ce serveur
+en mode `SAME_SERVER`, sur le serveur de donjon en mode `CROSS_SERVER` — et tous sont
+occupés. Un donjon sans `additionalLocations` n'a qu'un seul
 emplacement : un deuxième groupe ne peut pas entrer.
 
 **Remède.** Ajoute des emplacements dans `additionalLocations`, chacun avec ses propres
@@ -144,24 +148,32 @@ confirme que tu as une faute de frappe.
 
 ## Le groupe attend dans le hub et n'est jamais téléporté
 
-**Cause.** `isReadyForPlayers()` exige que chaque Pieu et chaque Gardien soient apparus et
-qu'aucune tâche d'apparition de dresseur ne soit encore en file. L'une de ces conditions ne
-peut pas s'accomplir.
+**Cause.** `isReadyForPlayers()` exige que les étapes Pieux et Gardiens soient terminées et
+qu'aucune tâche d'apparition de dresseur ne soit encore en file. Ces étapes se terminent dès
+que le scan des chunks autour de `spawnPos` a été parcouru, **même si moins de spawners que
+requis ont été trouvés**, et une apparition de dresseur ratée est retirée de la file — donc
+des spawners manquants ou un pool de Gardiens cassé ne retiennent pas un groupe dans le hub.
+Ce qui le retient, c'est un monde de donjon introuvable : `tickFastScans` saute l'instance
+chaque fois que `locations.spawnPos.dimension` (premier emplacement) désigne une dimension
+que le serveur n'a pas. Le groupe attend alors jusqu'à ce que le chronomètre fasse échouer la
+partie.
 
-**Remède.** Vérifie, dans cet ordre :
+**Remède.** Vérifie que `locations.spawnPos.dimension` est l'identifiant complet d'une
+dimension chargée, comme `minecraft:overworld`. Si le groupe est bien téléporté mais qu'un
+objectif ne peut jamais être rempli, vérifie, dans cet ordre :
 
 - le nombre de blocs spawner de Gardien dans `guardianSpawnRadius` autour de `spawnPos` est
   au moins `requiredGuardians`, et leurs numéros de variantes figurent dans
-  `guardianSpawnerIds`
-- de même pour les spawners de Pieu et `requiredStakes`
+  `guardianSpawnerIds` (une liste vide accepte toutes les variantes)
+- de même pour les spawners de Pieu et `requiredStakes` — et seul le `stake_spawner` de base
+  reçoit jamais un Pieu, voir [la définition d'un donjon](dungeons.fr.md#spawning)
 - `spawnerScanVerticalRange` est assez grand pour les atteindre — la valeur par défaut 64
   est une demi-portée autour du Y du spawn
 - le pool de Gardiens se résout : une entrée dont le `tier` correspond à celui de la partie,
   ou une entrée avec `tier: 0`
-- chaque `trainerId` de ce pool a bien été enregistré, c'est-à-dire qu'il existe une ligne
-  `Registered custom trainer from file: …` pour lui dans le log
-
-Un pool de Gardiens qui ne se résout sur rien est la réponse habituelle.
+- chaque `trainerId` de ce pool existe, dans le `trainers/` de ce mod (une ligne
+  `Registered custom trainer from file: …`) ou dans Radical Trainers ; un échec journalise
+  `Trainer template '<id>' not found in any Radical Trainers registry!`
 
 ## Les Alphas n'apparaissent jamais
 
@@ -225,10 +237,12 @@ est simplement téléporté, donc son inventaire reste ce qu'il était.
 
 ## Le chef de groupe reste bloqué sur *Vérification du statut du serveur de donjon...*
 
-**Cause.** Le mode `CROSS_SERVER` demande au **client** du chef de relayer une requête de
-nombre de joueurs à travers le proxy. Sans réponse en 60 ticks, la tentative est abandonnée
-silencieusement. Les raisons habituelles sont un client sans le mod, un plugin Velocity
-absent, ou un nom de `targetServer` qui ne correspond pas à la configuration du proxy.
+**Cause.** Le mode `CROSS_SERVER` envoie une requête BungeeCord de nombre de joueurs au
+proxy par la connexion du chef. Sans réponse en 60 ticks, la tentative est abandonnée et,
+trois secondes après le premier message, le chef lit *Le serveur de donjon est hors ligne.
+Veuillez réessayer plus tard.* — même quand le serveur est démarré. Les raisons habituelles
+sont un plugin Velocity absent, ou un nom de `targetServer` qui ne correspond pas à la
+configuration du proxy.
 
 **Remède.** Confirme que le client a le mod à la même version. Confirme que
 `velocity-party-forwarder` est dans le `plugins/` du proxy et qu'il a bien journalisé ses
@@ -273,13 +287,16 @@ bien le jar de ce mod, et non une copie périmée portant une autre version dans
 
 ## Un compte dashboard READ_ONLY modifie des choses
 
-**Cause.** Ce n'est pas un bug que tu peux configurer. `DungeonsApi` n'appelle jamais
-`requireWrite` ni `requireAdmin`, donc chacune de ses routes mutantes accepte n'importe
-quelle session authentifiée. Le détail, et le correctif d'une ligne pour qui s'en chargera,
-sont dans [la page dashboard](dashboard.fr.md).
+**Cause.** Pas par ce module. `DungeonsApi` n'appelle lui-même jamais `requireWrite` ni
+`requireAdmin`, mais le dispatcher de modules de CheeseDash refuse avec un `403` toute
+requête non-`GET` d'un rôle inférieur à `OPERATOR` avant que le module ne la voie — voir
+[la page dashboard](dashboard.fr.md). Une modification faite par ce compte vient d'ailleurs,
+ou le compte n'est pas `READ_ONLY`.
 
-**Remède.** En attendant un changement de code, ne distribue pas de session `READ_ONLY` à
-quelqu'un qui ne devrait pas pouvoir supprimer une configuration de donjon.
+**Remède.** Vérifie le rôle réel du compte dans la liste des comptes de CheeseDash, et
+retrouve la requête dans le journal d'audit de CheeseDash. Rappelle-toi que tout `OPERATOR`
+peut supprimer un donjon ou écraser un fichier de dresseur : aucune route ici n'exige
+`SUPER_ADMIN`.
 
 ## Les Alphas ou le boss ont la mauvaise taille
 

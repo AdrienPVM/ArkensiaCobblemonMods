@@ -131,15 +131,17 @@ par un ramassage. C'est une minuterie. Voir [la boucle de collecte](auto-collect
 
 ## 7. Vérifier sur un vrai ramassage
 
-Ferme ton inventaire, jette quelques pièces au sol, puis marche dessus :
+Avec le bouton activé, un `/give` suivi d'un lancer ne marche pas : les pièces données sont
+balayées dans la bourse en moins d'une demi-seconde, avant que tu puisses les jeter. Pose
+plutôt les pièces directement au sol, à quelques blocs :
 
 ```mcfunction
-/give @s numismatic-overhaul:silver_coin 10
+/summon item ~ ~ ~3 {Item:{id:"numismatic-overhaul:silver_coin",count:10}}
 ```
 
-Appuie sur Q pour jeter la pile, recule, puis avance dedans. Les pièces entrent
-normalement dans ton inventaire — ramassage vanilla, auquel CheesePurse ne touche pas —
-et repartent au balayage suivant, avec `+ [10 Silver]` dans la barre d'action.
+Avance dans la pile. Les pièces entrent normalement dans ton inventaire — ramassage
+vanilla, auquel CheesePurse ne touche pas — et repartent au balayage suivant, avec
+`+ [10 Silver]` dans la barre d'action.
 
 Si tu es assez rapide avec l'inventaire ouvert, tu peux voir la pile occuper un
 emplacement pendant un tick ou deux avant de partir. Cette fenêtre est réelle et dure
@@ -147,13 +149,14 @@ jusqu'à une demi-seconde.
 
 ## 8. Regarder le serveur voir la scène
 
-Monte le niveau de log de `com.roicheese.numismaticheesepurse` à `DEBUG` et le serveur
-raconte chaque étape :
+Monte à `DEBUG` le niveau du logger `numismatic-cheesepurse` — le mod le crée avec
+`LoggerFactory.getLogger(MOD_ID)`, il porte donc le nom de l'identifiant du mod, pas celui
+du package — et le serveur raconte chaque étape :
 
 ```text
 [NumismaticCheesePurse] Auto-collect ENABLED for Steve
 [NumismaticCheesePurse] Collected 64 bronze units for Steve
-[NumismaticCheesePurse] Collected 1 000 bronze units for Steve
+[NumismaticCheesePurse] Collected 1000 bronze units for Steve
 ```
 
 Les nombres sont en unités de bronze, la dénomination de base de Numismatic : 1 pour le

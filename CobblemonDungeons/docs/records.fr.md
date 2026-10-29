@@ -133,6 +133,12 @@ fichiers à la main pendant que le serveur tournait, c'est un rechargement qui p
 changement en compte — et une partie qui se termine avant que tu ne recharges écrasera ton
 édition.
 
+Supprimer un fichier ne le remet **pas** à zéro. Chaque chargeur s'arrête aussitôt quand son
+fichier est absent : l'historique, les cooldowns ou le classement en mémoire traversent donc
+le rechargement intacts, et la prochaine écriture les remet sur le disque. Pour en
+réinitialiser un, remplace son contenu par `[]` (historique) ou `{}` (les deux autres) puis
+recharge.
+
 ---
 
 ← [Les dresseurs et RCTApi](trainers.fr.md) · [Intégration dashboard](dashboard.fr.md) →

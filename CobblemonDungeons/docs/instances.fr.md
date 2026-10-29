@@ -31,7 +31,10 @@ chef reçoit un `BungeePayload.playerCount(targetServer)`, son client le relaie 
 la réponse revient sous forme de message de plugin. Pendant ce temps un `PendingStart`
 attend dans une table avec un budget de 60 ticks. Le chef voit *Vérification du statut du
 serveur de donjon...*. Une seconde tentative pendant qu'une première est en cours réaffiche
-ce message et est ignorée pour le reste.
+ce message et est ignorée pour le reste. Si aucune réponse n'arrive dans les 60 ticks,
+`tickPendingStarts` abandonne la tentative et avertit le chef *Le serveur de donjon est hors
+ligne. Veuillez réessayer plus tard.* — le même message qu'une réponse « hors ligne »
+explicite.
 
 Une fois que le serveur cible a répondu (ou immédiatement, en mode `SAME_SERVER`), les
 vérifications s'enchaînent dans cet ordre, et le premier échec annule tout avec un message :
@@ -90,13 +93,16 @@ collectée, et les quatre compteurs à leur exigence ou au-delà. Rien de partie
 
 Quand elle devient vraie pour la première fois, `checkPortalActivation` rend visible chaque
 bloc de portail de l'instance et annonce *Le portail a été activé ! Tous les objectifs sont
-complétés.* Un joueur qui entre dans un portail avant cela reçoit *Vous devez compléter tous
-les objectifs du donjon avant de combattre le boss !*, et un joueur qui n'est pas en partie
-du tout reçoit *Vous devez être dans un donjon actif pour utiliser ce portail.*
+complétés.* Avant cela, le portail est invisible et un clic droit dessus ne fait rien. Un
+portail visible cliqué par quelqu'un qui n'est dans aucune partie répond *Vous devez être
+dans un donjon actif pour utiliser ce portail.*, et par quelqu'un dont la propre partie n'a
+pas déverrouillé le boss, *Vous devez compléter tous les objectifs du donjon avant de
+combattre le boss !* Entrer dans un portail ne fait rien du tout.
 
-Utiliser le portail téléporte le groupe vers `bossRoomPos` et marque chaque arrivant comme
-visiteur de la salle du boss, ce qui compte pour les réapparitions. Le boss est invoqué à
-`bossSpawnPos` — ou à la surcharge de l'emplacement actif — par `spawnBoss`.
+Un clic droit sur un portail visible ouvre l'invite de boss. L'accepter invoque le boss à
+`bossSpawnPos` — ou à la surcharge de l'emplacement actif — par `spawnBoss`, puis téléporte
+chaque membre en ligne vers le `bossRoomPos` du **premier** emplacement et le marque comme
+visiteur de la salle du boss, ce qui compte pour les réapparitions.
 
 ## Mourir, être KO, et manquer de temps
 
@@ -109,9 +115,12 @@ Trois choses coûtent une vie, et les trois partagent un compteur unique pour to
 | Les vies tombent à zéro | `failDungeon` | *Vies du groupe épuisées ! Le donjon a échoué.* |
 | Le chronomètre atteint zéro | `failDungeon` | *Le temps est écoulé ! Le donjon a échoué.* |
 
-Une équipe KO alors qu'il reste des vies soigne l'équipe du joueur, puis le téléporte — vers
-`bossRoomPos` si le boss est déverrouillé **et** qu'il est déjà entré dans la salle du boss,
-vers `spawnPos` sinon. Une réapparition après la mort suit la même règle. La condition
+Une équipe KO alors qu'il reste des vies soigne l'équipe du joueur et — sur un serveur de
+rôle `dungeon` uniquement — le téléporte : vers `bossRoomPos` si le boss est déverrouillé
+**et** qu'il est déjà entré dans la salle du boss, vers `spawnPos` sinon (tous deux pris dans
+le premier emplacement). Sur un serveur de rôle principal, mode `SAME_SERVER` compris, le
+joueur reste où il est. Une réapparition après la mort suit la même règle sur tout serveur,
+avec l'emplacement actif. La condition
 « a déjà visité la salle du boss » est ce qui empêche un arrivant tardif d'être largué dans
 un combat de boss où il n'a jamais mis les pieds.
 
@@ -129,7 +138,8 @@ d'`activeInstances`.
 2. la partie est ajoutée à l'historique et `dungeon_complete` part sur le WebSocket
 3. un cooldown est enregistré pour **chaque** membre, et le classement est mis à jour
 4. chaque membre tire son `rewardChance` pour recevoir le Pokémon boss lui-même, livré dans
-   son PC (*<espèce> a été transféré dans votre PC !*), et son équipe est soignée
+   son PC (*<customName du boss> a été transféré dans votre PC !* — le Pokémon porte ce
+   surnom), et son équipe est soignée
 5. *Félicitations ! Le boss du donjon a été vaincu !* et *Le groupe a gagné ! Vous serez
    téléportés dans 10 secondes.*
 6. les récompenses de complétion sont distribuées
@@ -154,6 +164,11 @@ activé, l'état complet du joueur — inventaire, équipe Cobblemon, PC — est
 quand SQL est activé, écrit en base. En cas d'échec, seule la position de retour voyage, et
 le joueur est averti sans détour : *Vous avez quitté ou échoué le donjon. Vos objets et votre
 progression n'ont PAS été sauvegardés.*
+
+Ce message ne dépend que de `syncPlayerData`, pas du mode. En mode `SAME_SERVER`, rien n'est
+sérialisé ni annulé — le joueur est simplement téléporté avec tout ce qu'il porte — et
+pourtant, avec `syncPlayerData: true` (la valeur par défaut), il lit que ses objets n'ont pas
+été sauvegardés. Avec `syncPlayerData: false`, le message n'apparaît jamais.
 
 ⚠️ C'est la conception, et elle est sévère : tout ce qu'un joueur a ramassé dans un donjon
 `CROSS_SERVER` est perdu s'il échoue ou s'il en sort. Dis-le sur ton serveur avant que
@@ -228,10 +243,11 @@ transporte tout.
 
 ### Fragilité connue
 
-Le contrôle de disponibilité dépend du client du joueur lui-même pour relayer un message de
-plugin, ce qui signifie qu'un client sans le mod — ou un client qui perd le paquet — ne
-répond jamais, et la partie ne démarre jamais. Le symptôme est *Vérification du statut du
-serveur de donjon...* puis plus rien.
+Le contrôle de disponibilité est un message de plugin BungeeCord `PlayerCount` envoyé par
+la connexion du chef : il n'obtient de réponse que si le proxy gère ce canal et connaît le
+serveur nommé. Faute de réponse, le symptôme est *Vérification du statut du serveur de
+donjon...*, puis, trois secondes plus tard, *Le serveur de donjon est hors ligne. Veuillez
+réessayer plus tard.* même si le serveur est en réalité démarré.
 
 ---
 

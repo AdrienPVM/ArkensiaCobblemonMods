@@ -29,7 +29,10 @@ In `CROSS_SERVER` mode the first thing that happens is a liveness check. The lea
 sent a `BungeePayload.playerCount(targetServer)`, their client relays it to the proxy, and
 the answer comes back as a plugin message. Meanwhile a `PendingStart` sits in a map with
 a 60-tick budget. The leader sees *Checking dungeon server status...*. A second attempt
-while one is pending re-prints that message and is otherwise ignored.
+while one is pending re-prints that message and is otherwise ignored. If no answer arrives
+within the 60 ticks, `tickPendingStarts` drops the attempt and tells the leader *Dungeon
+server is offline. Please try again later.* — the same message as an explicit "offline"
+answer.
 
 Once the target server has answered (or immediately, in `SAME_SERVER` mode), the checks
 run in this order, and the first failure aborts with a message:
@@ -85,13 +88,16 @@ and all four counters at or above their requirement. Nothing partial counts.
 
 When it first becomes true, `checkPortalActivation` flips every Portal block in the
 instance to its visible state and announces *The portal has been activated! All objectives
-completed.* A player who walks into a portal before that gets *You must complete all
-dungeon objectives before you can fight the boss!*, and one who is not in a run at all
-gets *You must be in an active dungeon run to use this portal.*
+completed.* Before that the portal is invisible and right-clicking it does nothing. A
+visible portal right-clicked by someone who is not in a run answers *You must be in an
+active dungeon run to use this portal.*, and by someone whose own run has not unlocked the
+boss, *You must complete all dungeon objectives before you can fight the boss!* Walking
+into a portal does nothing at all.
 
-Using the portal teleports the party to `bossRoomPos` and marks each arriving player as a
-boss-room visitor, which matters for respawns. The boss is spawned at `bossSpawnPos` — or
-the active slot's override — through `spawnBoss`.
+Right-clicking a visible portal opens the boss prompt. Accepting it spawns the boss at
+`bossSpawnPos` — or the active slot's override — through `spawnBoss`, then teleports every
+online member to `bossRoomPos` of the **first** location slot and marks each as a boss-room
+visitor, which matters for respawns.
 
 ## Dying, wiping, and running out of time
 
@@ -104,9 +110,11 @@ Three things cost a life, and all three share one counter for the whole party:
 | Lives reach zero | `failDungeon` | *Party lives depleted! The dungeon has failed.* |
 | The timer reaches zero | `failDungeon` | *Time is up! The dungeon has failed.* |
 
-A team wipe with lives to spare heals the player's party, then teleports them back — to
-`bossRoomPos` if the boss is unlocked **and** they have been in the boss room before,
-otherwise to `spawnPos`. A respawn after death follows the same rule. The
+A team wipe with lives to spare heals the player's party and — on a dungeon-role server
+only — teleports them back: to `bossRoomPos` if the boss is unlocked **and** they have been
+in the boss room before, otherwise to `spawnPos` (both taken from the first location slot).
+On a main-role server, `SAME_SERVER` mode included, the player stays where they are. A
+respawn after death follows the same rule on any server, using the active slot. The
 "has visited the boss room" condition is what stops a late joiner from being dropped into
 a boss fight they never walked into.
 
@@ -122,7 +130,8 @@ Players who are offline at that moment are simply dropped from `activeInstances`
 2. the run is appended to the history and `dungeon_complete` goes out over the WebSocket
 3. a cooldown is recorded for **every** member, and the leaderboard is updated
 4. each member rolls `rewardChance` for the boss Pokémon itself, delivered to their PC
-   (*<species> has been transferred to your PC!*), and has their party healed
+   (*<boss customName> has been transferred to your PC!* — the Pokémon carries that
+   nickname), and has their party healed
 5. *Congratulations! The dungeon boss has been defeated!* and *The party wins! You will be
    teleported back in 10 seconds.*
 6. completion rewards are distributed
@@ -146,6 +155,11 @@ What gets carried back depends on whether the boss died. On a success and with
 serialised and, when SQL is enabled, written to the database. On a failure only the return
 position travels, and the player is told plainly: *You left or failed the dungeon. Your
 items and progress were NOT saved.*
+
+That message depends on `syncPlayerData` alone, not on the mode. In `SAME_SERVER` mode
+nothing is serialised or rolled back — the player is simply teleported with everything they
+carry — yet with `syncPlayerData: true` (the default) they still read that their items were
+not saved. With `syncPlayerData: false` the message is never shown.
 
 ⚠️ That is the design, and it is harsh: anything a player picked up inside a
 `CROSS_SERVER` dungeon is lost if they fail or walk out. Say so on your server before
@@ -218,9 +232,11 @@ channel and carries everything.
 
 ### Known fragility
 
-The liveness check depends on the player's own client relaying a plugin message, which
-means a client without the mod — or one that drops the packet — simply never answers, and
-the run never starts. The symptom is *Checking dungeon server status...* and then nothing.
+The liveness check is a BungeeCord `PlayerCount` plugin message sent through the leader's
+connection, so it only gets an answer if the proxy handles that channel and reports the
+named server. When no answer comes, the symptom is *Checking dungeon server status...*,
+then, three seconds later, *Dungeon server is offline. Please try again later.* even if the
+server is in fact up.
 
 ---
 

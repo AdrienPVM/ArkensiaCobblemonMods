@@ -5,7 +5,7 @@
 Deux arbres de commandes, enregistrés dans `CobblemonDungeons.onInitialize` et
 `DungeonsPartyCommands.register` :
 
-- `/dungeons`, avec `/dungeon` comme alias strictement identique
+- `/dungeons`, avec `/dungeon` comme alias identique (seules les lignes de log nomment l'alias utilisé)
 - `/DungeonsParty`
 
 Il n'existe délibérément aucune commande d'administration pour créer ou modifier des
@@ -38,8 +38,10 @@ réellement `startDungeon`.
 
 **État requis.** La commande est refusée sur un serveur de rôle `dungeon` — voir
 [les rôles de serveur](instances.fr.md#les-parties-cross-serveur). Elle exige une source
-joueur : lancée depuis la console, elle échoue sur l'erreur Brigadier standard
-« requires a player ».
+joueur : lancée depuis la console, l'exception « requires a player » est capturée par le
+propre `try` de la commande, si bien que la console reçoit *Une erreur interne est
+survenue : A player is required to run this command here* et que le log reçoit une trace
+`Error executing /dungeons command`.
 
 **Messages d'échec.**
 
@@ -57,15 +59,17 @@ Quitte le donjon dans lequel le joueur se trouve. Permission : aucune — tout j
 /dungeons leave
 ```
 
-C'est la seule sous-commande sans restriction de rôle de serveur, et c'est voulu : c'est ce
-qu'un joueur sur le serveur de donjon utilise pour en ressortir.
+Elle n'a aucune restriction de rôle de serveur, et c'est voulu : c'est ce qu'un joueur sur
+le serveur de donjon utilise pour en ressortir.
 
 **Effets de bord.** Le chemin de sortie complet décrit dans
 [le cycle de vie des instances](instances.fr.md#quitter) : le HUD est masqué, puis soit une
 téléportation vers `returnPos` (`SAME_SERVER`), soit un `DungeonJoinPayload` suivi d'un
 transfert vers `mainServer` 40 ticks plus tard (`CROSS_SERVER`). Si le boss n'est pas mort,
-la progression et les objets récupérés dans le donjon ne sont **pas** sauvegardés, et le
-joueur en est informé. Quand le dernier membre part, les entités du donjon sont nettoyées.
+la progression et les objets récupérés dans un donjon `CROSS_SERVER` ne sont **pas**
+rapatriés. Le message ci-dessous est envoyé dès que le boss est vivant et que
+`syncPlayerData` est activé — y compris en mode `SAME_SERVER`, où rien n'est perdu en
+réalité. Quand le dernier membre part, les entités du donjon sont nettoyées.
 
 **Exemple.**
 
@@ -88,8 +92,12 @@ Les exceptions sont capturées et journalisées sous
 
 ### `/dungeons sql test`
 
-Rapporte l'état de la connexion MariaDB. Niveau de permission **2**. Refusée sur un serveur
-de rôle `dungeon`.
+Rapporte l'état de la connexion MariaDB. Niveau de permission **2**.
+
+⚠️ Le source enchaîne deux appels `.requires(...)` — « pas un serveur de rôle `dungeon` »,
+puis « niveau de permission 2 » — mais Brigadier ne garde que le dernier. La vérification
+du rôle est donc du code mort : un opérateur **peut** lancer `/dungeons sql` et
+`/dungeons partydebug` sur un serveur de rôle `dungeon`.
 
 ```mcfunction
 /dungeons sql test
@@ -127,7 +135,9 @@ l'erreur générique *Commande inconnue ou incomplète*.
 ### `/dungeons partydebug <on|off|dump|status|ping>`
 
 Diagnostics de la synchronisation de groupe entre serveurs. Niveau de permission **2** sur
-tout le sous-arbre. Refusée sur un serveur de rôle `dungeon`.
+tout le sous-arbre. Comme `sql`, elle est censée être réservée au serveur principal mais
+reste en réalité disponible sur un serveur de rôle `dungeon` (voir l'avertissement
+ci-dessus).
 
 ```mcfunction
 /dungeons partydebug on
@@ -175,8 +185,9 @@ Ping de débogage de sync envoyé à dungeonsraids.
 
 Gestion des groupes pour les parties de donjon. Ces groupes sont le regroupement propre au
 mod, sans rapport avec une équipe Cobblemon de Pokémon. Permission : aucune — tout joueur.
-**Tout l'arbre** est refusé sur un serveur de rôle `dungeon`, y compris `leave` : les
-groupes se gèrent sur le serveur principal uniquement.
+**Tout l'arbre** est masqué sur un serveur de rôle `dungeon`, y compris `leave` — le
+`requires` de la racine échoue, donc le joueur reçoit l'erreur générique *Commande inconnue
+ou incomplète* — et les groupes se gèrent sur le serveur principal uniquement.
 
 ```mcfunction
 /DungeonsParty
@@ -189,7 +200,7 @@ en a déjà un, l'interface s'ouvre directement.
 
 | Message | Cause |
 |---|---|
-| *Vous avez besoin d'un ou plusieurs pokémon dans votre équipe pour entrer dans les donjons* | Équipe Cobblemon vide — vérifié par chacune des sous-commandes ci-dessous également |
+| *Vous avez besoin d'un ou plusieurs pokémon dans votre équipe pour entrer dans les donjons* | Équipe Cobblemon vide — vérifié par chacune des sous-commandes ci-dessous également, sauf `leave` |
 
 À la création : *Groupe créé !*
 
@@ -229,12 +240,15 @@ plusieurs joueurs est rejeté par Brigadier avant l'exécution de la commande.
 Invitation envoyée à Alex
 ```
 
-Le joueur invité reçoit un message cliquable : *<invitant> vous a invité dans son groupe de
-donjon !* avec l'infobulle *Cliquez pour rejoindre le groupe de <invitant>*.
+Le joueur invité reçoit le message *<invitant> vous a invité dans son groupe de donjon !*
+suivi d'un lien cliquable *Cliquez pour rejoindre le groupe de donjon*, dont l'infobulle est
+*Cliquez pour rejoindre le groupe de <invitant>* et qui exécute
+`/DungeonsParty join <invitant>`.
 
-**Effets de bord.** Une invitation est stockée en attente chez la cible. `invitePlayer` peut
-refuser pour ses propres raisons — un groupe plein, par exemple, qui envoie *Votre groupe
-est plein !* — et dans ce cas aucun retour *Invitation envoyée* n'est affiché.
+**Effets de bord.** Une invitation est stockée en attente chez la cible. Si l'invitant n'a
+pas encore de groupe, il en reçoit un sur-le-champ et voit d'abord *Groupe créé !*.
+`invitePlayer` peut refuser — quand le groupe compte déjà cinq membres, il envoie *Votre
+groupe est plein !* — et dans ce cas aucun retour *Invitation envoyée* n'est affiché.
 
 ### `/DungeonsParty join [inviter]`
 
@@ -260,9 +274,13 @@ Vous avez rejoint le groupe !
 |---|---|
 | *Vous avez rejoint le groupe !* | Succès, sans argument |
 | *Vous avez rejoint le groupe de <invitant> !* | Succès, avec un argument |
-| *Aucune invitation en attente.* | Sans argument, et rien en attente |
-| *Aucune invitation de <joueur>.* | Avec un argument, et aucune invitation de ce joueur |
-| *Le groupe est plein* / *Échec de la tentative de rejoindre le groupe.* / *Échec : le groupe a peut-être été dissous.* | Émis par `DungeonsPartyManager` selon la raison du refus |
+| *Aucune invitation en attente.* | Sans argument, et l'adhésion a échoué, quelle qu'en soit la raison |
+| *Aucune invitation de <joueur>.* | Avec un argument, et l'adhésion a échoué, quelle qu'en soit la raison |
+| *Le groupe est plein* | Le groupe compte déjà cinq membres — envoyé par `DungeonsPartyManager`, puis suivi de l'une des deux lignes ci-dessus |
+
+Une invitation dont le groupe a été dissous entre-temps se termine elle aussi par *Aucune
+invitation en attente.* / *Aucune invitation de <joueur>.* : la commande n'a pas de message
+propre pour ce cas.
 
 ### `/DungeonsParty leave`
 
@@ -273,9 +291,9 @@ Quitte le groupe.
 ```
 
 La commande elle-même n'affiche rien ; c'est le gestionnaire qui parle. Celui qui part voit
-*Vous avez quitté le groupe.* Les membres restants voient *<joueur> a quitté le groupe.*, et
-si le partant était le chef, le groupe est dissous avec *Le groupe a été dissous car le chef
-est parti.*
+*Vous avez quitté le groupe.* Si le partant était un simple membre, les membres restants
+voient *<joueur> a quitté le groupe.* Si c'était le chef, le groupe est dissous et les autres
+ne voient que *Le groupe a été dissous car le chef est parti.*
 
 Il n'y a aucune confirmation et aucun message d'échec pour un joueur qui n'est dans aucun
 groupe.
@@ -290,7 +308,7 @@ L'écran de sélection porte des actions sans équivalent en commande :
 - l'état « recherche de groupe », qui te signale aux autres joueurs
 - l'échange de tickets — les quatre conversions, documentées dans
   [les tickets](tickets.fr.md)
-- l'invite de combat de boss affichée quand tu entres dans un portail activé
+- l'invite de combat de boss affichée quand tu fais un clic droit sur un portail activé
 
 Les actions d'administration sans équivalent en commande — CRUD de configuration,
 rechargement, échec forcé, sortie forcée — vivent dans [le dashboard](dashboard.fr.md).

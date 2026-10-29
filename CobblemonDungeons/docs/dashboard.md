@@ -153,6 +153,10 @@ Responses: `200` with the stored config, `404` if unknown, `400`
 Deletes the file, then runs a full `ConfigLoader.load()` to rebuild the registry. Role:
 `OPERATOR` or above (core). Answers `200 {"deleted":true}`, or `404` if unknown.
 
+The file deleted is always `dungeons/<id>.json`. A dungeon whose file has another name is
+not removed: the reload registers it again from its own file, yet the route still answers
+`200 {"deleted":true}`.
+
 A live run of the deleted dungeon keeps going — its instance holds its own config object.
 
 ### `POST /configs/reload`
@@ -408,7 +412,7 @@ become no-ops.
 
 | Effect | Properties | What it does |
 |---|---|---|
-| `DUNGEON_OPEN` | `dungeonId`, `dungeonTier` (default `1`) | Calls `DungeonManager.startDungeon(leader, id, tier)` for the **first** participant only, as the leader; the rest come along as that player's party |
+| `DUNGEON_OPEN` | `dungeonId`, `dungeonTier` (default `1`) | Calls `DungeonManager.startDungeon(leader, id, tier)` for the **first** participant only, as the leader. Other participants come along only if they are members of that player's `/DungeonsParty`; the effect builds no party itself |
 | `DUNGEON_TICKET_GIVE` | `dungeonId`, `dungeonTier` (default `1`), `ticketCount` (default `1`) | Builds a ticket per participant via `DungeonTicketItem.createStack`, inserted in inventory or dropped at their feet |
 | `DUNGEON_MODIFIER` | `dungeonId`, `modifierType` (default `DOUBLE_LOOT`), `modifierValue` (default `2.0`) | Logs and announces, and nothing else |
 

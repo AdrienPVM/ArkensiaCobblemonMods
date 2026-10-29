@@ -127,15 +127,17 @@ anything up. It is a timer. See [the collection loop](auto-collect.md#the-loop).
 
 ## 7. Prove it works on a real pickup
 
-Close your inventory and drop a few coins on the ground, then walk over them:
+With the toggle on, a `/give` followed by a throw does not work: the given coins are swept
+into the purse within half a second, before you can drop them. Put the coins on the ground
+directly instead, a few blocks away:
 
 ```mcfunction
-/give @s numismatic-overhaul:silver_coin 10
+/summon item ~ ~ ~3 {Item:{id:"numismatic-overhaul:silver_coin",count:10}}
 ```
 
-Press Q to throw the stack, step back, then walk into it. The coins enter your inventory
-normally — vanilla pickup, which CheesePurse does not touch — and disappear again on the
-next sweep, with `+ [10 Silver]` in the action bar.
+Walk into the stack. The coins enter your inventory normally — vanilla pickup, which
+CheesePurse does not touch — and disappear again on the next sweep, with `+ [10 Silver]`
+in the action bar.
 
 If you are quick enough with your inventory open, you can watch the stack sit in a slot
 for a tick or two before it goes. That window is real and it is up to half a second
@@ -143,13 +145,14 @@ long.
 
 ## 8. Watch the server see it
 
-Raise the log level for `com.roicheese.numismaticheesepurse` to `DEBUG` and the server
-narrates every step:
+Raise the level of the `numismatic-cheesepurse` logger — the mod creates it with
+`LoggerFactory.getLogger(MOD_ID)`, so it is named after the mod id, not the package — to
+`DEBUG` and the server narrates every step:
 
 ```text
 [NumismaticCheesePurse] Auto-collect ENABLED for Steve
 [NumismaticCheesePurse] Collected 64 bronze units for Steve
-[NumismaticCheesePurse] Collected 1 000 bronze units for Steve
+[NumismaticCheesePurse] Collected 1000 bronze units for Steve
 ```
 
 The numbers are in bronze units, Numismatic's base denomination: 1 bronze, 100 per

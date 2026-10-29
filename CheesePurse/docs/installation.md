@@ -147,12 +147,12 @@ Anything the mod does afterwards is logged at `DEBUG`:
 
 ```text
 [NumismaticCheesePurse] Auto-collect ENABLED for Steve
-[NumismaticCheesePurse] Collected 1 240 bronze units for Steve
+[NumismaticCheesePurse] Collected 1240 bronze units for Steve
 ```
 
-A default server log level hides both. Raise the level for
-`com.roicheese.numismaticheesepurse` or for the `numismatic-cheesepurse` logger if you
-want to watch the loop work.
+A default server log level hides both. Raise the level of the `numismatic-cheesepurse`
+logger if you want to watch the loop work — that is the logger's real name; a rule on the
+package `com.roicheese.numismaticheesepurse` matches nothing.
 
 Then confirm in game:
 

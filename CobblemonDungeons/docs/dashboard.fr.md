@@ -161,6 +161,10 @@ Supprime le fichier, puis exécute un `ConfigLoader.load()` complet pour reconst
 registre. Rôle : `OPERATOR` ou au-dessus (cœur). Répond `200 {"deleted":true}`, ou `404` si
 inconnu.
 
+Le fichier supprimé est toujours `dungeons/<id>.json`. Un donjon dont le fichier porte un
+autre nom n'est pas retiré : le rechargement le réenregistre depuis son propre fichier, et
+la route répond pourtant `200 {"deleted":true}`.
+
 Une partie en cours du donjon supprimé continue : son instance détient son propre objet de
 configuration.
 
@@ -426,7 +430,7 @@ deviennent inertes.
 
 | Effet | Propriétés | Ce qu'il fait |
 |---|---|---|
-| `DUNGEON_OPEN` | `dungeonId`, `dungeonTier` (défaut `1`) | Appelle `DungeonManager.startDungeon(leader, id, tier)` pour le **premier** participant seulement, en tant que chef ; les autres suivent comme son groupe |
+| `DUNGEON_OPEN` | `dungeonId`, `dungeonTier` (défaut `1`) | Appelle `DungeonManager.startDungeon(leader, id, tier)` pour le **premier** participant seulement, en tant que chef. Les autres participants ne suivent que s'ils sont membres de son `/DungeonsParty` ; l'effet ne constitue aucun groupe lui-même |
 | `DUNGEON_TICKET_GIVE` | `dungeonId`, `dungeonTier` (défaut `1`), `ticketCount` (défaut `1`) | Construit un ticket par participant via `DungeonTicketItem.createStack`, inséré dans l'inventaire ou lâché à ses pieds |
 | `DUNGEON_MODIFIER` | `dungeonId`, `modifierType` (défaut `DOUBLE_LOOT`), `modifierValue` (défaut `2.0`) | Journalise et annonce, et rien d'autre |
 

@@ -61,10 +61,11 @@ The code comment says this replicates what Numismatic's own "store all" button d
 that is accurate — `RequestPurseActionC2SPacket` handles its `STORE_ALL` action with the
 same two calls in the same order. CheesePurse is that button on a timer.
 
-The early return on `totalValue <= 0` matters more than it looks. Without it, every
-opted-in player with no coins would get a `modify(0)` call twice a second, and `modify`
-sends a chat or action-bar message. The guard is what keeps an idle player's screen
-quiet.
+The early return on `totalValue <= 0` is a small saving rather than a visible one.
+Without it, every opted-in player with no coins would get a `modify(0)` call twice a
+second; `modify(0)` still rewrites the component value, but it sends no message —
+Numismatic returns before the notification when the delta converts to no coins. The
+guard spares that write, not the player's screen.
 
 ---
 

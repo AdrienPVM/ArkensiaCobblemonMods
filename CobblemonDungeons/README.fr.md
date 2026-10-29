@@ -13,9 +13,9 @@ spawners un vrai combat Cobblemon. Les gemmes se cachent dans les coffres, les p
 sol. Un compteur sur le HUD suit tout cela face aux exigences du donjon, à côté d'un stock
 de vies partagées et d'un chronomètre.
 
-Remplis tous les objectifs et un portail, invisible jusque-là, s'allume. Entre dedans et le
-groupe se retrouve dans la salle du boss face à un Charizard trois fois plus grand que la
-normale. Tue-le et chacun obtient son butin, le boss lui-même dans son PC, et un temps au
+Remplis tous les objectifs et un portail, invisible jusque-là, s'allume. Fais un clic droit
+dessus, accepte l'invite, et tout le groupe se retrouve dans la salle du boss face à un
+Charizard quatre fois plus grand que la normale. Tue-le et chacun obtient son butin, le boss lui-même dans son PC, et un temps au
 classement de ce donjon à ce tier. Échoue — plus de vies, plus de temps, ou une sortie
 volontaire — et sur un donjon cross-serveur rien de ce que tu as ramassé à l'intérieur ne
 rentre avec toi.
@@ -50,7 +50,8 @@ cd ../CobblemonDungeons && ./gradlew build
 Attention au Kotlin DSL : le script de build de ce mod est `build.gradle.kts`, et sa version
 y vit plutôt que dans `gradle.properties`. Dépose
 `build/libs/cobblemon-dungeons-1.1.147+1.21.1.jar` et le jar de CheeseDash dans le `mods/`
-du serveur, et le même jar de donjon dans le `mods/` de chaque client. Le premier démarrage
+du serveur, et les deux mêmes jars dans le `mods/` de chaque client — CheeseDash est une
+dépendance obligatoire côté client aussi, même s'il n'y fait rien. Le premier démarrage
 écrit `config/cobblemon_dungeons/` avec un donjon d'exemple complet, un modèle de ticket et
 un dresseur d'exemple, et journalise :
 
@@ -81,9 +82,9 @@ Parcours complet : [l'installation](docs/installation.fr.md).
 | [Les tickets](docs/tickets.fr.md) | Ce qu'est un ticket, les trois façons d'en obtenir, les taux d'échange, et comment le guichet le lit |
 | [Les dresseurs et RCTApi](docs/trainers.fr.md) | Écrire un Gardien, le placer, le combattre, et comment une victoire devient un objectif |
 | [Classements et historique des parties](docs/records.fr.md) | Ce qui est enregistré, où, quand, et les endroits où les chiffres sont approximatifs |
-| [Intégration dashboard](docs/dashboard.fr.md) | Les 16 routes REST sous `/api/v1/dungeons`, les cinq messages WebSocket, les trois effets CheeseGuard, et un avertissement sur les rôles |
+| [Intégration dashboard](docs/dashboard.fr.md) | Les 19 routes REST sous `/api/v1/dungeons`, les cinq messages WebSocket, les trois effets CheeseGuard, et un avertissement sur les rôles |
 | [Architecture](docs/architecture.fr.md) | Disposition des packages, les deux fichiers qui portent tout, état et écritures disque, threading, les trois mixins, points d'extension, faiblesses connues |
-| [Dépannage](docs/troubleshooting.fr.md) | Symptôme, cause, remède — dont les quatre raisons différentes qui bloquent un groupe dans le hub |
+| [Dépannage](docs/troubleshooting.fr.md) | Symptôme, cause, remède — dont ce qui retient réellement un groupe dans le hub |
 
 ## Les commandes en un coup d'œil
 

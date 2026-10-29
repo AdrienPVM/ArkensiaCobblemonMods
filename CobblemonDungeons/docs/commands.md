@@ -5,7 +5,7 @@
 Two command trees, registered in `CobblemonDungeons.onInitialize` and
 `DungeonsPartyCommands.register`:
 
-- `/dungeons`, with `/dungeon` as a byte-for-byte identical alias
+- `/dungeons`, with `/dungeon` as an identical alias (only the log lines name the alias used)
 - `/DungeonsParty`
 
 There is deliberately no admin command for creating or editing dungeons. Authoring is done
@@ -36,8 +36,10 @@ opens `DungeonSelectionGui`. From there the player picks a dungeon, optionally a
 `startDungeon`.
 
 **Required state.** The command is refused on a dungeon-role server — see
-[server roles](instances.md#cross-server-runs). It needs a player source: run from console
-it fails with Brigadier's standard "requires a player" error.
+[server roles](instances.md#cross-server-runs). It needs a player source: run from console,
+the "requires a player" exception is caught by the command's own `try`, so the console gets
+*An internal error occurred: A player is required to run this command here* and the log
+gets an `Error executing /dungeons command` stack trace.
 
 **Failure messages.**
 
@@ -55,14 +57,16 @@ Leaves the dungeon the player is currently in. Permission: none — any player.
 /dungeons leave
 ```
 
-This is the only subcommand with no server-role restriction, by design: it is what a
-player on the dungeon server uses to get back out.
+It has no server-role restriction, by design: it is what a player on the dungeon server
+uses to get back out.
 
 **Side effects.** The full leave path from [the instance lifecycle](instances.md#leaving):
 the HUD is hidden, and either a teleport to `returnPos` (`SAME_SERVER`) or a
 `DungeonJoinPayload` plus a transfer to `mainServer` after 40 ticks (`CROSS_SERVER`). If
-the boss is not dead, progress and items from inside the dungeon are **not** saved, and the
-player is told so. When the last member leaves, the dungeon's entities are cleaned up.
+the boss is not dead, a `CROSS_SERVER` player's progress and items from inside the dungeon
+are **not** carried back. The message below is sent whenever the boss is alive and
+`syncPlayerData` is on — in `SAME_SERVER` mode too, where in fact nothing is lost. When the
+last member leaves, the dungeon's entities are cleaned up.
 
 **Example.**
 
@@ -85,7 +89,11 @@ shown to the player.
 
 ### `/dungeons sql test`
 
-Reports the state of the MariaDB connection. Permission level **2**. Refused on a
+Reports the state of the MariaDB connection. Permission level **2**.
+
+⚠️ The source chains two `.requires(...)` calls — "not a dungeon-role server", then
+"permission level 2" — but Brigadier keeps only the last one. The role check is therefore
+dead code: an operator **can** run `/dungeons sql` and `/dungeons partydebug` on a
 dungeon-role server.
 
 ```mcfunction
@@ -124,7 +132,8 @@ fails, so `/dungeons sql` does not appear in completion and typing it gives the 
 ### `/dungeons partydebug <on|off|dump|status|ping>`
 
 Diagnostics for cross-server party synchronisation. Permission level **2** on the whole
-subtree. Refused on a dungeon-role server.
+subtree. Like `sql`, it is meant to be main-server only but is in fact available on a
+dungeon-role server too (see the warning above).
 
 ```mcfunction
 /dungeons partydebug on
@@ -140,7 +149,7 @@ subtree. Refused on a dungeon-role server.
 | `off` | any | Turns it off | *Party sync debug disabled.* |
 | `dump` | player | Prints the player's serialised Cobblemon party to chat and to the log | *Party sync debug dumped to log and chat.* |
 | `status` | player | Prints the current sync state to chat | none — the output *is* the response |
-| `ping <server>` | player | Sends a `PartyDebugPayload` through the proxy to the named server | *Ping of sync debug sent to <server>.* |
+| `ping <server>` | player | Sends a `PartyDebugPayload` through the proxy to the named server | *Party sync debug ping sent to <server>.* |
 
 `dump`, `status` and `ping` need a player source and fail from console.
 
@@ -161,7 +170,7 @@ is reachable. Silence is the normal failure mode, and there is no timeout messag
 ```
 
 ```text
-Ping of sync debug sent to dungeonsraids.
+Party sync debug ping sent to dungeonsraids.
 ```
 
 ---
@@ -169,8 +178,9 @@ Ping of sync debug sent to dungeonsraids.
 ## `/DungeonsParty`
 
 Party management for dungeon runs. These parties are the mod's own grouping, unrelated to
-a Cobblemon party of Pokémon. Permission: none — any player. The **whole tree** is refused
-on a dungeon-role server, including `leave`, so parties are managed on the main server
+a Cobblemon party of Pokémon. Permission: none — any player. The **whole tree** is hidden
+on a dungeon-role server, including `leave` — its root `requires` fails, so the player gets
+the generic *Unknown or incomplete command* — and parties are managed on the main server
 only.
 
 ```mcfunction
@@ -184,7 +194,7 @@ already exists it opens the GUI.
 
 | Message | Cause |
 |---|---|
-| *You need one or more pokemon on your team to enter dungeons* | Empty Cobblemon party — checked by every subcommand below as well |
+| *You need one or more pokemon on your team to enter dungeons* | Empty Cobblemon party — checked by every subcommand below as well, except `leave` |
 
 On creation: *Party created!*
 
@@ -224,11 +234,14 @@ rejected by Brigadier before the command runs.
 Invite sent to Alex
 ```
 
-The invited player receives a clickable chat message: *<inviter> invited you to their
-DungeonsParty!* with the hover text *Click to join <inviter>'s DungeonsParty*.
+The invited player receives the chat message *<inviter> invited you to their
+DungeonsParty!* followed by a clickable *Click to join the players DungeonsParty*, whose
+hover text is *Click to join <inviter>'s DungeonsParty* and which runs
+`/DungeonsParty join <inviter>`.
 
-**Side effects.** An invite is stored pending on the target. `invitePlayer` can decline for
-reasons of its own — a full party, for instance, which sends *Your Party is full!* — and in
+**Side effects.** An invite is stored pending on the target. If the inviter has no party
+yet, one is created on the spot and they see *Party created!* first. `invitePlayer` can
+decline — when the party already has five members it sends *Your Party is full!* — and in
 that case no *Invite sent* feedback is printed.
 
 ### `/DungeonsParty join [inviter]`
@@ -254,9 +267,12 @@ Joined the Party!
 |---|---|
 | *Joined the Party!* | Success, no argument |
 | *Joined <inviter>'s Party!* | Success, with an argument |
-| *No pending invites.* | No argument and nothing pending |
-| *No invite from <player>.* | With an argument, and no invite from that player |
-| *Party is full* / *Failed to join Party.* / *Failed: the Party may have been disbanded.* | Emitted by `DungeonsPartyManager` depending on why the join was refused |
+| *No pending invites.* | No argument, and the join failed for any reason |
+| *No invite from <player>.* | With an argument, and the join failed for any reason |
+| *Party is full* | The party already has five members — sent by `DungeonsPartyManager`, and followed by one of the two lines above |
+
+An invite whose party has since been disbanded also ends in *No pending invites.* / *No
+invite from <player>.*: the command has no message of its own for that case.
 
 ### `/DungeonsParty leave`
 
@@ -267,8 +283,9 @@ Leaves the party.
 ```
 
 The command itself prints nothing; the manager does. The leaver sees *You have left the
-Party.* The remaining members see *<player> has left the Party.*, and if the leaver was the
-leader the party is dissolved with *The Party has been disbanded because the leader left.*
+Party.* If the leaver was an ordinary member, the remaining members see *<player> has left
+the Party.* If the leaver was the leader, the party is dissolved and the others see only
+*The Party has been disbanded because the leader left.*
 
 There is no confirmation and no failure message for a player who is in no party.
 
@@ -281,7 +298,7 @@ The selection screen carries actions with no command equivalent:
 - picking a dungeon and starting it, at a chosen tier
 - the "searching for group" state, which advertises you to other players
 - the ticket exchange — all four conversions, documented in [tickets](tickets.md)
-- the boss-fight prompt shown when you step into an activated portal
+- the boss-fight prompt shown when you right-click an activated portal
 
 Admin actions with no command equivalent — config CRUD, reload, force-fail, force-leave —
 live in [the dashboard](dashboard.md).

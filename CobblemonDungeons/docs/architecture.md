@@ -66,7 +66,7 @@ com.sebastian.cobblemondungeons
 | `DungeonScreenHandler` | 656 | Server-side state of every dungeon screen, including the ticket exchange |
 | `DungeonScreen` | 646 | Client rendering of those screens |
 | `DungeonInstance` | 589 | One run's mutable state: counters, lives, timer, chest inventories, scan queues |
-| `DungeonsApi` | 565 | The 16 REST routes under `/api/v1/dungeons` |
+| `DungeonsApi` | 565 | The 19 REST routes under `/api/v1/dungeons` |
 | `PlayerSyncHandler` | 529 | Serialising and restoring player state across servers |
 | `PartySyncHandler` | 401 | Cobblemon party state across servers, plus the debug tooling |
 | `InteractionHandler` | 297 | Entity and block interactions: chests, loot generation, stakes, keys, gems, the boss altar |
@@ -149,8 +149,8 @@ in `BattleHandler`, through aspect strings and command tags.
 
 ## Networking payloads
 
-Seven `CustomPayload` records under `networking/`, all in the `cobblemon_dungeons`
-namespace:
+Seven `CustomPayload` records under `networking/`, six in the `cobblemon_dungeons`
+namespace — `BungeePayload` is on the standard `bungeecord:main` channel:
 
 | Payload | Direction | Carries |
 |---|---|---|

@@ -221,8 +221,9 @@ Inclus ceci, dans cet ordre :
    ```
 
 4. **Un extrait du balayage en niveau `DEBUG`**, si le problème porte sur des pièces qui
-   bougent ou ne bougent pas. Monte le niveau pour
-   `com.roicheese.numismaticheesepurse` et reproduis ; les lignes voulues sont :
+   bougent ou ne bougent pas. Monte le niveau du logger `numismatic-cheesepurse`
+   (nommé d'après l'identifiant du mod, pas le package) et reproduis ; les lignes voulues
+   sont :
 
    ```text
    [NumismaticCheesePurse] Auto-collect ENABLED for <player>

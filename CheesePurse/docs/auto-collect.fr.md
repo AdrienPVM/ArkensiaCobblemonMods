@@ -64,10 +64,11 @@ Numismatic, et c'est exact : `RequestPurseActionC2SPacket` traite son action `ST
 avec les deux mêmes appels dans le même ordre. CheesePurse, c'est ce bouton sur une
 minuterie.
 
-Le retour anticipé sur `totalValue <= 0` compte plus qu'il n'y paraît. Sans lui, chaque
-joueur inscrit sans pièces recevrait un appel `modify(0)` deux fois par seconde, et
-`modify` envoie un message en chat ou en barre d'action. C'est ce garde-fou qui garde
-l'écran d'un joueur inactif tranquille.
+Le retour anticipé sur `totalValue <= 0` est une petite économie plutôt qu'une protection
+visible. Sans lui, chaque joueur inscrit sans pièces recevrait un appel `modify(0)` deux
+fois par seconde ; `modify(0)` réécrit tout de même la valeur du composant, mais n'envoie
+aucun message — Numismatic s'arrête avant la notification quand le delta ne correspond à
+aucune pièce. Le garde-fou épargne cette écriture, pas l'écran du joueur.
 
 ---
 

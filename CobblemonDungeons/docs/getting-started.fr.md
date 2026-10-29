@@ -215,12 +215,16 @@ guichet.
 /dungeons
 ```
 
-Choisis **Tutorial Dungeon**, puis **Tier 1**. Dans l'ordre, tu devrais voir :
+Choisis **Tutorial Dungeon**, puis **Tier 1**. Dans l'ordre, tu devrais voir — les lignes
+`Démarrage dans` dans la barre d'action au-dessus de la barre d'inventaire, une par seconde,
+les autres dans le chat :
 
 ```text
 Le donjon démarre dans 5 secondes... Préparez votre équipe !
 Démarrage dans 4...
 Démarrage dans 3...
+Démarrage dans 2...
+Démarrage dans 1...
 Donjon lancé : Tutorial Dungeon
 Préparation de la zone du donjon... Veuillez patienter.
 ```
@@ -244,8 +248,9 @@ Regarde le log et consulte [le dépannage](troubleshooting.fr.md).
 
 **Les Alphas.** Marche vers un spawner. Un grand Fantominus agressif apparaît avec une
 barre de boss et te fonce dessus. Ne lance pas de Poké Ball et ne démarre pas de combat
-Cobblemon — ni l'un ni l'autre ne fonctionne sur un Alpha, et le mod te le dira. Frappe-le
-avec une arme. À sa mort :
+Cobblemon — ni l'un ni l'autre ne fonctionne sur un Alpha : la Ball est annulée sans un
+mot, et le combat est refusé avec *Vous ne pouvez combattre les Alphas qu'en PVP
+Minecraft !* Frappe-le avec une arme. À sa mort :
 
 ```text
 <toi> a vaincu un Alpha ! (1/2)
@@ -283,19 +288,21 @@ dans la salle du boss et :
 
 ```text
 Le Boss Tutorial Boss est apparu !
+<toi> a lancé le combat de boss ! Téléportation du groupe...
 ```
 
-Un Charizard trois fois plus grand que la normale. Encore une fois : combat Minecraft, pas
+Un Charizard trois fois plus grand que la normale — le `scale: 3.0` de l'entrée de pool. Encore une fois : combat Minecraft, pas
 combat Pokémon. Tue-le et la partie se termine :
 
 ```text
+Tutorial Boss a été transféré dans votre PC !
 Félicitations ! Le boss du donjon a été vaincu !
 Le groupe a gagné ! Vous serez téléportés dans 10 secondes.
-Charizard a été transféré dans votre PC !
 Vous avez reçu une récompense : Diamant
 ```
 
-Le boss lui-même atterrit dans ton PC parce que `rewardChance` valait `100.0`, et tu reçois
+Le boss lui-même — un Charizard surnommé *Tutorial Boss* — atterrit d'abord dans ton PC,
+parce que `rewardChance` valait `100.0`, et tu reçois
 une seule récompense de complétion parce que `rewardCap` valait `1`. Dix secondes plus tard
 tu es de retour à ta position de retour.
 

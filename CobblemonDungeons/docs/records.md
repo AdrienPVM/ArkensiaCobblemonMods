@@ -13,7 +13,7 @@ the dashboard reloads them too — and each is rewritten in full whenever it cha
 | `cooldowns.json` | Last completion time per dungeon per player | Every successful run |
 
 None of them use the SQL database. The database is only ever used for cross-server player
-data, never for records — the README's claim that run history and leaderboards can live in
+data, never for records — the old README's claim that run history and leaderboards can live in
 MariaDB does not match the code.
 
 ---
@@ -125,6 +125,11 @@ leaderboard from disk. Since those three are also written to disk as they change
 round trip is normally a no-op. If you hand-edited one of the files while the server was
 running, a reload is what picks the change up — and a run finishing before you reload will
 overwrite your edit.
+
+Deleting a file does **not** reset it. Each loader returns early when its file is absent,
+so the in-memory history, cooldowns or leaderboard survive the reload untouched, and the
+next write puts them back on disk. To reset one, replace its contents with `[]` (history)
+or `{}` (the other two) and reload.
 
 ---
 

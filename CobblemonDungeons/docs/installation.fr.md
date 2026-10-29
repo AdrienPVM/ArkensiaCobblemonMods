@@ -74,8 +74,9 @@ plus Cobblemon, RCTApi et Fabric API, que tu allais installer de toute façon.
 ## Installation sur le client
 
 Le même `cobblemon-dungeons-1.1.147+1.21.1.jar` va dans le `mods/` du client, aux côtés de
-Cobblemon et de Fabric API. CheeseDash est côté serveur et n'est pas nécessaire sur un
-client.
+Cobblemon, de Fabric API, de RCTApi **et du jar de CheeseDash**. CheeseDash ne fait rien sur
+un client, mais `fabric.mod.json` le liste — comme RCTApi — dans `depends`, sans restriction
+d'environnement : Fabric refuse donc de lancer un client qui a le jar de donjon sans eux.
 
 Garde le jar client à la même version que le serveur. Les payloads réseau ne négocient
 aucune version : un codec qui ne correspond pas produit une déconnexion, pas un
@@ -182,7 +183,7 @@ s'ouvre pas mais que tu reçois un message, lis le message — c'est l'un des de
 documentés dans [les commandes](commands.fr.md).
 
 **Le dashboard.** `GET /api/v1/dungeons/configs` renvoie un tableau contenant
-`example_dungeon`, et le module apparaît dans la barre latérale de CheeseDash avec l'icône
+`generic_dungeon` — le `general.id` qui se trouve dans `example_dungeon.json` — et le module apparaît dans la barre latérale de CheeseDash avec l'icône
 de château sous le nom `CobblemonDungeons`. Un `503` avec `CobblemonDungeons not ready`
 signifie que le module s'est enregistré mais que le serveur n'avait pas encore démarré :
 réessaie.

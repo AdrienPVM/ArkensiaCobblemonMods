@@ -56,8 +56,11 @@ usually means a Minecraft version other than 1.21.1.
 
 ## *This command is only available on the main server.*
 
-**Cause.** This server's role is `dungeon`. `/dungeons`, `/dungeon` and the whole
-`/DungeonsParty` tree are refused there on purpose; only `/dungeons leave` works.
+**Cause.** This server's role is `dungeon`. `/dungeons` and `/dungeon` without a
+subcommand print this message there on purpose, and the whole `/DungeonsParty` tree is
+hidden (*Unknown or incomplete command*). `/dungeons leave` works — and so, for operators,
+do `sql test` and `partydebug`, whose role check is overridden in the source (see
+[commands](commands.md#dungeons-sql-test)).
 
 **Fix.** If this is meant to be the main server, remove
 `-Dcobblemon.dungeons.serverRole=dungeon` from the launch line and unset
@@ -104,8 +107,9 @@ undefined.
 
 ## *Dungeons are full! Please try again later.*
 
-**Cause.** `SAME_SERVER` mode allocates one location slot per concurrent run, and all of
-them are busy. A dungeon with no `additionalLocations` has exactly one slot, so a second
+**Cause.** One location slot is allocated per concurrent run — on this server in
+`SAME_SERVER` mode, on the dungeon server in `CROSS_SERVER` mode — and all of them are
+busy. A dungeon with no `additionalLocations` has exactly one slot, so a second
 party cannot enter.
 
 **Fix.** Add location slots in `additionalLocations`, each with its own coordinates, and
@@ -137,23 +141,31 @@ confirmation you have a typo.
 
 ## The party waits in the hub and is never teleported in
 
-**Cause.** `isReadyForPlayers()` requires every Stake and every Guardian to have spawned
-and no trainer spawn still queued. One of those cannot complete.
+**Cause.** `isReadyForPlayers()` requires the Stake and Guardian steps to be done and no
+trainer spawn still queued. Those steps finish as soon as the chunk scan around `spawnPos`
+has been walked, **even if fewer spawners were found than required**, and a failed trainer
+spawn is dropped from the queue — so missing spawners or a broken Guardian pool do not keep
+a party in the hub. The one thing that does is a dungeon world that cannot be resolved:
+`tickFastScans` skips the instance whenever `locations.spawnPos.dimension` (first slot)
+names a dimension the server does not have. The party then waits until the timer fails the
+run.
 
-**Fix.** Check, in order:
+**Fix.** Check that `locations.spawnPos.dimension` is a full id of a loaded dimension, such
+as `minecraft:overworld`. If instead the party is teleported in but an objective can never
+be completed, check, in order:
 
 - the number of Guardian spawner blocks within `guardianSpawnRadius` of `spawnPos` is at
   least `requiredGuardians`, and their variant numbers are listed in
-  `guardianSpawnerIds`
-- the same for Stake spawners and `requiredStakes`
+  `guardianSpawnerIds` (an empty list accepts every variant)
+- the same for Stake spawners and `requiredStakes` — and only the base `stake_spawner`
+  ever receives a Stake, see [the dungeon definition](dungeons.md#spawning)
 - `spawnerScanVerticalRange` is large enough to reach them — the default 64 is a half-range
   around the spawn's Y
 - the Guardian pool resolves: an entry whose `tier` matches the run's tier, or one with
   `tier: 0`
-- every `trainerId` in that pool was actually registered, which means a
-  `Registered custom trainer from file: …` line in the log for it
-
-A Guardian pool that resolves to nothing is the usual answer.
+- every `trainerId` in that pool exists, in this mod's `trainers/` (a
+  `Registered custom trainer from file: …` line) or in Radical Trainers; a miss logs
+  `Trainer template '<id>' not found in any Radical Trainers registry!`
 
 ## Alphas never spawn
 
@@ -215,10 +227,11 @@ teleported, so their inventory is whatever it was.
 
 ## The leader is stuck on *Checking dungeon server status...*
 
-**Cause.** `CROSS_SERVER` mode asks the leader's **client** to relay a player-count query
-through the proxy. No answer within 60 ticks and the attempt is dropped silently. The usual
-reasons are a client without the mod, a missing Velocity plugin, or a `targetServer` name
-that does not match the proxy's configuration.
+**Cause.** `CROSS_SERVER` mode sends a BungeeCord player-count query through the leader's
+connection to the proxy. With no answer within 60 ticks the attempt is dropped and, three
+seconds after the first message, the leader reads *Dungeon server is offline. Please try
+again later.* — even when the server is up. The usual reasons are a missing Velocity
+plugin, or a `targetServer` name that does not match the proxy's configuration.
 
 **Fix.** Confirm the client has the mod at the same version. Confirm
 `velocity-party-forwarder` is in the proxy's `plugins/` and logged its two
@@ -261,13 +274,15 @@ different version in its name.
 
 ## A READ_ONLY dashboard account is changing things
 
-**Cause.** Not a bug you can configure away. `DungeonsApi` never calls `requireWrite` or
-`requireAdmin`, so every one of its mutating routes accepts any authenticated session. The
-detail, and the one-line fix for whoever takes it on, is in
-[the dashboard page](dashboard.md).
+**Cause.** Not through this module. `DungeonsApi` itself never calls `requireWrite` or
+`requireAdmin`, but CheeseDash's module dispatcher refuses every non-`GET` request from a
+role below `OPERATOR` with a `403` before the module sees it — see
+[the dashboard page](dashboard.md#what-the-core-actually-enforces). A change made by that
+account came from somewhere else, or the account is not `READ_ONLY`.
 
-**Fix.** Until the code changes, do not issue `READ_ONLY` sessions to anyone who should not
-be able to delete a dungeon config.
+**Fix.** Check the account's real role in CheeseDash's account list, and look the request
+up in the CheeseDash audit log. Remember that every `OPERATOR` can delete a dungeon or
+overwrite a trainer file: no route here requires `SUPER_ADMIN`.
 
 ## Alphas or the boss are the wrong size
 

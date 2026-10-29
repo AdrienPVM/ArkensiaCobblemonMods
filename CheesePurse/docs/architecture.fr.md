@@ -233,9 +233,9 @@ rien vers quoi dégrader.
 - **Un import inutilisé.** `NumismaticCheesePurse` importe `net.minecraft.util.Identifier`
   sans jamais s'en servir ; l'identifiant est construit dans `ToggleAutoCollectPayload`.
   Sans conséquence, et signe que personne n'a passé de coup de balai.
-- **Deux commentaires en français dans une base de code par ailleurs anglaise**, dans
-  `NumismaticCheesePurseClient` et `AutoCollectButton`. À normaliser si tu touches à ces
-  fichiers.
+- **Des commentaires en français dans une base de code par ailleurs anglaise**, dans trois
+  fichiers : `NumismaticCheesePurseClient`, `AutoCollectButton` et `InventoryScreenMixin`.
+  À normaliser si tu touches à ces fichiers.
 - **La position du bouton suppose une interface d'inventaire de taille vanilla**,
   176×166, codée en dur dans le mixin. Un pack de ressources qui la redimensionne place
   le bouton de travers.

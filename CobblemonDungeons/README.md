@@ -12,8 +12,9 @@ guard the area. Guardian trainers stand at their spawners waiting for a real Cob
 battle. Gems hide in chests, Stakes in the ground. A counter on the HUD tracks all of it
 against the dungeon's requirements, next to a shared pool of lives and a timer.
 
-Clear every objective and a portal that was invisible until then lights up. Walk into it
-and the party is dropped in the boss room with a Charizard three times normal size. Kill it
+Clear every objective and a portal that was invisible until then lights up. Right-click it,
+accept the prompt, and the whole party is dropped in the boss room with a Charizard four
+times normal size. Kill it
 and everyone gets their loot, the boss itself in their PC, and a time on the leaderboard
 for that dungeon at that tier. Fail — run out of lives, run out of time, or walk out — and
 on a cross-server dungeon nothing you picked up inside comes home with you.
@@ -47,7 +48,8 @@ cd ../CobblemonDungeons && ./gradlew build
 Note the Kotlin DSL: this mod's build script is `build.gradle.kts`, and its version lives
 there rather than in `gradle.properties`. Drop
 `build/libs/cobblemon-dungeons-1.1.147+1.21.1.jar` and the CheeseDash jar in the server's
-`mods/`, and the same dungeon jar in every client's `mods/`. First start writes
+`mods/`, and the same two jars in every client's `mods/` — CheeseDash is a hard dependency
+on the client too, though it does nothing there. First start writes
 `config/cobblemon_dungeons/` with a worked example dungeon, a ticket template and an
 example trainer, and logs:
 
@@ -78,9 +80,9 @@ Full walkthrough: [installation](docs/installation.md).
 | [Tickets](docs/tickets.md) | What a ticket is, the three ways to get one, the exchange rates, and how the gate reads it |
 | [Trainers and RCTApi](docs/trainers.md) | Writing a Guardian, placing it, fighting it, and how a victory becomes an objective |
 | [Leaderboards and run history](docs/records.md) | What is recorded, where, when, and the places the figures are approximate |
-| [Dashboard integration](docs/dashboard.md) | All 16 REST routes under `/api/v1/dungeons`, the five WebSocket messages, CheeseGuard's three effects, and a role-check warning |
+| [Dashboard integration](docs/dashboard.md) | All 19 REST routes under `/api/v1/dungeons`, the five WebSocket messages, CheeseGuard's three effects, and a role-check warning |
 | [Architecture](docs/architecture.md) | Package layout, the two files that hold everything, state and disk writes, threading, the three mixins, extension points, known weaknesses |
-| [Troubleshooting](docs/troubleshooting.md) | Symptom, cause, fix — including the four different reasons a party gets stuck in the hub |
+| [Troubleshooting](docs/troubleshooting.md) | Symptom, cause, fix — including what really keeps a party in the hub |
 
 ## Commands at a glance
 

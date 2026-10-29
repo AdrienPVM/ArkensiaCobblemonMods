@@ -15,8 +15,9 @@ counting a victory as a dungeon objective.
 ## Where trainers are defined
 
 `config/cobblemon_dungeons/trainers/`, one JSON file per trainer. The file name minus
-`.json` is the trainer id — the string you put in `guardianPool[].trainerId` or
-`guardianTrainerIds[]`.
+`.json` is the trainer id — the string you put in `guardianPool[].trainerId`.
+(`guardianTrainerIds[]` is matched against the NPC's displayed **name** instead; see
+[counting a victory](#counting-a-victory).)
 
 The directory is created on first launch along with `example_trainer.json`:
 
@@ -91,9 +92,14 @@ filtered the same way as every other tiered list: entries whose `tier` equals th
 tier, falling back to entries with `tier: 0`. A pool entry's `level`, when greater than
 zero, overrides the level the tier table would have given.
 
-`spawning.guardianTrainerIds` is the escape hatch: ids listed there are spawned
-unconditionally, outside the weighted draw. The generated example uses it for a named
-boss-adjacent trainer (`"Guardian Leader"`).
+A `trainerId` is looked up first in the `radicaltrainers` RCT registry, then in this mod's
+own; a miss logs `Trainer template '<id>' not found in any Radical Trainers registry!` and
+that spawner stays empty. Every spawned copy is invulnerable and tagged `DungeonTrainer` and
+`DungeonGuardian`.
+
+`spawning.guardianTrainerIds` spawns nothing. It is only read when a battle is won: an NPC
+whose name is in that list counts as a Guardian. The generated example puts
+`"Guardian Leader"` in it.
 
 Preparation does not finish until every queued Guardian has been spawned —
 `isReadyForPlayers()` requires it — so the party waits in the hub rather than watching
@@ -110,9 +116,10 @@ Right-clicking a trainer goes through `DungeonManager.handleTrainerInteract`:
 4. otherwise the NPC turns to face the player and `api.getBattleManager().startSingle` is
    called
 
-The fallback to the `radicaltrainers` registry means a trainer placed by Radical Trainers
-itself, not by this mod, is still fightable through a dungeon interaction. Whether it
-*counts* is a separate question — see below.
+This path only runs for an entity tagged `DungeonTrainer`, which every Guardian this mod
+spawns is. The fallback to the `radicaltrainers` registry is what makes a Guardian spawned
+from a Radical Trainers template fightable. Whether a victory *counts* is a separate
+question — see below.
 
 ## Counting a victory
 
@@ -126,7 +133,8 @@ whether that loser was a Guardian, by the first of these that matches:
 4. the NPC's name resolves to a trainer in this mod's RCT registry
 
 A match increments the Guardian counter, discards the entity, and broadcasts
-*<player> defeated <guardian>! (N/M)*.
+*<player> defeated a Guardian! (N/M)* — the label is a fixed English string built in Java,
+`N Guardians` when one battle beat several.
 
 Rule 2 is a heuristic and it is worth knowing about: any NPC trainer with "guardian"
 anywhere in its name counts as a dungeon Guardian when a player in a run beats it, even
@@ -146,7 +154,9 @@ Alpha Pokémon are wild entities with the `alpha` aspect, scaled up and given cu
 stats, and they are deliberately **not** battleable through Cobblemon. `BattleHandler`
 cancels any battle that would include an Alpha and tells the player *You can only engage
 in Minecraft PVP with Alphas!* — they are fought with a weapon, not with a team.
-`CaptureHandler` likewise blocks capture: *Alpha Pokemon cannot be caught!*
+`CaptureHandler` likewise blocks capture: a Poké Ball thrown at an Alpha is cancelled on
+impact without a message, and the catch-rate fallback forces the rate to zero with *Alpha
+Pokemon cannot be caught!*
 
 ---
 

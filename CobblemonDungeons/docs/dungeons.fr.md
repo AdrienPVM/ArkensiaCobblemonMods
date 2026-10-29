@@ -4,9 +4,9 @@
 
 Un donjon est un fichier JSON dans `config/cobblemon_dungeons/dungeons/`. Le nom du fichier
 n'importe pas pour l'identification — c'est le champ `general.id` à l'intérieur qui compte —
-mais le dashboard et le chemin de rechargement réécrivent tous deux un donjon dans
-`<id>.json`, donc garder le fichier nommé d'après son identifiant évite les enregistrements
-en double.
+mais le dashboard réécrit un donjon dans `<id>.json` (et `DELETE` ne supprime que
+`<id>.json`), donc garder le fichier nommé d'après son identifiant évite les fichiers en
+double.
 
 Chaque champ ci-dessous est un champ de `DungeonConfig` (ou de l'une de ses classes
 imbriquées) dans
@@ -34,11 +34,10 @@ valeurs par défaut.
 | `lootPools` | tableau | `[]` | Contenu des coffres, indexé par identifiant de coffre et par tier |
 | `completionRewards` | tableau | `[]` | Items tirés pour chaque joueur à la mort du boss |
 
-`rewardCap` ne compte que les récompenses effectivement remises. Un tirage qui produit un
-item invalide (un identifiant inconnu se résout en `minecraft:air`) est journalisé et ne
-consomme pas d'emplacement, ce qui explique qu'un identifiant mal orthographié apparaisse
-dans le log sous `Attempted to give 'Air' reward to <joueur>` au lieu de grignoter
-silencieusement le quota de quelqu'un.
+`rewardCap` ne compte que les récompenses effectivement remises. Un tirage dont
+l'identifiant d'item est inconnu (et ne correspond à aucun nom de ticket) produit une pile
+vide : il est journalisé sous `Unknown loot item ID or ticket name: <item>` et ne consomme
+pas d'emplacement, au lieu de grignoter silencieusement le quota de quelqu'un.
 
 ## `general`
 
@@ -70,9 +69,9 @@ moitié du mod tu te sers :
   `targetServer`.
 - **`CROSS_SERVER`** — la valeur par défaut. Le client du chef est d'abord interrogé sur le
   nombre de joueurs de `targetServer` via le canal de plugin BungeeCord ; si la réponse
-  n'arrive pas en 60 ticks la tentative est abandonnée, et si le serveur se déclare hors
-  ligne le chef est averti *Le serveur de donjon est hors ligne. Veuillez réessayer plus
-  tard.* Alors seulement le compte à rebours démarre. À son terme, chaque membre reçoit un
+  n'arrive pas en 60 ticks, ou si le serveur se déclare hors ligne, la tentative est
+  abandonnée et le chef est averti *Le serveur de donjon est hors ligne. Veuillez réessayer
+  plus tard.* Alors seulement le compte à rebours démarre. À son terme, chaque membre reçoit un
   `DungeonJoinPayload` portant ses données sérialisées et est transféré vers `targetServer`
   40 ticks plus tard.
 
@@ -104,9 +103,18 @@ index sur lequel aucune instance vivante n'est assise. Sans emplacement supplém
 en a exactement un, et un deuxième groupe reçoit *Les donjons sont pleins ! Veuillez
 réessayer plus tard.*
 
-L'allocation d'emplacement n'a lieu qu'en mode `SAME_SERVER`. En `CROSS_SERVER`, le
-`locationIndex` reste à `-1`, `getActiveLocations()` retombe sur `locations`, et rien
-n'empêche deux groupes d'être largués aux mêmes coordonnées.
+En mode `CROSS_SERVER`, le serveur principal n'alloue rien (son compte à rebours porte un
+`locationIndex` à `-1`) ; l'emplacement est alloué sur le serveur de donjon, par
+`findAvailableSlot` dans `handleCrossServerJoin`, à l'arrivée du premier membre d'un groupe.
+Un groupe qui trouve tous les emplacements occupés reçoit *Les donjons sont pleins !* et est
+renvoyé vers `mainServer`.
+
+⚠️ Trois téléportations ignorent l'emplacement alloué et utilisent toujours le **premier**
+bloc `locations` : le passage du hub à `spawnPos` une fois la préparation terminée, la
+téléportation de l'invite de boss vers `bossRoomPos`, et celle qui suit une équipe KO. Les
+scans, l'apparition du boss, la reconnexion et la réapparition utilisent bien l'emplacement
+actif. Avec `additionalLocations`, un groupe sur l'emplacement 2 est donc préparé autour de
+son propre `spawnPos` mais livré à celui de l'emplacement 1.
 
 ## `requirements`
 
@@ -165,7 +173,9 @@ les entrées de Gardien qui s'appliquent — chacune portant son propre champ `t
 signifie « n'importe quel tier ».
 
 `tierLevels` associe un tier au niveau auquel le contenu apparaît. Un tier sans entrée dans
-la table ne reçoit aucune surcharge de niveau de sa part.
+la table retombe sur une table intégrée dans `resolveTierLevel` : tier 1 → 15, 2 → 30,
+3 → 60, 4 → 85, 5 → 115 ; tout autre tier reçoit `0`, c'est-à-dire aucune surcharge. Les
+tiers 1 à 5 ont donc toujours un niveau, même avec `tierLevels: []`.
 
 ## `spawning`
 
@@ -185,15 +195,23 @@ la table ne reçoit aucune surcharge de niveau de sa part.
 | `chestIds` | tableau d'int | `[]` | Variantes numérotées de coffre — aussi l'identifiant du pool de butin |
 | `spawnerScanVerticalRange` | int | `64` | Demi-portée verticale du scan de blocs |
 | `guardianPool` | tableau | `[]` | Dresseurs Gardiens candidats, pondérés |
-| `guardianTrainerIds` | tableau de strings | `[]` | Identifiants de dresseurs invoqués inconditionnellement, hors du pool pondéré |
-| `spawnProtectionRadius` | double | `100.0` | Rayon à l'intérieur duquel les entités du donjon sont protégées des dégâts parasites |
+| `guardianTrainerIds` | tableau de strings | `[]` | **Noms** de dresseurs supplémentaires qui comptent comme Gardien quand un joueur les bat. Rien n'est invoqué depuis cette liste |
+| `spawnProtectionRadius` | double | `100.0` | Déclaré mais lu par aucun chemin de code |
 
 Les listes d'identifiants numérotés sont ce qui permet à deux donjons de partager un monde
 sans se voler leur mobilier. Le mod enregistre 20 variantes de bloc spawner d'Alpha
 (`alpha_spawner`, `alpha_spawner_2` … `alpha_spawner_20`) et 10 de chacun des spawners de
 Gardien, de Pieu, des portails et des coffres de donjon. Un donjon ne réagit qu'aux
 variantes listées dans ses propres tableaux `*Ids`, donc `alphaSpawnerIds: [1]` rend un
-donjon aveugle à `alpha_spawner_2`.
+donjon aveugle à `alpha_spawner_2`. Un tableau vide — la valeur par défaut — signifie aucun
+filtre : toutes les variantes sont utilisées.
+
+⚠️ Deux familles de variantes sont découvertes mais jamais activées.
+`checkPortalActivation` n'allume que les blocs qui sont le bloc `portal` de base, donc
+`portal_2` … `portal_10` ne deviennent jamais visibles et ne peuvent pas servir ; et
+`spawnStakes` ne pose un Pieu que sur le `stake_spawner` de base, donc `stake_spawner_2` …
+`stake_spawner_10` n'en portent jamais — un donjon qui compte sur eux ne peut jamais
+atteindre `requiredStakes`. Utilise la variante 1 des deux (`portal`, `stake_spawner`).
 
 `chestIds` joue un double rôle : le numéro de variante du coffre est aussi l'`id` que doit
 porter un pool de butin pour être utilisé par ce coffre.
@@ -210,9 +228,13 @@ TPS.
 |---|---|---|---|
 | `species` | string | `"ghastly"` | Nom d'espèce Cobblemon |
 | `tier` | int | `0` | Tier auquel appartient cette entrée. `0` signifie n'importe quel tier |
-| `minLevel` | int | `10` | Borne inférieure du niveau tiré |
-| `maxLevel` | int | `20` | Borne supérieure |
+| `minLevel` | int | `10` | Borne inférieure du niveau tiré — seulement quand le niveau du tier vaut `0` |
+| `maxLevel` | int | `20` | Borne supérieure — même condition |
 | `weight` | int | `10` | Poids relatif de sélection |
+
+Dès que le tier de la partie se résout en un niveau supérieur à zéro — toujours le cas pour
+les tiers 1 à 5, voir [`scaling`](#scaling) — l'Alpha apparaît exactement à ce niveau et
+`minLevel` / `maxLevel` sont ignorés.
 
 La valeur par défaut livrée, `"ghastly"`, est une faute d'orthographe de Gastly jamais
 corrigée dans la classe de données. Une espèce inconnue est journalisée une fois puis
@@ -252,7 +274,7 @@ qu'aucune n'a `tier: 0`, le mod fabrique un boss ponctuel depuis `species`, `lev
 |---|---|---|---|
 | `species` | string | `"pikachu"` | Nom d'espèce Cobblemon |
 | `tier` | int | `0` | Tier auquel appartient cette entrée. `0` signifie n'importe quel tier |
-| `level` | int | `50` | Niveau du boss |
+| `level` | int | `50` | Niveau du boss. `0` ou moins utilise le niveau du tier |
 | `customName` | string | `"Dungeon Boss"` | Nom affiché au-dessus de l'entité |
 | `isShiny` | boolean | `false` | Le faire apparaître shiny |
 | `weight` | int | `10` | Poids relatif de sélection parmi les entrées du tier correspondant |
@@ -291,11 +313,12 @@ généré.
 | `min` | int | `1` | Borne inférieure de la taille de la pile |
 | `max` | int | `1` | Borne supérieure |
 | `weight` | int | `10` | Poids relatif |
-| `nbt` | string | `""` | NBT brut appliqué à la pile |
+| `nbt` | string | `""` | Chaîne SNBT, analysée et stockée comme composant `custom_data` de la pile |
 
 Placer un ticket dans un coffre se fait en le nommant, pas par identifiant d'item : le
 fichier d'exemple généré utilise `"§6Copper Dungeon Ticket"` comme valeur d'`item`, ce qui
-retrouve un ticket par son `itemName` configuré. Voir [les tickets](tickets.fr.md).
+retrouve un ticket par son `itemName` configuré (sans tenir compte de la casse, et `&` peut
+remplacer `§`). Voir [les tickets](tickets.fr.md).
 
 ## `completionRewards`
 
@@ -307,7 +330,7 @@ retrouve un ticket par son `itemName` configuré. Voir [les tickets](tickets.fr.
 | `max` | int | `1` | Borne supérieure |
 | `chance` | double | `100.0` | Pourcentage de chance que cette récompense soit tirée |
 | `tier` | int | `0` | Tier que cette récompense sert. `0` signifie n'importe quel tier |
-| `nbt` | string | `""` | NBT brut appliqué à la pile |
+| `nbt` | string | `""` | Chaîne SNBT, stockée comme composant `custom_data` de la pile |
 
 Les récompenses de complétion sont tirées par joueur à la mort du boss. Les récompenses
 éligibles sont celles dont le `tier` vaut `0` ou égale celui de la partie, plus les
@@ -315,6 +338,41 @@ Les récompenses de complétion sont tirées par joueur à la mort du boss. Les 
 tirage, de sorte que lorsque `rewardCap` mord, les récompenses obtenues sont aléatoires
 plutôt que les premières du fichier. Une récompense qui ne tient pas dans l'inventaire est
 lâchée aux pieds du joueur.
+
+## Hors du fichier : dangers et entités nommées
+
+Deux éléments d'un donjon se construisent dans le monde au lieu d'être déclarés dans le JSON.
+
+### Dangers
+
+Les quatre items sont dans l'onglet créatif **Cobblemon Dungeons**. Les dangers fonctionnent
+partout dans le monde, en partie ou non.
+
+| Item | Effet |
+|---|---|
+| `poison_water_bucket` | Pose de l'eau empoisonnée. S'y tenir (pieds ou yeux) donne Poison II pendant 5 secondes, renouvelé tant qu'on y reste |
+| `poison_gas` | Un bloc sans collision. S'y tenir donne Poison I pendant 3 secondes |
+| `gas_mask` | Casque. Porté, ou tenu dans l'une ou l'autre main, il immunise son porteur et retire le Poison |
+| `gas_detector` | Tenu dans l'une ou l'autre main, affiche *⚠ Gaz empoisonné détecté à proximité ! ⚠* dans la barre d'action, une fois par seconde, quand un bloc de gaz se trouve à 5 blocs ou moins à l'horizontale (2 en dessous, 5 au-dessus) |
+
+Un Pokémon de type Poison, ou qui tient un masque à gaz comme objet Cobblemon, est immunisé
+lui aussi.
+
+### Entités nommées
+
+`InteractionHandler` réagit au clic droit sur toute entité dont le nom personnalisé contient
+l'un de ces mots, sans tenir compte de la casse, testés dans cet ordre :
+
+| Le nom contient | Effet |
+|---|---|
+| `dungeon master` | Ouvre l'interface de sélection des donjons, pour tout le monde |
+| `key` | Pour un joueur en partie : collecte une clé nommée exactement comme l'entité — la chaîne que doit lister `requirements.requiredKeyItems` — et retire l'entité |
+| `gem` | Pour un joueur en partie : compte une Gemme et retire l'entité |
+| `stake` | Pour un joueur en partie : compte un Pieu et retire l'entité |
+| `boss altar` | Pour un joueur en partie : invoque le boss si tous les objectifs sont remplis, sinon *Vous devez compléter tous les objectifs pour invoquer le boss !* ; ensuite *Le boss est déjà apparu !* / *Le boss a déjà été vaincu !* |
+
+Le premier mot qui correspond l'emporte : une entité nommée « Boss Altar Key » est une clé.
+Des porte-armures nommés sont le support habituel.
 
 ---
 

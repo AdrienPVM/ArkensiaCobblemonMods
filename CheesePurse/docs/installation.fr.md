@@ -155,12 +155,13 @@ Tout ce que le mod fait ensuite est journalisé en `DEBUG` :
 
 ```text
 [NumismaticCheesePurse] Auto-collect ENABLED for Steve
-[NumismaticCheesePurse] Collected 1 240 bronze units for Steve
+[NumismaticCheesePurse] Collected 1240 bronze units for Steve
 ```
 
-Un niveau de log de serveur par défaut masque les deux. Monte le niveau pour
-`com.roicheese.numismaticheesepurse` ou pour le logger `numismatic-cheesepurse` si tu
-veux regarder la boucle travailler.
+Un niveau de log de serveur par défaut masque les deux. Monte le niveau du logger
+`numismatic-cheesepurse` si tu veux regarder la boucle travailler — c'est le vrai nom du
+logger ; une règle sur le package `com.roicheese.numismaticheesepurse` ne correspond à
+rien.
 
 Confirme ensuite en jeu :
 

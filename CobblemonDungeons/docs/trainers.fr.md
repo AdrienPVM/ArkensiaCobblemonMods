@@ -17,7 +17,8 @@ aux blocs spawner de Gardien, et le décompte d'une victoire comme objectif de d
 
 `config/cobblemon_dungeons/trainers/`, un fichier JSON par dresseur. Le nom du fichier sans
 `.json` est l'identifiant du dresseur — la chaîne que tu mets dans
-`guardianPool[].trainerId` ou dans `guardianTrainerIds[]`.
+`guardianPool[].trainerId`. (`guardianTrainerIds[]` est, lui, comparé au **nom** affiché du
+PNJ ; voir [compter une victoire](#compter-une-victoire).)
 
 Le dossier est créé au premier démarrage, avec `example_trainer.json` :
 
@@ -95,9 +96,14 @@ Le dresseur qui apparaît à chaque position est un tirage pondéré sur
 de pool, quand il est supérieur à zéro, remplace le niveau que la table de tiers aurait
 donné.
 
-`spawning.guardianTrainerIds` est l'échappatoire : les identifiants qui y figurent
-apparaissent inconditionnellement, hors du tirage pondéré. L'exemple généré s'en sert pour
-un dresseur nommé proche du boss (`"Guardian Leader"`).
+Un `trainerId` est cherché d'abord dans le registre RCT `radicaltrainers`, puis dans celui
+de ce mod ; un échec journalise `Trainer template '<id>' not found in any Radical Trainers
+registry!` et ce spawner reste vide. Chaque copie invoquée est invulnérable et porte les tags
+`DungeonTrainer` et `DungeonGuardian`.
+
+`spawning.guardianTrainerIds` n'invoque rien. Cette liste n'est lue qu'à la victoire d'un
+combat : un PNJ dont le nom y figure compte comme Gardien. L'exemple généré y place
+`"Guardian Leader"`.
 
 La préparation ne se termine pas avant que chaque Gardien en file ne soit apparu —
 `isReadyForPlayers()` l'exige — de sorte que le groupe attend dans le hub au lieu de voir
@@ -113,9 +119,10 @@ Le clic droit sur un dresseur passe par `DungeonManager.handleTrainerInteract` :
 3. si toute l'équipe du dresseur est à zéro PV : *Ce dresseur a déjà été vaincu.*
 4. sinon le PNJ se tourne vers le joueur et `api.getBattleManager().startSingle` est appelé
 
-Le repli sur le registre `radicaltrainers` signifie qu'un dresseur posé par Radical Trainers
-lui-même, et non par ce mod, reste combattable via une interaction de donjon. Savoir s'il
-*compte* est une autre question — voir ci-dessous.
+Ce chemin ne s'exécute que pour une entité portant le tag `DungeonTrainer`, ce qui est le
+cas de chaque Gardien invoqué par ce mod. Le repli sur le registre `radicaltrainers` est ce
+qui rend combattable un Gardien invoqué depuis un modèle Radical Trainers. Savoir si une
+victoire *compte* est une autre question — voir ci-dessous.
 
 ## Compter une victoire
 
@@ -130,7 +137,8 @@ il décide s'il s'agissait d'un Gardien, selon le premier de ces critères qui c
 
 Une correspondance incrémente le compteur de Gardiens, supprime l'entité et diffuse
 *<joueur> a vaincu a Guardian ! (N/M)* — le libellé anglais au milieu de la phrase française
-est construit côté Java et inséré dans la chaîne traduite.
+est construit côté Java et inséré dans la chaîne traduite (`N Guardians` quand un même
+combat en a battu plusieurs).
 
 Le critère 2 est une heuristique et mérite d'être connu : n'importe quel dresseur PNJ dont
 le nom contient « guardian » compte comme Gardien de donjon quand un joueur en partie le
@@ -151,8 +159,9 @@ Les Pokémon Alpha sont des entités sauvages portant l'aspect `alpha`, agrandie
 de statistiques de combat personnalisées, et ils sont volontairement **non** combattables
 via Cobblemon. `BattleHandler` annule tout combat qui les inclurait et annonce au joueur
 *Vous ne pouvez combattre les Alphas qu'en PVP Minecraft !* — ils se combattent avec une
-arme, pas avec une équipe. `CaptureHandler` bloque de même la capture : *Les Pokémon Alpha
-ne peuvent pas être capturés !*
+arme, pas avec une équipe. `CaptureHandler` bloque de même la capture : une Poké Ball lancée sur un
+Alpha est annulée à l'impact sans message, et le repli sur le taux de capture le force à zéro
+avec *Les Pokémon Alpha ne peuvent pas être capturés !*
 
 ---
 

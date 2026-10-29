@@ -130,14 +130,16 @@ apparence que ceux que tu as configurés, même lorsqu'ils ouvrent le même donj
 dans [la page dashboard](dashboard.fr.md#effets-dévénement-cheeseguard).
 
 Il n'existe aucune commande de type `/give` pour les tickets. Un admin qui en a besoin lance
-un effet d'événement CheeseGuard, ou distribue l'item avec le `/give` vanilla accompagné des
-bonnes données personnalisées.
+un effet d'événement CheeseGuard, en prend un dans l'onglet créatif **Cobblemon Dungeons** —
+qui affiche un ticket par modèle de `dungeon_tickets.json` — ou distribue l'item avec le
+`/give` vanilla accompagné des bonnes données personnalisées.
 
 ## Synchronisation côté client
 
 La configuration des tickets est poussée à chaque client à la connexion sous forme de
 `DungeonTicketSyncPayload` contenant tout le JSON, et le client écrase sa copie locale. Le
-client en a besoin parce que l'interface d'échange affiche les noms et les tiers localement.
+client ne s'en sert que pour l'onglet créatif, qui construit ses tickets à partir de cette
+liste ; l'échange lui-même s'exécute sur le serveur, avec la copie du serveur.
 
 Cette synchronisation n'a lieu **qu'à la connexion**. Modifier les tickets depuis le
 dashboard pendant que des joueurs sont en ligne met à jour le serveur et le fichier, mais

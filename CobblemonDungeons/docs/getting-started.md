@@ -210,12 +210,15 @@ not be accepted at the gate.
 /dungeons
 ```
 
-Pick **Tutorial Dungeon**, then **Tier 1**. In order you should see:
+Pick **Tutorial Dungeon**, then **Tier 1**. In order you should see — the `Starting in`
+lines in the action bar above the hotbar, one per second, the others in chat:
 
 ```text
 Dungeon will start in 5 seconds... Prepare your team!
 Starting in 4...
 Starting in 3...
+Starting in 2...
+Starting in 1...
 Dungeon started: Tutorial Dungeon
 Preparing dungeon area... Please wait.
 ```
@@ -239,7 +242,8 @@ the log and see [troubleshooting](troubleshooting.md).
 
 **The Alphas.** Walk towards a spawner. A large, aggressive Gastly appears with a boss bar
 and comes for you. Do not throw a Poké Ball and do not start a Cobblemon battle — neither
-works on an Alpha, and the mod will tell you so. Hit it with a weapon. On its death:
+works on an Alpha: the ball is silently cancelled, and the battle is refused with *You can
+only engage in Minecraft PVP with Alphas!* Hit it with a weapon. On its death:
 
 ```text
 <you> defeated an Alpha! (1/2)
@@ -273,19 +277,21 @@ boss room and:
 
 ```text
 The Boss Tutorial Boss has appeared!
+<you> has started the boss fight! Teleporting party...
 ```
 
-A Charizard three times normal size. Again: Minecraft combat, not a Pokémon battle. Kill
+A Charizard three times normal size — the `scale: 3.0` of the pool entry. Again: Minecraft combat, not a Pokémon battle. Kill
 it and the run completes:
 
 ```text
+Tutorial Boss has been transferred to your PC!
 Congratulations! The dungeon boss has been defeated!
 The party wins! You will be teleported back in 10 seconds.
-Charizard has been transferred to your PC!
 You received a reward: Diamond
 ```
 
-The boss itself lands in your PC because `rewardChance` was `100.0`, and you get one
+The boss itself — a Charizard nicknamed *Tutorial Boss* — lands in your PC first, because
+`rewardChance` was `100.0`, and you get one
 completion reward because `rewardCap` was `1`. Ten seconds later you are back at your
 return position.
 
