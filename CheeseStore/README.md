@@ -1,84 +1,165 @@
 # CheeseStore
 
-> Premium web store with Stripe checkout, order management, wallets and in-game
-> delivery.
+> 🇫🇷 [Lire en français](README.fr.md)
 
-A real storefront: a public web page where players buy cosmetics, mounts, ranks or
-in-game currency with a card, a Stripe checkout flow, webhook-driven fulfilment, and
-an admin panel in CheeseDash for products, orders, manual delivery and wallet
-balances.
+> A web storefront with Stripe checkout, in-game delivery, a credit currency and a
+> playable cosmetic catalogue.
 
-> ## ⚠️ This mod handles real money
+> ## ⚠️ This mod takes real money
 >
-> It is provided **as is, with no warranty**, as stated in the [LICENSE](../LICENSE).
-> It has not been independently audited and makes no claim of PCI-DSS compliance.
-> **You** are responsible for your Stripe keys, your compliance obligations, and what
-> you expose to the internet. Read [SECURITY.md](../SECURITY.md) before taking a
-> single payment.
+> It creates Stripe Checkout sessions, verifies webhooks and runs server commands on
+> payment. It is provided **as is, with no warranty**, per the [LICENSE](../LICENSE).
+> It has not been independently audited and claims no PCI-DSS compliance.
+>
+> **Neither the author nor this documentation guarantees that a store you run with
+> this mod is legally or fiscally compliant anywhere.** Consumer-protection rules,
+> VAT, invoicing, refund obligations and the right of withdrawal are yours to get
+> right, and they differ by jurisdiction. The terms of sale shipped in
+> `store/cgv.html` were written for one specific server and **must be rewritten by
+> the operator** — publishing them as your own is worse than having none.
+>
+> Read [SECURITY.md](../SECURITY.md) before you take a single payment. Then read
+> [the payment flow](docs/payments.md), which is the page that matters.
 
-**Minecraft 1.21.1 · Fabric · Java 21 · 32 files, ~7 100 lines**
+A buyer opens a web page, picks a pack, pays by card on Stripe's own hosted checkout,
+and a command runs on your server. That is the whole product. The mod holds the
+catalogue, creates the Stripe session, verifies the webhook signature, records the
+order, and runs the delivery commands — retrying on the buyer's next login if they
+were offline when they paid.
+
+Alongside the card path there is a second economy that costs you nothing to run: a
+credit balance per player, topped up by a product's delivery command, spent on a
+catalogue of 63 playable cosmetics — particle trails, kill and death effects, chat
+tags, name colours, pets, rideable mounts and capes. Players browse and equip them
+from a chest menu with `/cosmetics`; one slot per category, and a summoned mount is
+recalled automatically when a fight starts.
+
+Admins never touch a command for any of this. Products, orders, manual re-delivery,
+wallet balances and the Stripe keys all live in the CheeseDash panel.
+
+**Minecraft 1.21.1 · Fabric · Java 21 · 32 source files, ~8 100 lines**
 
 ---
 
 ## Requirements
 
-- **CheeseDash** — required (admin panel)
-- **CheeseItems** — required (morpho catalog and codex inter-mod calls)
-- Fabric Loader ≥ 0.16.0, Fabric API, Java 21
+| | |
+|---|---|
+| **Required** | [CheeseDash](../CheeseDash/) · [CheeseItems](../CheeseItems/) · Fabric Loader ≥ 0.16.0 · Fabric API · Java 21 |
+| **Required for capes** | `factionwarhud`, on the client — not in this repository |
+| **Related** | `factionwar` drives kill and death effects reflectively — not in this repository |
+| **Bundled** | `sgui` by Patbox, Jar-in-Jar; no separate install |
 
-`sgui` (by Patbox) is bundled inside the jar via Jar-in-Jar, so you do not install it
-separately.
+Server-side. Players need no mod to buy, spend or equip — with the single exception
+of capes, which are rendered by that client companion mod. Without it the eight
+seeded cape cosmetics sell, equip, and remain invisible. Disable the category if you
+are not shipping it.
 
-## Installation
+Plus a Stripe account of your own. Use test keys until a test purchase has delivered
+end to end.
 
-Build CheeseDash and CheeseItems first, then drop all three in `mods/`.
+## Install
 
-## Configuration
+```bash
+cd CheeseDash   && ./gradlew build     # CheeseStore compiles against its jar
+cd ../CheeseItems && ./gradlew build   # and against this one
+cd ../CheeseStore && ./gradlew build
+```
 
-The config file holds, among other things:
+Drop `build/libs/cheesestore-1.0.0+1.21.1.jar` and both sibling jars in the server's
+`mods/`. On first start the mod writes `config/cheesestore.json` with empty Stripe
+keys, seeds a 63-entry cosmetic catalogue, and logs the one warning you must act on:
 
-| Key | Value |
-|-----|-------|
-| `stripePublishableKey` | `pk_…` — safe to expose to the browser |
-| `stripeSecretKey` | `sk_live_…` — **secret** |
-| `stripeWebhookSecret` | `whsec_…` — **secret**, used to verify webhook signatures |
+```text
+[CheeseStore] Default cosmetic catalogue written (63 entries)
+[CheeseStore] ⚠ storeBaseUrl is not configured! Checkout will be blocked.
+[CheeseStore] Initialized successfully!
+```
 
-**Never commit this file, never include it in a server pack you distribute, and never
-put it in a public backup.** The repository's `.gitignore` excludes `config/`, but a
-pack built by hand will happily sweep it up.
+Checkout stays blocked until `storeBaseUrl` names a real public origin —
+deliberately, because a buyer redirected to `localhost` after paying lands nowhere.
 
-Start with Stripe **test** keys (`sk_test_…`) and the Stripe CLI. Rotate immediately
-from the Stripe dashboard if a key leaks.
+Full walkthrough: [installation](docs/installation.md).
 
-## Public routes
+## Documentation
 
-The storefront and the Stripe webhook are reachable at `/store/api/*` — product
-listing, checkout, verify, webhook. **These are public by design**: Stripe and your
-buyers have to reach them.
+| Page | What it covers |
+|---|---|
+| [Installation](docs/installation.md) | Prerequisites, build order, what the first launch creates, the log lines that prove it loaded, clean removal |
+| [Getting started](docs/getting-started.md) | A tutorial: from a blank server to a real test-mode payment that delivers credits to your own wallet |
+| [Commands](docs/commands.md) | `/premium`, `/balance`, `/store link`, `/cosmetics`, `/mount` — every argument, permission level, output and failure message |
+| [Configuration](docs/configuration.md) | `cheesestore.json` in full: Stripe keys, store settings, product fields, what applies live and what needs a restart, and which keys are dead |
+| [The payment flow](docs/payments.md) | Checkout session to delivered command, step by step, with what happens when each step fails |
+| [Cosmetics and wallets](docs/cosmetics.md) | The credit currency, the two cosmetic catalogues, the eight categories, ownership versus equipping |
+| [Dashboard API](docs/dashboard.md) | Every REST route under `/api/v1/store` and `/store/api`, the admin/public split, real rate limits, WebSocket messages |
+| [Architecture](docs/architecture.md) | Package layout, state ownership, threading and hand-off points, inter-mod coupling, known weaknesses |
+| [Troubleshooting](docs/troubleshooting.md) | Symptom, cause, fix — starting with "a buyer paid and received nothing" |
 
-Serve them over HTTPS through a reverse proxy, and do not expose the CheeseDash admin
-port on the same opening. **Verify webhook signatures in production** — an
-unauthenticated webhook endpoint lets anyone forge a "payment succeeded" event and
-grant themselves goods for free.
+## Commands at a glance
+
+| Command | Level | What it does |
+|---|---|---|
+| `/premium` · `/balance` | any | your own credit balance |
+| `/premium open` | any | a clickable link to the storefront |
+| `/premium top` | any | the ten highest balances |
+| `/premium cosmetics` | any | the legacy website cosmetic list |
+| `/premium give\|take\|set <player> <amount>` | 2 | adjust a balance |
+| `/premium balance <player>` | 2 | read someone else's balance |
+| `/store link <code>` | any | bind your account to a web session |
+| `/cosmetics` | any | the chest menu: browse and equip what you own |
+| `/cosmetics list\|equip\|unequip` | any | the same, as text commands |
+| `/cosmetics grant\|grantall\|revoke` | 2 | hand out ownership for testing |
+| `/mount` · `/monture` | any | summon or dismiss your equipped mount |
+
+No command creates a product, lists an order or touches a Stripe key. That is all
+dashboard-only. Details in [commands](docs/commands.md).
 
 ## Dashboard
 
-Registers under the `store` prefix: products (with image upload), orders, manual
-delivery, wallets (read and set balance), and configuration.
+Registers under the `store` prefix, with two separate surfaces:
 
-## Commands
+- **`/api/v1/store/*`** — authenticated. Products with image upload, a gallery,
+  orders and manual re-delivery, wallets, both cosmetic catalogues, store statistics
+  and the Stripe configuration.
+- **`/store/api/*`** — public, unauthenticated by necessity, because buyers and
+  Stripe's webhook servers both have to reach it. Defended instead by per-IP rate
+  limiting, a same-origin check on anything that spends, and HMAC signature
+  verification on the webhook.
 
-In-game commands cover cosmetics and mounts (equip, unequip, summon, dismiss), wallet
-balances, and admin grants. The tree is in `commands/`.
+> ⚠️ **The admin surface has no role enforcement.** `StoreApi.handle` never calls
+> `WebDashboard.requireWrite` or `requireAdmin`, so **any** authenticated CheeseDash
+> session — `READ_ONLY` included — can change product prices and delivery commands,
+> re-deliver orders, set any player's credit balance, and overwrite your Stripe
+> secret and webhook secret. Until that is fixed, treat every CheeseDash account that
+> can reach this module as a full store operator.
+> [The detail, and the shape of the fix](docs/dashboard.md#the-missing-role-guards).
 
-## Arkensia specifics
+## Honest limits
 
-`store/` contains the live storefront page as it ran for Arkensia, including its
-`cgv.html` terms page. The terms are specific to that server's jurisdiction and
-hosting arrangement — **rewrite them for yours**, do not ship them as-is.
+- **Tested in test mode, by its author, on one server.** The payment loop works; the
+  edge cases around refunds, disputes and chargebacks are not handled at all, because
+  the mod records what it delivered and nothing reconciles against Stripe.
+- **A `FAILED` delivery is silent.** No alert, no retry. The counter is
+  `failedOrders` in `GET /api/v1/store/stats`, and that is the whole mechanism.
+- **A paying buyer's UUID is taken on trust** from the checkout request body. Credit
+  purchases are different — those resolve the account from a linked session.
+- **Order history caps at 5 000 entries**, oldest dropped. Stripe's records are the
+  authoritative ones.
+- **Three config keys are dead** (`googleClientId`, `googleClientSecret`,
+  `googleRedirectUri`) and the cosmetic subsystem's player-facing messages are
+  hard-coded French. Both are listed in
+  [architecture](docs/architecture.md#known-weaknesses), along with everything else I
+  know is wrong with it.
 
 ## License
 
-[PolyForm Noncommercial 1.0.0](../LICENSE) with an Additional Permission for server
-operators. You may run a monetised store with this; you may not sell the software
-itself.
+[PolyForm Noncommercial 1.0.0](../LICENSE), with an Additional Permission for server
+operators. You may run a monetised store with this — donations, ranks, a real
+storefront; you may not sell the software itself.
+
+## Support
+
+- Bugs → [GitHub Issues](https://github.com/AdrienPVM/ArkensiaCobblemonMods/issues)
+- Questions → [Arkensia Discord](https://discord.gg/fYmPwMBjdB)
+- Security issues → [SECURITY.md](../SECURITY.md). Please do not open a public issue
+  for a vulnerability, and never paste a Stripe key into one.
