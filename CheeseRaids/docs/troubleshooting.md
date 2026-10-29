@@ -65,8 +65,9 @@ The mod never overwrites a malformed file, so your edits are still there.
 
 1. The file did not parse. `/cheeseraids reload` replies *Définitions de raids
    rechargées.* unconditionally — it says the same thing whether the reload worked or not.
-   The old definition stays in memory.
-2. The key does nothing. Nine keys in the file are read by no code; they are listed in
+   The old definition does not stay in memory either: the reload drops it, so the raid
+   disappears from `status` until the file parses.
+2. The key does nothing. Sixteen keys in the file are read by no code; they are listed in
    [configuration](configuration.md). `boss.spawnCommand`, `wave.spawnCommand`,
    `boss.provider` and `arena.gapMin`/`gapMax` are the ones people reach for first.
 3. You edited `arena.keepInventory` after the rift already existed. The dimension's config
@@ -85,7 +86,7 @@ verified rather than assumed.
 
 ## A command is refused or invisible
 
-**Cause.** Five of the six subcommands require permission level 2. Below that level the
+**Cause.** Six of the seven subcommands require permission level 2. Below that level the
 subcommand does not appear in tab completion and typing it gives the vanilla *Unknown or
 incomplete command*. The exception is `/cheeseraids enter`, which has no permission
 requirement.
@@ -95,7 +96,7 @@ Two other refusals look like permission problems but are not. *Réservé aux jou
 And nothing tab-completes the raid id: the argument is a plain word with no suggestion
 provider, so a typo is indistinguishable from an unknown raid.
 
-**Fix.** `/op <player>`, or run it from the console for the five admin branches. Get the
+**Fix.** `/op <player>`, or run it from the console for the admin branches other than `testreward`. Get the
 exact id from `/cheeseraids status`.
 
 ## `start` refuses with no explanation
@@ -187,8 +188,8 @@ repository does this for you and nothing checks that you did.
 ## The parkour path does not appear
 
 **Cause.** The branch is cleared to air and then animated in at `arena.revealBlocksPerTick`
-blocks per tick, after `arena.revealDelayTicks` ticks of build-up — a full second of
-particles before anything is placed, by default. A long path at eight blocks per tick takes
+blocks per tick, after `arena.revealDelayTicks` ticks of build-up — three full seconds of
+particles before anything is placed, by default (60 ticks). A long path at eight blocks per tick takes
 a while. If nothing appears at all after that, the reveal queue was cleared: `clearReveals`
 runs at cleanup, and `/cheeseraids stop` triggers it.
 
@@ -203,7 +204,8 @@ player is standing on an empty branch after a stop, that raid is over — telepo
 [CheeseRaids] Boss rift world cheeseguard:hoopa_rift not loaded
 ```
 
-`arena.riftDimId` and `arena.center.world` disagree, or the dimension does not exist.
+The rift `cheeseguard:` + `arena.riftDimId` does not exist or is not loaded
+(`arena.center.world` plays no part: it is never read).
 
 ```text
 [CheeseRaids] Boss spawn FAILED for hoopa — see preceding log.
@@ -218,21 +220,24 @@ No log line at all, with the raid stuck in `COMBAT`: an effects-task exception d
 apparition before it reached tick 36, where the spawn happens. Look for
 `FX task error` just before.
 
-**Fix.** Make `arena.center.world` equal `cheeseguard:` + `arena.riftDimId`. Install
-Cobblemon. For the third case, the raid self-resolves after
+**Fix.** Look for `Failed to create rift dimension` earlier in the log and check that
+CheeseGuard is loaded. Install Cobblemon. For the third case, the raid self-resolves after
 `boss.combatTimeoutSeconds` — 15 minutes by default, so stop it manually.
 
 ## The boss vanished and nobody won
 
-**Cause.** The provider distinguishes a kill from a vanish. A boss gone within five seconds
-of spawning with no battle recorded is treated as a spawn failure, not a victory, and is
-respawned up to twice:
+**Cause.** The provider tries to distinguish a kill from a vanish. A boss gone within 200
+ticks (ten seconds) of spawning with no battle recorded is treated as a spawn failure, not
+a victory, and is respawned up to twice:
 
 ```text
 [CheeseRaids] Boss for hoopa vanished pre-battle — respawning (1/2).
 ```
 
-Past two respawns, or past five seconds, the raid waits for the combat timeout.
+Past two respawns, or for a vanish more than ten seconds after the spawn, nothing is
+respawned — and the raid does **not** wait for the combat timeout. With no battle recorded,
+a boss that has been gone once five seconds have passed since its last spawn counts as a
+kill, so the raid moves to `REWARD` and everyone online is rewarded although nobody won.
 
 **Fix.** A repeating pre-battle vanish is suffocation or a void fall. Raise
 `arena.center.y`, or check that nothing else is writing blocks into the rift.
@@ -306,8 +311,9 @@ entrypoint was not discovered.
 
 **Cause.** The `raids` WebSocket channel carries exactly one message type, `raid_update`,
 and it is emitted on **phase transitions only**. Nothing broadcasts when a player enters,
-crosses a checkpoint, or when the boss spawns. The view's participant table is redrawn on a
-phase change or when you press *Rafraîchir*.
+crosses a checkpoint, or when the boss spawns — and the shipped view does not even listen
+to that channel (see [the dashboard page](dashboard.md#websocket)). The participant table is
+redrawn only when you press *Rafraîchir* or use one of the view's buttons.
 
 **Fix.** Press *Rafraîchir*. This is a known limitation, not a connection problem.
 
@@ -339,8 +345,9 @@ Open an issue at
    ```bash
    grep '\[CheeseRaids\]' logs/latest.log > cheeseraids.log
    ```
-   The mod logs a line at each phase transition, each spawn attempt and each hook failure,
-   so the whole sequence is far more useful than the last line.
+   Phase transitions themselves are not logged, but the steps around them are (wave
+   spawned, wave done, boss spawned, rewards, cleanup), as is every hook failure, so the
+   whole sequence is far more useful than the last line.
 2. **The raid definition**, from `GET /api/v1/raids/definitions` rather than the file —
    that is what the server actually has in memory. Redact nothing; there are no secrets in
    it.

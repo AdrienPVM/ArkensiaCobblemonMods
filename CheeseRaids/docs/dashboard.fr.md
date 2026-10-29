@@ -19,7 +19,7 @@ ci-dessous exige un token de session dans l'en-tête `Authorization` ; tu l'obti
 
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:44311/api/v1/auth/login \
-  -H 'Content-Type: application/json' -d '{"token":"<master token>"}' | jq -r .token)
+  -H 'Content-Type: application/json' -d '{"token":"<master token>"}' | jq -r .sessionId)
 
 curl -s http://localhost:44311/api/v1/raids/ -H "Authorization: Bearer $TOKEN"
 ```
@@ -261,10 +261,13 @@ Abonne-toi comme d'habitude, après avoir authentifié la socket :
 aucun quand un checkpoint est franchi, aucun quand le boss apparaît ou meurt, aucun quand le
 raid est nettoyé et retiré.
 
-Ça fait du canal une notification grossière plutôt qu'un flux en direct. La vue du dashboard
-s'y abonne, mais la table des participants de la carte n'est redessinée que si tu appuies sur
-*Rafraîchir* ou si une phase change. Un joueur qui rejoint en plein `OPEN` n'apparaîtra pas
-avant qu'autre chose déclenche un rafraîchissement.
+Ça fait du canal une notification grossière plutôt qu'un flux en direct — et la vue livrée
+avec le dashboard ne le consomme même pas. `buildRaids` n'appelle `app.subscribe(['raids'])`
+que si cette fonction existe, et le cœur de CheeseDash n'en définit aucune ; la liste
+d'abonnements du cœur n'inclut pas `raids`, et son gestionnaire de messages n'a aucun cas
+`raid_update`. Les cartes ne sont redessinées que si tu appuies sur *Rafraîchir* ou utilises
+l'un des boutons de la vue. Un changement de phase ou un joueur qui rejoint en plein `OPEN`
+n'apparaîtra pas avant.
 
 La diffusion passe par un `Consumer<RaidInstance>` statique sur `CheeseRaidsMod`, renseigné par
 le module de dashboard au démarrage du serveur et vidé à l'arrêt. Avec CheeseDash présent mais

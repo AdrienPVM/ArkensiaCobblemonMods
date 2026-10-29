@@ -93,14 +93,14 @@ Connecte le premier compte. La migration se déclenche à l'intérieur de cette 
 avant que les données du carnet ne soient envoyées :
 
 ```text
-[CheeseFixQuests] Processing team 8f3c1d20-… [PLAYER] — 1 reward UUID(s), 1 total player(s), filter=true
-[CheeseFixQuests]   8f3c1d20-… — 0 new entries [FILTERED (0 quest IDs — only copying claimedRewards)]
 [CheeseFixQuests] No new data to migrate
 [CheeseFixQuests] Auto-migration complete: 0 player(s) migrated
 ```
 
 Sur le monde de test que tu viens de faire, zéro est la bonne réponse — il n'y avait rien à
-déplacer. Sur un serveur qui a de l'historique tu verras de vrais compteurs, et il faut lire
+déplacer. Aucune ligne `Processing team` n'apparaît non plus : la récompense de l'étape 1 n'a
+jamais été réclamée et le groupe n'existe plus, donc aucune équipe n'a de joueur à qui la
+migration pourrait attribuer quoi que ce soit, et chacune est ignorée sans un mot. Sur un serveur qui a de l'historique tu verras de vrais compteurs, et il faut lire
 [la migration](migration.fr.md) pour comprendre ce qu'elle a décidé de copier et ce qu'elle a
 laissé derrière.
 
@@ -145,14 +145,18 @@ normalement fusionner par FTB Quests la progression de l'arrivant dans celle du 
 ## 7. Terminer une quête sur un seul compte
 
 Choisis la tâche d'item la plus simple que tu as et fais-la satisfaire par le **premier**
-joueur.
+joueur, en ramassant l'item ou en le fabriquant : l'écouteur d'inventaire de FTB,
+redirigé par ce mod, écrit aussitôt cette progression dans l'enregistrement propre au joueur,
+et la quête se termine avec sa récompense réclamable.
 
-Dans les dix secondes, le balayage de finalisation l'aura remarqué — et si l'item est arrivé
-par un chemin que l'écouteur de FTB ne surveille pas, un clic-maj depuis un coffre par
-exemple, ce balayage est la seule chose qui le remarquera. Dans les deux cas la quête du
-premier joueur se termine et sa récompense devient réclamable.
+N'utilise pas un clic-maj depuis un coffre pour ce test. L'écouteur de FTB ne voit jamais ce
+chemin, et le balayage de finalisation qui le rattraperait normalement travaille, pour un
+joueur en groupe, sur l'enregistrement du groupe plutôt que sur le sien (voir
+[les faiblesses connues](architecture.fr.md#faiblesses-connues-et-compromis-assumés)).
 
-La première fois que ce mixin se déclenche pour un joueur, le journal le dit une fois :
+Le journal affichera déjà cette ligne pour chaque joueur, dans les dix secondes suivant sa
+connexion — la phase A du balayage appelle l'écouteur pour chaque joueur connecté, donc la
+première redirection a lieu sans qu'il touche à rien. Elle est imprimée une fois par joueur :
 
 ```text
 [CheeseFixQuests] InventoryListener.detect: redirected to PlayerTeam for <PremierJoueur> (first redirect for this player; total redirects since startup: 1)

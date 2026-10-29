@@ -19,7 +19,7 @@ The first and only raid it ships is the **Hoopa Invasion**. At the scheduled hou
 over a chosen spot turns to a midnight thunderstorm and a wave of uncatchable Pokémon pours
 out, led by an oversized, glowing alpha. Kill the alpha and a Ho-Oh herald materialises
 through five seconds of gathering lightning. Through him, players enter a void rift where
-each one gets their own 75-block parkour branch, generated from a seed derived from their
+each one gets their own parkour branch, starting 75 blocks out, generated from a seed derived from their
 UUID and animated into existence block by block ahead of them. The branches converge on a
 disk at the centre, where a giant Hoopa Unbound is pulled through a portal once everyone
 has arrived. Beat it and the rift collapses, dropping everyone back in the overworld with
@@ -75,7 +75,7 @@ That file is **not ready to use.** Four of its positions default to the world or
 |---|---|
 | [Installation](docs/installation.md) | Prerequisites, build order, what the first launch creates, how to verify it loaded, clean removal and what is left behind |
 | [Getting started](docs/getting-started.md) | A tutorial: from a fresh install to one full Hoopa Invasion, every phase seen |
-| [Commands](docs/commands.md) | All six subcommands, argument by argument, with permission levels, output and every failure message |
+| [Commands](docs/commands.md) | All seven subcommands, argument by argument, with permission levels, output and every failure message |
 | [Configuration](docs/configuration.md) | `hoopa.json` in full: every key, default and interaction, including those that do nothing, plus an annotated example |
 | [Calibration](docs/calibration.md) | How to survey the four placeholder coordinates in-world and verify each one. The most useful page in the set |
 | [The raid model](docs/raid-model.md) | What a raid is, the eight phases, the star arena, and an honest split of what is generic versus Hoopa-specific |

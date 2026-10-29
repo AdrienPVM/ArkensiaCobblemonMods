@@ -19,7 +19,7 @@ première fois que l'un d'eux tue un boss la quête disparaît de celui de tous 
 CheeseFixQuests découple les deux. Les quêtes deviennent individuelles, et les équipes
 continuent de faire tout le reste.
 
-Le mécanisme : neuf mixins dans les entrailles de FTB, qui transforment tous la question
+Le mécanisme : neuf mixins dans les entrailles de FTB, dont la plupart transforment la question
 « sur quelle équipe ce joueur est-il effectivement ? » posée à FTB Teams en « quelle est
 l'équipe propre à ce joueur ? ». Il n'y a aucune logique par type de tâche : la redirection
 se place à la couche qui résout le stockage, donc toutes les quêtes et tous les types de

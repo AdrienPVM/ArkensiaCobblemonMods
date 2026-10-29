@@ -20,8 +20,8 @@ Le premier et seul raid livré est l'**Invasion de Hoopa**. À l'heure dite, le 
 couvre d'un orage de minuit au-dessus d'un point choisi et une vague de Pokémon
 incapturables en sort, menée par un alpha surdimensionné et luisant. Tue l'alpha et un
 héraut Ho-Oh se matérialise au terme de cinq secondes d'éclairs qui s'accumulent. Par lui,
-les joueurs entrent dans une faille vide où chacun reçoit sa propre branche de parkour de
-75 blocs, générée depuis une graine dérivée de son UUID et animée bloc par bloc devant lui.
+les joueurs entrent dans une faille vide où chacun reçoit sa propre branche de parkour,
+partant à 75 blocs du centre, générée depuis une graine dérivée de son UUID et animée bloc par bloc devant lui.
 Les branches convergent vers un disque central, où un Hoopa Déchaîné géant est tiré à
 travers un portail dès que tout le monde est arrivé. Battez-le et la faille s'effondre, en
 renvoyant tout le monde dans l'overworld avec des portails et des feux d'artifice.
@@ -79,7 +79,7 @@ sauter.
 |---|---|
 | [Installation](docs/installation.fr.md) | Prérequis, ordre de build, ce que crée le premier démarrage, comment vérifier le chargement, désinstallation propre et ce qui reste derrière |
 | [Prise en main](docs/getting-started.fr.md) | Un tutoriel : d'une installation neuve à une Invasion de Hoopa complète, toutes les phases vues |
-| [Commandes](docs/commands.fr.md) | Les six sous-commandes, argument par argument, avec les niveaux de permission, les sorties et tous les messages d'échec |
+| [Commandes](docs/commands.fr.md) | Les sept sous-commandes, argument par argument, avec les niveaux de permission, les sorties et tous les messages d'échec |
 | [Configuration](docs/configuration.fr.md) | `hoopa.json` en entier : chaque clé, son défaut et ses interactions, y compris celles qui ne font rien, plus un exemple annoté |
 | [Calibration](docs/calibration.fr.md) | Comment relever en jeu les quatre coordonnées bouchons et vérifier chacune d'elles. La page la plus utile de la série |
 | [Le modèle de raid](docs/raid-model.fr.md) | Ce qu'est un raid, les huit phases, l'arène en étoile, et un partage honnête entre le générique et le propre à Hoopa |

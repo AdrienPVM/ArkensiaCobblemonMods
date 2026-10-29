@@ -70,10 +70,11 @@ comportement voulu et non un bug.
 
 ## 4. Se connecter avec un second compte, ou au moins être en jeu
 
-Tout l'intérêt du mod est ce que voient les joueurs. Regarder le compte à rebours depuis la
-console ne montre rien : les avertissements sont diffusés aux joueurs, et seule la
-confirmation verte part vers l'auteur. Sois connecté comme joueur pour l'étape suivante, et
-lance la commande depuis la console ou depuis ce même joueur.
+Tout l'intérêt du mod est ce que voient les joueurs. La console journalise bien chaque
+avertissement, mais en texte brut, sans les couleurs ni le gras qui rendent le décompte
+lisible, et la confirmation verte ne part que vers l'auteur et les autres opérateurs. Sois
+connecté comme joueur pour l'étape suivante, et lance la commande depuis la console ou
+depuis ce même joueur.
 
 ## 5. Planifier un arrêt à deux minutes et l'observer
 

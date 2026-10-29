@@ -54,16 +54,17 @@ La phase se termine au premier de ces événements :
 - **`wave.timeoutSeconds` expire**, 180 par défaut. La vague est écartée et le raid continue.
 
 Tuer l'alpha est donc un raccourci, pas une obligation, et une vague que personne ne combat
-avance quand même au bout de trois minutes. Le seul cas où le raid se bloque ici, c'est si le
-monde désigné par `wave.arena.world` n'existe pas : l'apparition est alors sautée entièrement
-et la phase tombe dans son timeout.
+avance quand même au bout de trois minutes. Même un `wave.arena.world` inexistant ne le
+bloque pas : l'apparition est sautée avec une erreur qui liste les mondes existants, rien
+n'est suivi, et la phase avance au tick suivant par la branche « zéro mob » — pas de vague du
+tout, directement au héraut.
 
 ### 3. Le héraut (`NPC_REVEAL` → `OPEN`)
 
 La dimension de faille est créée si elle n'existe pas. Puis le mod compte les entités EasyNPC
 situées dans les 10 blocs de `npc.pos`, sans les révéler.
 
-**Si au moins une est trouvée**, un crescendo d'environ 102 ticks est mis en file et la phase
+**Si au moins une est trouvée**, un crescendo d'environ 112 ticks est mis en file et la phase
 avance immédiatement. Le crescendo se déroule pendant `OPEN` :
 
 | Tick | Ce qui se passe |
@@ -165,9 +166,10 @@ Gagner un combat Cobblemon retire le Pokémon sauvage environ deux secondes **ap
 combat, et téléporter les joueurs pendant cette fenêtre était visiblement cassé. Le contrat est
 donc : l'entité a disparu, **et** soit un identifiant de combat a été capturé et ce combat
 n'est plus enregistré, soit aucun combat n'a été capturé mais le boss a survécu plus de cinq
-secondes. Un boss qui disparaît en moins de cinq secondes sans combat est traité comme un échec
-d'apparition, pas comme une victoire, et il réapparaît — jusqu'à deux fois, dans les 200 ticks
-suivant l'apparition.
+secondes. Un boss qui disparaît sans combat dans les 200 ticks suivant son apparition est traité
+comme un échec d'apparition, pas comme une victoire, et il réapparaît — jusqu'à deux fois.
+Une fois ces deux réapparitions épuisées, la même disparition compte comme un K.O. dès que
+cinq secondes se sont écoulées depuis la dernière apparition.
 
 La phase se termine à la victoire, ou sur `boss.combatTimeoutSeconds` (900 par défaut), ce qui
 éjecte tout le monde et nettoie **sans récompense**.
@@ -224,7 +226,7 @@ Rassemblé au même endroit, parce que la séquence ci-dessus se lit mieux que l
 | Les récompenses ne dépendent pas de la participation | tout joueur connecté à la mort du boss est récompensé, arrivé ou non |
 | `stop` n'éjecte pas les joueurs | un arrêt manuel laisse les joueurs dans une dimension dont le sol est en train d'être supprimé |
 | Les annonces Discord sont une ligne de journal | `announce.discord` n'envoie rien nulle part |
-| Neuf clés de configuration ne font rien | listées dans la [configuration](configuration.fr.md) |
+| Seize clés de configuration ne font rien | listées dans la [configuration](configuration.fr.md) |
 | Rien n'est traduit | chaque texte destiné aux joueurs est un littéral français dans le Java |
 | Quatre hooks par réflexion | EasyNPC, l'apparition Cobblemon, les combats Cobblemon et CobbleSafari passent tous par de la réflexion. Chacun peut casser à une mise à jour de dépendance, et trois des quatre se dégradent en silence |
 

@@ -129,7 +129,7 @@ présentation.
 ## L'arène en étoile
 
 La faille est une dimension vide (*void*) CheeseGuard, créée à la demande la première fois
-qu'un joueur entre, avec `enabled = false` pour que personne n'y pénètre hors d'un raid. En
+qu'un raid atteint `NPC_REVEAL` (ou qu'un joueur entre, selon ce qui arrive en premier), avec `enabled = false` pour que personne n'y pénètre hors d'un raid. En
 son centre se trouve un disque plat de rayon `arena.centerRadius` — l'arène du boss,
 construite une fois par raid.
 
@@ -146,13 +146,17 @@ remis sur les blocs qu'il avait quittés.
 
 Les plateformes sont de deux sortes. La plateforme de départ, les checkpoints et la plateforme
 finale sont des dalles 3×3 avec une jupe en dessous et un marqueur lumineux. Tout ce qui se
-trouve entre elles est une unique dalle 1×1 posée sur une structure thématique strictement
-sous le plan d'atterrissage : rien ne peut donc empiéter sur un couloir de saut.
+trouve entre elles est une unique dalle 1×1 posée sur une colonne thématique sous le plan
+d'atterrissage, plus ce que sa mécanique exige : une piste de glace bleue sur la plateforme
+d'élan pour un saut sur glace, une colonne de toiles d'araignée au-dessus d'un atterrissage
+en toile, de l'échafaudage pour l'ascension finale. Ces blocs de mécanique sont les seuls
+posés sur la trajectoire d'un saut.
 
 Les sauts sont choisis dans une table de styles pondérée, biaisée par celle des cinq zones où
 tombe l'étape, puis bridés : chaque mécanique déclare un plafond de portée pour le changement
 de hauteur obtenu, et un candidat qui le dépasse est ramené en arrière. Les montées sont
-limitées à +1 bloc. Les commentaires du code indiquent que le résultat a été vérifié par une
+limitées à +1 bloc, sauf une ascension en échafaudage insérée tout à la fin quand le chemin
+s'achève plus de deux blocs sous le disque. Les commentaires du code indiquent que le résultat a été vérifié par une
 simulation externe (`temp/sim_parkour_v3.py`, absente de ce dépôt) rapportant zéro saut
 impossible. **Aucun joueur ne l'a sauté.**
 

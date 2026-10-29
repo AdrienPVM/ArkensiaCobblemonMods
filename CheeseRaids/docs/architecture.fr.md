@@ -40,8 +40,8 @@ com.cheeseraids
     └── Mc.java                  exécution de commandes, résolution de monde/bloc/particule/son
 ```
 
-`data` ne dépend de rien d'autre que du `BlockPos` de Minecraft. `hooks` ne dépend de rien du
-mod, sauf du logger. `logic` est là où vit le couplage, et l'essentiel tient à `RaidManager`
+`data` ne dépend de rien d'autre que du `BlockPos` de Minecraft. `hooks` dépend de peu de
+choses dans le mod : le logger, plus `RaidDefinition` et `Mc` pour `EasyNpcHook`. `logic` est là où vit le couplage, et l'essentiel tient à `RaidManager`
 qui va chercher dans les six autres classes.
 
 ## Qui possède quoi
@@ -58,7 +58,8 @@ qui est la façon dont le mod parle au dashboard sans compiler contre lui à cet
 - `active` — `ConcurrentHashMap<String, RaidInstance>`, une entrée par raid en cours.
   Concurrente parce que le thread HTTP la lit ;
 - `lastRunDates` — les horodatages anti-rejeu du planificateur ;
-- les cinq collaborateurs de logique, et la file d'effets `fx` ;
+- les quatre collaborateurs de logique (générateur, vagues, suivi, récompenses — le
+  fournisseur de boss est résolu à neuf à chaque appel), et la file d'effets `fx` ;
 - `tickCounter`, incrémenté à chaque tick et utilisé par toutes les cadences par modulo.
 
 **`StarArenaGenerator`** possède la file de révélation et deux ensembles à portée de session :
@@ -78,7 +79,7 @@ Trois fichiers, tous sous `config/cheeseraids/` :
 
 | Chemin | Écrit quand | Lu quand |
 |---|---|---|
-| `raids/<id>.json` | le défaut est écrit au premier démarrage ; `saveDefinition` en réécrit un | au démarrage du serveur, et à chaque `reload` |
+| `raids/<id>.json` | seulement quand le défaut est écrit au premier démarrage — rien d'autre n'écrit jamais une définition | au démarrage du serveur, et à chaque `reload` |
 | `instances/<raidId>.json` | à `start`, à chaque transition de phase, à chaque `enter`, toutes les 100 ticks, et à l'arrêt du serveur | au démarrage du serveur, pour la récupération après crash |
 | `state.json` | chaque fois que le planificateur déclenche, et à l'arrêt du serveur | au démarrage du serveur |
 
@@ -95,10 +96,14 @@ branche. Les commentaires du code relient cela à deux incidents dans des mods f
 duplication d'inventaire et une boucle de crash — et la leçon est énoncée comme une contrainte
 dure : **ne jamais régénérer, toujours restaurer.**
 
-Deux trous dans cette récupération. L'instance rechargée conserve des échéances absolues en
+Trois trous dans cette récupération. L'instance rechargée conserve des échéances absolues en
 millisecondes epoch : un serveur arrêté une heure revient avec tous ses timeouts déjà expirés
-et le raid court jusqu'au nettoyage. Et `builtCenters` étant en mémoire, l'arène est
-reconstruite sous des joueurs qui s'y trouvent déjà.
+et le raid court jusqu'au nettoyage. `builtCenters` étant en mémoire, l'arène est
+reconstruite sous des joueurs qui s'y trouvent déjà. Et la file d'effets n'est pas
+persistée : un redémarrage pendant le crescendo du héraut le laisse masqué pour le reste du
+raid, et un redémarrage pendant l'apparition du boss (`COMBAT` avec `bossSpawned` encore à
+false) fait que le boss n'apparaît jamais et que le raid attend la fin de
+`boss.combatTimeoutSeconds`.
 
 ## Threading
 
@@ -209,7 +214,7 @@ dimension, construction d'arène, géométrie procédurale et animation de rév�
 découperaient proprement le long de ces lignes, et les deux sont les fichiers qu'il faut lire
 en entier pour changer quoi que ce soit.
 
-**Neuf clés de configuration mortes.** `wave.spawnCommand`, `wave.entityType`,
+**Seize clés de configuration mortes.** `wave.spawnCommand`, `wave.entityType`,
 `wave.detectRadius`, `wave.captureWindowMs`, `boss.spawnCommand`, `boss.scaleCommand`,
 `boss.entityType`, `boss.detectRadius`, `boss.captureWindowMs`, plus `boss.provider`,
 `arena.model`, `arena.parkourLength`, `arena.gapMin`/`gapMax`, `arena.riseMax` et
@@ -220,7 +225,9 @@ pas une.
 
 **Un morceau de code mort.** `RaidManager.showHerald()` est privée, complète, et appelée de
 nulle part — le chemin de révélation est passé par `heraldRevealFx` et celui-ci est resté en
-arrière. C'est le seul orphelin du mod.
+arrière. C'est le seul orphelin privé. Une poignée d'utilitaires publics ne sont jamais appelés
+non plus : `WaveManager.aliveCount`, `Mc.entitiesOfType`, `Mc.worldKey`,
+`CobbleSafariHook.available`, `RaidManager.definition` et `RaidInstance.player`.
 
 **Chaque texte est un littéral français.** `assets/cheeseraids/lang/en_us.json` et
 `fr_fr.json` contiennent chacun exactement une clé, `cheeseraids.title`, et rien ne la lit.
@@ -242,8 +249,9 @@ du verrou de nuit est déjà limité à une fois par faille et par session pour 
 raison ; les enregistrements d'instance ne le sont pas.
 
 **Grosses opérations de blocs synchrones.** `buildCenter` écrit un disque de rayon
-`centerRadius` ; `clearCenter` vide un cube de côté `2 × (centerRadius + 17)` et de hauteur
-`≈27` — soit environ 55 000 mises à jour de blocs au rayon par défaut, en un seul tick, avec
+`centerRadius` ; `clearCenter` vide un pavé de côté `2 × (centerRadius + 17) + 1` sur
+29 couches (d'une sous le disque à 27 au-dessus) — soit environ 122 000 mises à jour de blocs
+au rayon par défaut (65 × 65 × 29), en un seul tick, avec
 `NOTIFY_LISTENERS`. Sur un chunk vide c'est peu coûteux par bloc, mais ça reste le travail d'un
 tick dans les deux cas.
 

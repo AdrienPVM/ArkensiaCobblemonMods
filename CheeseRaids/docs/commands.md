@@ -2,16 +2,17 @@
 
 # Commands
 
-CheeseRaids exposes one command, `/cheeseraids`, with six subcommands. Five of them
+CheeseRaids exposes one command, `/cheeseraids`, with seven subcommands. Six of them
 require **permission level 2** — the level a vanilla server grants to an operator. The
-sixth, `enter`, has no permission requirement at all and is the only player-facing
+seventh, `enter`, has no permission requirement at all and is the only player-facing
 branch.
 
 Every reply is sent to the caller only, formatted light purple, and **in French** — the
 mod's language files contain a single key (`cheeseraids.title`) and every message is a
 hardcoded `Text.literal`. There is nothing to translate by swapping a resource pack.
 
-All five admin subcommands take the raid id as their first argument, as a single word.
+Every subcommand except `reload` and `status` takes the raid id as its first argument, as
+a single word.
 There is **no tab completion** for it: the argument is a plain `StringArgumentType.word()`
 with no suggestion provider, so you have to know the id. `/cheeseraids status` lists them.
 
@@ -134,9 +135,13 @@ Définitions de raids rechargées.
 ```
 
 The reply is unconditional: it says the same thing whether the files parsed or not. A
-malformed file is **left on disk untouched** (it is never overwritten with defaults) and
-the previously loaded definition stays in memory, so a broken edit looks exactly like a
-successful one from in-game. The console is the only place the truth appears:
+malformed file is **left on disk untouched** (it is never overwritten with defaults), so a
+broken edit looks exactly like a
+successful one from in-game. Worse, the previously loaded definition does **not** survive:
+the reload empties the map before parsing, so a raid whose file fails to parse vanishes
+from memory — `status` no longer lists it, `start` refuses it, and an instance of it that
+is running stops advancing (the tick skips instances with no definition) until the file is
+fixed and reloaded. The console is the only place the truth appears:
 
 ```text
 [CheeseRaids] FAILED to parse raid def .../hoopa.json — fix the JSON syntax and
@@ -190,8 +195,8 @@ disconnected — the per-player state survives a relog on purpose.
 |---|---|---|---|
 | `raid` | single word | yes | the id of a raid currently in the `OPEN` phase |
 
-**No permission requirement.** This is the only subcommand any player can run, and the
-only one that must be run by a player rather than by the console or a command block.
+**No permission requirement.** This is the only subcommand any player can run. Like
+`testreward`, it must be run by a player rather than by the console or a command block.
 
 It is also the fallback entry path. Normally players enter by talking to the Ho-Oh
 herald; when the herald cannot be found, the mod broadcasts this command in chat instead:
@@ -345,7 +350,8 @@ Test récompense: 1/1 portail(s) Hoopa à 100, 71, -2030 (minecraft:overworld)
 |---|---|
 | `Monde d'ancrage introuvable: <id>` | `reward.portalAnchor.world` is not a loaded world |
 | `Test récompense: 0/N …` | CobbleSafari is absent, or its portal methods could not be resolved, or it refused the placement |
-| nothing at all, result 0 | `raid` is not a known id, or the command was run from the console |
+| `Réservé aux joueurs.` | run from the console or a command block |
+| nothing at all, result 0 | `raid` is not a known id |
 
 The last row is a gap: an unknown raid id produces no feedback whatsoever. Check the id
 with `status` first.
@@ -354,10 +360,11 @@ with `status` first.
 
 ## Driving the mod from somewhere else
 
-Three of these subcommands have a dashboard equivalent, and the scheduler covers a fourth:
+Four of these subcommands have a dashboard equivalent, and the scheduler is a second way
+to start a raid:
 
-- **Dashboard** — the `raids` module exposes start, stop and reload. See
-  [dashboard API](dashboard.md).
+- **Dashboard** — the `raids` module exposes start, stop and reload, and its overview
+  route is a read-only `status`. See [dashboard API](dashboard.md).
 - **Scheduler** — `schedule.autoTrigger` starts a raid at a time of day without anyone
   typing anything. See [configuration](configuration.md#schedule).
 

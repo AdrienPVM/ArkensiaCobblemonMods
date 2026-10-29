@@ -40,8 +40,8 @@ com.cheeseraids
     └── Mc.java                  command execution, world/block/particle/sound resolution
 ```
 
-`data` has no dependency on anything but Minecraft's `BlockPos`. `hooks` depends on nothing
-in the mod except the logger. `logic` is where the coupling lives, and most of it is
+`data` has no dependency on anything but Minecraft's `BlockPos`. `hooks` depends on little
+in the mod: the logger, plus `RaidDefinition` and `Mc` for `EasyNpcHook`. `logic` is where the coupling lives, and most of it is
 `RaidManager` reaching into the other six classes.
 
 ## Who owns what
@@ -57,7 +57,8 @@ is how the mod talks to the dashboard without compiling against it at that point
 - `active` — `ConcurrentHashMap<String, RaidInstance>`, one entry per running raid.
   Concurrent because the HTTP thread reads it;
 - `lastRunDates` — the scheduler's anti-replay stamps;
-- the five logic collaborators, and the effects queue `fx`;
+- the four logic collaborators (generator, waves, tracker, rewards — the boss provider is
+  resolved afresh on each call), and the effects queue `fx`;
 - `tickCounter`, incremented every tick and used for every modulo-based cadence.
 
 **`StarArenaGenerator`** owns the reveal queue and two session-scoped sets:
@@ -77,7 +78,7 @@ Three files, all under `config/cheeseraids/`:
 
 | Path | Written when | Read when |
 |---|---|---|
-| `raids/<id>.json` | the default is seeded on first run; `saveDefinition` rewrites one | server start, and every `reload` |
+| `raids/<id>.json` | only when the default is seeded on first run — nothing else ever writes a definition | server start, and every `reload` |
 | `instances/<raidId>.json` | on `start`, on every phase transition, on every `enter`, every 100 ticks, and at server stop | server start, for crash recovery |
 | `state.json` | whenever the scheduler fires, and at server stop | server start |
 
@@ -93,10 +94,13 @@ code comments tie this to two incidents in sibling mods — an inventory duplica
 crash loop — and the lesson is stated as a hard constraint: **never regenerate, always
 restore.**
 
-Two gaps in that recovery. The loaded instance keeps absolute epoch-millisecond deadlines,
+Three gaps in that recovery. The loaded instance keeps absolute epoch-millisecond deadlines,
 so a server down for an hour comes back with every timeout already expired and the raid
-races to cleanup. And `builtCenters` being in-memory means the arena is rebuilt under
-players who are already on it.
+races to cleanup. `builtCenters` being in-memory means the arena is rebuilt under
+players who are already on it. And the effects queue is not persisted: a restart during the
+herald crescendo leaves the herald hidden for the rest of the raid, and a restart during the
+boss apparition (`COMBAT` with `bossSpawned` still false) means the boss is never spawned
+and the raid waits out `boss.combatTimeoutSeconds`.
 
 ## Threading
 
@@ -198,7 +202,7 @@ or title formatting. `StarArenaGenerator` at 844 lines mixes dimension managemen
 construction, procedural geometry and the reveal animation. Both would split cleanly along
 those seams, and both are the files you have to read entirely to change anything.
 
-**Nine dead config keys.** `wave.spawnCommand`, `wave.entityType`, `wave.detectRadius`,
+**Sixteen dead config keys.** `wave.spawnCommand`, `wave.entityType`, `wave.detectRadius`,
 `wave.captureWindowMs`, `boss.spawnCommand`, `boss.scaleCommand`, `boss.entityType`,
 `boss.detectRadius`, `boss.captureWindowMs`, plus `boss.provider`, `arena.model`,
 `arena.parkourLength`, `arena.gapMin`/`gapMax`, `arena.riseMax` and
@@ -208,7 +212,9 @@ them look like a configuration surface. They are not.
 
 **One piece of dead code.** `RaidManager.showHerald()` is private, complete, and called
 from nowhere — the reveal path went through `heraldRevealFx` instead and this was left
-behind. It is the only orphan in the mod.
+behind. It is the only private orphan. A handful of public helpers are never called
+either: `WaveManager.aliveCount`, `Mc.entitiesOfType`, `Mc.worldKey`,
+`CobbleSafariHook.available`, `RaidManager.definition` and `RaidInstance.player`.
 
 **Every string is a French literal.** `assets/cheeseraids/lang/en_us.json` and `fr_fr.json`
 each contain exactly one key, `cheeseraids.title`, and nothing reads it. Every message a
@@ -227,8 +233,9 @@ file write on the server thread. The night-lock save is already guarded to once 
 session for exactly this reason; the instance saves are not.
 
 **Large synchronous block operations.** `buildCenter` writes a disk of radius
-`centerRadius`; `clearCenter` clears a cube of side `2 × (centerRadius + 17)` and height
-`≈27` — roughly 55 000 block updates at the default radius, in one tick, with
+`centerRadius`; `clearCenter` clears a box of side `2 × (centerRadius + 17) + 1` and
+29 layers (from one below the disk to 27 above) — roughly 122 000 block updates at the
+default radius (65 × 65 × 29), in one tick, with
 `NOTIFY_LISTENERS`. On a void chunk that is cheap per block, but it is one tick's worth of
 work either way.
 

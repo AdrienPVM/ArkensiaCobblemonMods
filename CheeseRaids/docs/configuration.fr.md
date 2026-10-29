@@ -46,9 +46,10 @@ Un objet de position s'écrit `{ "world": "<namespace:id>", "x": 0.0, "y": 0.0, 
 joueur est téléporté.
 
 C'est le champ `id`, et non le nom de fichier, qui fait foi. Nommer un fichier
-`invasion.json` avec `"id": "hoopa"` te donne un raid appelé `hoopa`, et `saveDefinition`
-l'écrira ensuite dans `hoopa.json`, laissant ton fichier d'origine derrière en doublon.
-Garde-les alignés.
+`invasion.json` avec `"id": "hoopa"` te donne un raid appelé `hoopa`. Le mod ne réécrit
+jamais une définition (seul le défaut du premier démarrage est enregistré), mais deux
+fichiers portant le même `id` sont tous deux lus et le dernier lu remplace l'autre sans rien
+dire, dans l'ordre du dossier. Garde-les alignés.
 
 ## `schedule`
 
@@ -135,7 +136,8 @@ Chaque mob de vague apparaît avec `uncatchable=true` et est marqué persistant 
 vanilla, pour que le désapparitionneur de Cobblemon le laisse tranquille. La **première**
 entrée avec `leader: true` devient l'alpha : il apparaît à l'échelle 1,8, reçoit un contour
 lumineux et est suivi séparément. Le tuer termine la vague sur-le-champ, quoi qu'il reste de
-vivant. Les entrées `leader` suivantes apparaissent normalement mais ne sont pas suivies.
+vivant. Tout autre mob issu d'une entrée `leader` apparaît lui aussi à l'échelle 1.8, mais
+sans contour lumineux et sans suivi.
 
 Le `hoopa.json` livré contient deux entrées :
 
@@ -166,8 +168,9 @@ ce qu'il faudrait faire en plus — `{world} {type} {x} {y} {z} {npc}` y sont su
 résultat s'exécute comme une source console de niveau 4.
 
 `despawnAfterSeconds` suggère que le héraut devrait se masquer tout seul si le raid ne
-démarre jamais. Aucun code ne lit cette clé. Le héraut est masqué à `ANNOUNCE` et au
-nettoyage, nulle part ailleurs.
+démarre jamais. Aucun code ne lit cette clé. Le héraut est masqué à `ANNOUNCE`, de nouveau
+au début de `NPC_REVEAL` (le comptage fait avant le crescendo le masque aussi), et au
+nettoyage — nulle part ailleurs.
 
 ## `arena`
 
@@ -176,15 +179,15 @@ La dimension de faille et le parkour en étoile procédural.
 | Clé | Type | Défaut | Effet |
 |---|---|---|---|
 | `riftDimId` | chaîne | `"hoopa_rift"` | l'identifiant de dimension CheeseGuard ; l'identifiant de monde est `cheeseguard:` + ceci |
-| `center` | position | `cheeseguard:hoopa_rift` `0.5 / 100 / 0.5` | centre du disque du boss. Doit désigner le même monde que `riftDimId` |
+| `center` | position | `cheeseguard:hoopa_rift` `0.5 / 100 / 0.5` | centre du disque du boss. Seuls `x`/`y`/`z` sont lus : `world` est ignoré, la faille est toujours `cheeseguard:` + `riftDimId` |
 | `starRadius` | double | `75.0` | distance du centre à la plateforme de départ d'une branche. Plus long = plus de sauts |
 | `maxSlots` | entier | `12` | branches simultanées, donc nombre maximal de joueurs dans un raid |
 | `checkpointEvery` | entier | `6` | un checkpoint toutes les N plateformes. Plus petit = plus facile. Ramené à 1 au minimum |
 | `revealBlocksPerTick` | entier | `8` | vitesse d'animation du chemin. Ramené à 1 au minimum |
 | `revealDelayTicks` | entier | `60` | ticks de montée en puissance sur la plateforme de départ avant que le chemin commence à apparaître |
 | `revealParticle` | chaîne | `"ENCHANT"` | particule de la révélation ; un des noms de `Mc.particle`, tout autre retombe sur `ENCHANT` |
-| `revealSound` | chaîne | `"minecraft:block.amethyst_block.chime"` | son joué tous les 6 blocs de la révélation |
-| `platformBlock` | chaîne | `"minecraft:purpur_block"` | les dalles. Un identifiant inconnu retombe sur le purpur |
+| `revealSound` | chaîne | `"minecraft:block.amethyst_block.chime"` | son joué quand le nombre de blocs posés en fin de tick est un multiple de 6 — tous les 24 blocs (3 ticks) à la vitesse par défaut de 8 |
+| `platformBlock` | chaîne | `"minecraft:purpur_block"` | les dalles. Un identifiant inconnu mais bien formé donne de l'**air** (la valeur par défaut du registre des blocs), et les dalles disparaissent ; seul un identifiant mal formé retombe sur le purpur |
 | `checkpointBlock` | chaîne | `"minecraft:sea_lantern"` | dalles de checkpoint |
 | `centerBlock` | chaîne | `"minecraft:crying_obsidian"` | bloc de base du disque du boss |
 | `centerRadius` | entier | `15` | rayon du disque du boss. Ramené à 6 au minimum |

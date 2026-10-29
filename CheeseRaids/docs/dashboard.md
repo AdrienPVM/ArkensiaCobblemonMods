@@ -20,7 +20,7 @@ dashboard.
 
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:44311/api/v1/auth/login \
-  -H 'Content-Type: application/json' -d '{"token":"<master token>"}' | jq -r .token)
+  -H 'Content-Type: application/json' -d '{"token":"<master token>"}' | jq -r .sessionId)
 
 curl -s http://localhost:44311/api/v1/raids/ -H "Authorization: Bearer $TOKEN"
 ```
@@ -258,10 +258,12 @@ Emitted on **phase transitions only** — every call to `transition()`, which co
 message when a checkpoint is crossed, no message when the boss spawns or dies, no message
 when the raid is cleaned up and removed.
 
-That makes the channel a coarse notification rather than a live feed. The dashboard view
-subscribes to it, but the card's participant table is only redrawn when you press
-*Rafraîchir* or when a phase changes. A player joining mid-`OPEN` will not appear until
-something else triggers a refresh.
+That makes the channel a coarse notification rather than a live feed — and the shipped
+dashboard view does not even consume it. `buildRaids` calls `app.subscribe(['raids'])`
+only if that function exists, and the CheeseDash core defines none; the core's own
+subscription list does not include `raids`, and its message handler has no `raid_update`
+case. The cards are redrawn only when you press *Rafraîchir* or use one of the view's own
+buttons. A phase change or a player joining mid-`OPEN` will not appear until then.
 
 The broadcast is wired through a static `Consumer<RaidInstance>` on `CheeseRaidsMod`, set
 by the dashboard module at server start and cleared at stop. With CheeseDash present but

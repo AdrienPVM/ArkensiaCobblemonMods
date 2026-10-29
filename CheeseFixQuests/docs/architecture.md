@@ -87,7 +87,7 @@ com.cheesefixquests
     └── ExtraQuestsTimerMixin.java         ExtraQuests' daily timer reset
 ```
 
-15 source files, roughly 1 920 lines, of which `QuestFinalizerHook` is a third.
+15 source files, roughly 1 920 lines, of which `QuestFinalizerHook` is more than a quarter.
 
 ---
 
@@ -220,7 +220,9 @@ startup. That is preferable to breaking silently, but it means you pin your FTB 
 `assets/cheesefixquests/lang/` directory. An English-speaking admin gets French output.
 Fixing this means converting four methods to `Text.translatable` and adding the lang files.
 
-**`migrate` reports success when FTB Quests is not loaded.** `QuestMigration.migrateAll()`
+**`migrate` reports success when the quest file is not loaded.** When
+`ServerQuestFile.INSTANCE` is still null (or the FTB Teams manager is unavailable),
+`QuestMigration.migrateAll()`
 returns `0` and logs a WARN, but the command sets `migrationDone = true` and prints
 *Migration terminée: 0 joueur(s)*. You then need `remigrate` to actually migrate.
 
@@ -236,6 +238,15 @@ copy of a reward if used outside its intended repair scenario.
 `ItemTask` on each startable quest, it iterates the whole inventory. The source comment
 claims the full sweep stays under a millisecond at 50 players and 1000 quests; that figure
 is not independently verified here.
+
+**Two lookups use the effective team id.** FTB Teams' `PlayerTeam.getTeamId()` returns
+the id of the team the player is *effectively* on — the party, when they are in one; only
+`getId()` is the permanent player-team id. `QuestMigration` uses `getId()` for exactly this
+reason, but two other places call `getTeamId()` on the resolved player team:
+`QuestFinalizerHook.resolveTeamData`, so for a player in a party the sweep loads and repairs
+the **party's** `TeamData`, not the player's own; and `ServerQuestFileMixin.isPlayerOnTeam`,
+which for a party member therefore answers `true` for the party's record and `false` for
+their own. Players who are not in a party are unaffected.
 
 **Stale comments.** `QuestFinalizerHook`'s class javadoc says the phases run "every 5 s"
 while `RESCAN_INTERVAL_TICKS = 200` is 10 seconds. The per-mixin javadocs number

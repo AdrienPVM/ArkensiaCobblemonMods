@@ -44,8 +44,9 @@ A position object is `{ "world": "<namespace:id>", "x": 0.0, "y": 0.0, "z": 0.0,
 `world` is a full world id; `yaw` and `pitch` only matter where the player is teleported.
 
 The `id` field, not the file name, is authoritative. Naming a file `invasion.json` with
-`"id": "hoopa"` gives you a raid called `hoopa`, and `saveDefinition` will then write it
-back to `hoopa.json`, leaving your original file behind as a duplicate. Keep them aligned.
+`"id": "hoopa"` gives you a raid called `hoopa`. The mod never writes a definition back
+(only the first-run seed is saved), but two files carrying the same `id` are both read and
+the one read last silently replaces the other, in directory order. Keep them aligned.
 
 ## `schedule`
 
@@ -131,8 +132,8 @@ an area, and cleanup restores `weather clear` but never restores the time.
 Every wave mob is spawned with `uncatchable=true` and marked vanilla-persistent so
 Cobblemon's despawner leaves it alone. The **first** entry with `leader: true` becomes the
 alpha: it is spawned at scale 1.8, given a glow outline, and tracked separately. Killing
-it ends the wave immediately, whatever is left alive. Later `leader` entries are spawned
-normally but not tracked.
+it ends the wave immediately, whatever is left alive. Every other mob spawned from a
+`leader` entry is also spawned at scale 1.8, but gets no glow and is not tracked.
 
 The stock `hoopa.json` ships two entries:
 
@@ -163,7 +164,8 @@ display attribute. The command templates exist for anything that needs doing on 
 console source.
 
 `despawnAfterSeconds` suggests the herald should hide itself if the raid never starts.
-No code reads it. The herald is hidden at `ANNOUNCE` and at cleanup, and nowhere else.
+No code reads it. The herald is hidden at `ANNOUNCE`, again at the start of `NPC_REVEAL`
+(the count taken before the crescendo also hides it), and at cleanup — nowhere else.
 
 ## `arena`
 
@@ -172,15 +174,15 @@ The rift dimension and the procedural star parkour.
 | Key | Type | Default | What it does |
 |---|---|---|---|
 | `riftDimId` | string | `"hoopa_rift"` | the CheeseGuard dimension id; the world id is `cheeseguard:` + this |
-| `center` | position | `cheeseguard:hoopa_rift` `0.5 / 100 / 0.5` | centre of the boss disk. Must name the same world as `riftDimId` |
+| `center` | position | `cheeseguard:hoopa_rift` `0.5 / 100 / 0.5` | centre of the boss disk. Only `x`/`y`/`z` are read: `world` is ignored, the rift is always `cheeseguard:` + `riftDimId` |
 | `starRadius` | double | `75.0` | distance from the centre to a branch's spawn platform. Longer means more jumps |
 | `maxSlots` | int | `12` | simultaneous branches, and therefore the maximum number of players in one raid |
 | `checkpointEvery` | int | `6` | a checkpoint every N platforms. Lower is easier. Clamped to at least 1 |
 | `revealBlocksPerTick` | int | `8` | how fast the path animates in. Clamped to at least 1 |
 | `revealDelayTicks` | int | `60` | ticks of build-up at the spawn platform before the path starts appearing |
 | `revealParticle` | string | `"ENCHANT"` | particle used by the reveal; one of the names in `Mc.particle`, anything else falls back to `ENCHANT` |
-| `revealSound` | string | `"minecraft:block.amethyst_block.chime"` | sound played every 6 blocks of the reveal |
-| `platformBlock` | string | `"minecraft:purpur_block"` | the plates. An unknown id falls back to purpur |
+| `revealSound` | string | `"minecraft:block.amethyst_block.chime"` | sound played when the placed-block count at the end of a tick is a multiple of 6 — every 24 blocks (3 ticks) at the default speed of 8 |
+| `platformBlock` | string | `"minecraft:purpur_block"` | the plates. An unknown but well-formed id resolves to **air** (the block registry's default), so the plates vanish; only a malformed id falls back to purpur |
 | `checkpointBlock` | string | `"minecraft:sea_lantern"` | checkpoint plates |
 | `centerBlock` | string | `"minecraft:crying_obsidian"` | the boss disk's base block |
 | `centerRadius` | int | `15` | radius of the boss disk. Clamped to at least 6 |
@@ -253,7 +255,7 @@ logged — the fight still works.
 | `fromage` | long | `0` | currency added to each winner's CheeseStore wallet. `0` skips it |
 | `commands` | list of strings | empty | console commands run once per winner, `{player}` substituted |
 
-Portals come from CobbleShift's sibling mod CobbleSafari, through reflection on its
+Portals come from CobbleSafari, through reflection on its
 private `PortalSpawnManager`. The call needs an **online participant** as owner, so if
 everyone disconnected before the reward, no portal opens and the command fallback is used
 instead. With neither available you get a warning and no portal, but the raid still ends

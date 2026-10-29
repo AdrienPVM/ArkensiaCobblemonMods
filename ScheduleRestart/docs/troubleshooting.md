@@ -33,14 +33,15 @@ gradle wrapper --gradle-version 8.10
 ls -l build/libs/
 ```
 
-A correct jar is a few kilobytes and contains `fabric.mod.json` plus
-`com/schedulerestart/ScheduledRestart.class`:
+A correct jar is about 10 kB and contains `fabric.mod.json`,
+`com/schedulerestart/ScheduledRestart.class` and the three anonymous `TimerTask` classes
+`ScheduledRestart$1.class` to `ScheduledRestart$3.class`:
 
 ```bash
 unzip -l build/libs/ScheduleRestart-1.0.0+1.21.1.jar
 ```
 
-If that listing shows two entries and a manifest, you have a real jar.
+If that listing shows those five files and a manifest, you have a real jar.
 
 ---
 
@@ -137,8 +138,8 @@ Search for the mod's only log line:
 grep -n "ScheduledRestart" logs/latest.log
 ```
 
-**No `Relancement :` line, and a stack trace ending in
-`Impossible de trouver le jar du serveur pour le redémarrage !`** — the relaunch could not
+**No `Relancement :` line, and a stack trace headed
+`java.lang.Exception: Impossible de trouver le jar du serveur pour le redémarrage !`** — the relaunch could not
 identify a server jar. The server was not launched with `-jar`, and the working-directory
 fallback found no `fabric-server-launch*.jar` and no `server*.jar`. The exception is
 caught and discarded, so the shutdown proceeded anyway.
@@ -248,7 +249,9 @@ ever executes.
 `logs/latest.log` for the Minecraft watchdog's *Can't keep up* or
 *A single server tick took* lines, or for a watchdog thread dump, and chase that. Once the
 server thread recovers it will drain the whole queue at once, so expect a burst of
-backlogged countdown messages followed immediately by the shutdown.
+backlogged countdown messages followed immediately by the shutdown. In restart mode,
+also check for a second Java process: the relaunch runs on the timer thread and is
+spawned at zero whether or not the server thread is alive.
 
 ---
 

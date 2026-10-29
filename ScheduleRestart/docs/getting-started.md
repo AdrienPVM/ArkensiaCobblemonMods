@@ -68,10 +68,11 @@ behaviour and not a bug.
 
 ## 4. Join with a second account, or at least be in game
 
-The whole point of the mod is what players see. Watching the countdown from the console
-shows you nothing: the warnings are broadcast to players, and only the green confirmation
-goes to the caller. Be logged in as a player for the next step, and issue the command
-from the console or from that same player.
+The whole point of the mod is what players see. The console does log each warning as
+plain text, but without the colours and bold that make the countdown readable, and the
+green confirmation goes only to the caller and the other operators. Be logged in as a
+player for the next step, and issue the command from the console or from that same
+player.
 
 ## 5. Schedule a two-minute shutdown and watch it
 

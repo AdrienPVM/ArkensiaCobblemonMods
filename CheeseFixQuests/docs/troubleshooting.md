@@ -117,6 +117,10 @@ resolve on its own within ten seconds. If it does not:
    a `FINALIZE_SKIP` line names the exception it hit on this specific quest.
 3. If the stuck task is an item task and the item came out of a chest, that is phase C0's
    territory — look for `ITEM_REPAIR` or `ITEM_SET` on that task id.
+4. If the player is in an FTB Teams party, the sweep does not reach their own record at
+   all: it resolves the party's `TeamData` (the `team=` field of the audit lines is the
+   party's id), so their own stuck quest is never repaired. That is a known weakness of the
+   code, described in [architecture](architecture.md#known-weaknesses-and-deliberate-trade-offs).
 
 The ids in the audit log are uppercase hex, the same form the quest book and the `.snbt`
 files use, so you can match them directly.

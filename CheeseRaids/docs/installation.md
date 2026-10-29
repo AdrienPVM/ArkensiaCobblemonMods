@@ -90,7 +90,7 @@ config/cheeseraids/
 ├── raids/
 │   └── hoopa.json        the default Hoopa Invasion definition
 ├── instances/            empty; one file per running raid
-└── state.json            written only after the scheduler first fires
+└── state.json            written at the first server stop, then on every scheduled run
 ```
 
 `raids/` and `instances/` are created unconditionally. `hoopa.json` is written **only when
@@ -99,7 +99,9 @@ blocks the seeding, so you can end up with a directory holding one broken file a
 default.
 
 `state.json` maps a raid id to the ISO date of its last scheduled run, and is the
-scheduler's anti-replay record. It does not exist until a scheduled raid fires.
+scheduler's anti-replay record. It is written at every server stop (as `{}` while nothing
+has been scheduled) and each time a scheduled raid fires, so it appears after the first
+shutdown.
 
 The default `hoopa.json` is **not ready to use.** Four of its positions default to
 `minecraft:overworld` at `0.5 / 65 / 0.5` — the world origin, under the ground. Nothing
@@ -135,7 +137,7 @@ And on the dashboard, a **CheeseRaids** entry in the sidebar, described as *Raid
 
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:44311/api/v1/auth/login \
-  -H 'Content-Type: application/json' -d '{"token":"<master token>"}' | jq -r .token)
+  -H 'Content-Type: application/json' -d '{"token":"<master token>"}' | jq -r .sessionId)
 
 curl -s http://localhost:44311/api/v1/raids/ -H "Authorization: Bearer $TOKEN"
 ```

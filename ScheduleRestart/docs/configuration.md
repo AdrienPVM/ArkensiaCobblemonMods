@@ -53,7 +53,8 @@ to `integer(1, 1440)` is safe arithmetic — the longest delay then becomes
 `1440 × 60 × 1000 = 86 400 000` ms, far inside a `long`, and the `i * 60 * 1000L` in the
 minute loop is already promoted to `long` by the `1000L` literal.
 
-What is *not* safe is the consequence: a 24-hour schedule queues 1440 timer tasks and
+What is *not* safe is the consequence: a 24-hour schedule queues 1 450 timer tasks
+(1 439 minute reminders, 10 countdown ticks, the final task) and
 expects the JVM to live for a day without being restarted by anything else. The mod has
 no persistence, so a crash at hour 20 silently forgets the whole thing.
 

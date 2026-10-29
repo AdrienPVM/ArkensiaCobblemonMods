@@ -35,8 +35,9 @@ jouent en sens inverse.
 
 - **Le lag du serveur n'étire pas le compte à rebours.** Un serveur qui tourne à 8 TPS
   s'arrête quand même exactement dix minutes après la commande. Les avertissements
-  conservent leur espacement, parce qu'ils sont diffusés depuis le thread de la minuterie
-  et que seule la passation finale touche au thread serveur.
+  conservent leur espacement, parce qu'ils sont planifiés sur le thread de la minuterie ;
+  chacun n'attend que le moment où le thread serveur prend en charge sa diffusion, soit
+  une fraction de seconde sur un serveur qui lague.
 - **Un saut d'horloge déplace le compte à rebours.** Si NTP corrige l'horloge de l'hôte de
   deux minutes vers l'avant pendant la planification, toutes les tâches restantes
   deviennent en retard et `Timer` les déclenche à la chaîne : les joueurs reçoivent une
@@ -145,9 +146,12 @@ chat, il ne reçoit aucun avertissement.
 thread principal est bloqué — interblocage, longue pause de sauvegarde de chunks, gel
 détecté par le watchdog — cesse d'afficher les avertissements alors que le thread de la
 minuterie continue de compter. Ce même thread bloqué n'exécutera jamais non plus la
-passation `server.stop(false)` : l'arrêt n'a donc silencieusement pas lieu. Le compte à
-rebours et l'arrêt échouent tous deux du côté sûr, mais vu de l'administrateur la
-planification a simplement disparu.
+passation `server.stop(false)` : l'arrêt n'a donc silencieusement pas lieu. En mode arrêt,
+l'échec se fait du côté sûr, mais vu de l'administrateur la planification a simplement
+disparu. En **mode redémarrage, il ne se fait pas du côté sûr** : `restartServer()`
+s'exécute sur le thread de la minuterie, pas sur le thread serveur, donc à zéro la JVM de
+remplacement est lancée quand même, à côté d'un serveur figé qui tient toujours le port et
+le `session.lock`.
 
 ## Ce que tu ne peux pas changer
 

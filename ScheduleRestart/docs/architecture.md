@@ -93,8 +93,11 @@ shutdown does **not** stall the tick loop. The server keeps ticking at full spee
 A `Timer` runs independently of the tick loop, which is why the countdown stays accurate
 on a lagging server. It is also why both the countdown and the shutdown go silent if the
 server thread wedges: `server.execute` queues work that a frozen thread never drains. The
-schedule appears to vanish. Nothing is lost and nothing is corrupted, but an admin
-watching chat sees a countdown stop at `dans 4 secondes...` and a server that stays up.
+schedule appears to vanish. In shutdown mode nothing is lost and nothing is corrupted,
+but an admin watching chat sees a countdown stop at `dans 4 secondes...` and a server
+that stays up. In restart mode the timer thread still reaches `restartServer()` at zero
+and spawns the replacement JVM beside the frozen one, which then fails on the port or the
+world lock.
 
 ## Mixins
 

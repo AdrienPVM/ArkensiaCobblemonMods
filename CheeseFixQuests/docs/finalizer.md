@@ -85,8 +85,11 @@ should not stop the rest.
 
 `enableQuestFinalization`, default `true`.
 
-The substantial one. It resolves the player's `TeamData`, then walks every quest in three
-sub-steps, skipping quests already completed and quests whose dependencies are not met.
+The substantial one. It resolves a `TeamData` for the player — their own when they are not
+in a party, but the **party's** when they are, because the lookup ends in
+`PlayerTeam.getTeamId()`, which returns the effective team's id (see
+[known weaknesses](architecture.md#known-weaknesses-and-deliberate-trade-offs)). Phase B
+works on that same record. It then walks every quest in three sub-steps, skipping quests already completed and quests whose dependencies are not met.
 
 **C0 — direct `ItemTask` inventory scan.** FTB's inventory listener is attached to the
 player's own screen handler, not to a chest's, so a shift-click out of a chest is never

@@ -24,8 +24,8 @@ régression puisse être isolée à un mécanisme sans recompiler le jar.
 
 ### `forceIndividualProgress`
 
-Testée en tête des sept redirections de résolution d'équipe, des deux blocages de
-`mergeData`, de la résolution d'équipe du balayage de finalisation et de la migration
+Testée en tête des six `@Redirect` de résolution d'équipe, des deux surcharges
+d'`isPlayerOnTeam` (serveur et client), des deux blocages de `mergeData`, de la résolution d'équipe du balayage de finalisation et de la migration
 automatique. À `false`, le jar devient inerte : FTB Quests revient à la progression par
 groupe, `mergeData` refonctionne, et le balayage de finalisation résout l'équipe *effective*
 plutôt que l'équipe de joueur — il continue donc de tourner, mais contre les données du

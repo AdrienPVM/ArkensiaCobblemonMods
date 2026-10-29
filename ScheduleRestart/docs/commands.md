@@ -71,8 +71,9 @@ The confirmation is sent with `sendFeedback(..., true)`. The `true` is
 `[Caller: message]` form, subject to the `sendCommandFeedback` gamerule. If you schedule
 a shutdown from the console, the other operators see who did it.
 
-The player warnings go through `server.getPlayerManager().broadcast(text, false)` — the
-same chat path `/say` uses. The `false` means *chat*, not action bar, so the messages
+The player warnings go through `server.getPlayerManager().broadcast(text, false)` — a
+system chat message to every online player, also echoed to the server console. The
+`false` means *chat*, not action bar, so the messages
 stay in the chat history and a player who alt-tabbed can scroll back to them.
 
 ### Examples

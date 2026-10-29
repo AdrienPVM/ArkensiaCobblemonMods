@@ -120,8 +120,8 @@ presentation level.
 
 ## The star arena
 
-The rift is a CheeseGuard void dimension, created on demand the first time a player
-enters, with `enabled = false` so nobody can wander in outside a raid. At its centre sits
+The rift is a CheeseGuard void dimension, created on demand the first time a raid reaches
+`NPC_REVEAL` (or a player enters, whichever comes first), with `enabled = false` so nobody can wander in outside a raid. At its centre sits
 a flat disk of radius `arena.centerRadius` — the boss arena, built once per raid.
 
 Each player gets a **branch**: a parkour path running from a spawn platform at
@@ -136,13 +136,16 @@ they left.
 
 Platforms come in two kinds. The spawn platform, the checkpoints and the final platform
 are 3×3 plates with a skirt below and a beacon marker. Everything between them is a
-single 1×1 landing cap sitting on top of a themed structure that is strictly below the
-landing plane, so nothing can intrude into a jump corridor.
+single 1×1 landing cap on a themed base column below the landing plane, plus whatever its
+mechanic needs: a blue-ice runway on the take-off platform for an ice jump, a column of
+cobwebs above a cobweb landing, scaffolding for the final climb. Those mechanic blocks are
+the only ones placed in a jump's path.
 
 Jumps are chosen from a weighted style table, biased by which of the five zones the step
 falls in, and then clamped: each mechanic declares a reach ceiling for the vertical
 change it achieved, and a candidate that exceeds it is pulled back. Upward steps are
-limited to +1 block. The code's comments say the result was verified by an external
+limited to +1 block, except for one scaffolding climb inserted at the very end when the
+path ends more than two blocks below the disk. The code's comments say the result was verified by an external
 simulation (`temp/sim_parkour_v3.py`, not in this repository) reporting zero impossible
 jumps. **No player has jumped it.**
 

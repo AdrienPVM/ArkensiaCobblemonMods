@@ -77,7 +77,8 @@ forme vanilla `[Auteur: message]`, sous réserve de la règle de jeu `sendComman
 Si tu planifies un arrêt depuis la console, les autres opérateurs voient qui l'a fait.
 
 Les avertissements joueurs passent par `server.getPlayerManager().broadcast(text, false)`,
-le même chemin de chat qu'utilise `/say`. Le `false` signifie *chat* et non barre
+un message système envoyé dans le chat de chaque joueur en ligne, et recopié dans la
+console du serveur. Le `false` signifie *chat* et non barre
 d'action : les messages restent donc dans l'historique et un joueur qui était en alt-tab
 peut remonter les lire.
 

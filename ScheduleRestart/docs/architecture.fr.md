@@ -95,9 +95,12 @@ vitesse jusqu'à ce que `stop` soit effectivement dépilé.
 Un `Timer` tourne indépendamment de la boucle de ticks, c'est pourquoi le compte à rebours
 reste exact sur un serveur qui lague. C'est aussi pourquoi le compte à rebours et l'arrêt
 deviennent muets si le thread serveur se bloque : `server.execute` met en file un travail
-qu'un thread gelé ne dépile jamais. La planification semble avoir disparu. Rien n'est perdu
-et rien n'est corrompu, mais un administrateur qui regarde le chat voit un décompte
-s'arrêter sur `dans 4 secondes...` et un serveur qui reste debout.
+qu'un thread gelé ne dépile jamais. La planification semble avoir disparu. En mode arrêt,
+rien n'est perdu et rien n'est corrompu, mais un administrateur qui regarde le chat voit
+un décompte s'arrêter sur `dans 4 secondes...` et un serveur qui reste debout. En mode
+redémarrage, le thread de la minuterie atteint quand même `restartServer()` à zéro et lance
+la JVM de remplacement à côté de celle qui est figée — laquelle échoue alors sur le port ou
+sur le verrou du monde.
 
 ## Mixins
 

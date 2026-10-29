@@ -100,7 +100,9 @@ Définitions de raids rechargées.
 
 **Lis la console tout de suite.** Cette réponse est inconditionnelle : elle dit la même
 chose que ton JSON ait été accepté ou non. Une ligne `FAILED to parse raid def` signifie que
-ton édition a été rejetée et que l'ancienne définition est toujours chargée.
+ton édition a été rejetée — et que le raid n'est plus chargé du tout : le rechargement a
+retiré l'ancienne définition, et `status` ne listera plus `hoopa` tant que le fichier ne
+s'analyse pas.
 
 ## 4. Vérifie le héraut
 
@@ -171,8 +173,9 @@ La calibration est faite. Tout ce qui suit, c'est le raid lui-même.
 
 ## 7. Lance le raid et combats la vague
 
-Reste près de l'arène de vague — le chunk doit être chargé pour que l'apparition
-réussisse — puis :
+Reste près de l'arène de vague, et restes-y — l'apparition charge le chunk elle-même, mais
+la vague n'est suivie qu'à travers les entités chargées : si son chunk se décharge, l'alpha
+compte comme vaincu et la vague se termine d'elle-même — puis :
 
 ```mcfunction
 /cheeseraids start hoopa
@@ -225,8 +228,8 @@ Parle-lui si tu as câblé son dialogue à l'étape 5. Sinon :
 ```
 
 Tu arrives à 75 blocs du centre de la faille, sur une plateforme de purpur 3×3 sous un
-anneau flottant or et magenta, tourné vers l'intérieur et vers le noir. Pendant une seconde
-environ, une colonne de portail se resserre autour de toi. Puis le parkour se matérialise
+anneau flottant or et magenta, tourné vers l'intérieur et vers le noir. Pendant trois secondes
+(`arena.revealDelayTicks`, 60 ticks), une colonne de portail se resserre autour de toi. Puis le parkour se matérialise
 devant toi, huit blocs par tick, sur une gamme qui monte, jusqu'à ce qu'un bouquet final à
 l'autre extrémité le raccorde au disque du boss.
 
@@ -269,9 +272,10 @@ un combat Cobblemon ordinaire : engage-le et bats-toi. Il n'y a pas de mécaniqu
 de barre de vie partagée — avec plusieurs joueurs sur le disque, le premier à engager
 récupère le combat.
 
-Gagne et le reste se fait tout seul. Si tu perds ou si le combat dépasse
-`boss.combatTimeoutSeconds` (15 minutes), le raid éjecte tout le monde et nettoie sans
-récompense.
+Gagne et le reste se fait tout seul. Perdre ne termine pas le raid : le boss reste sur le
+disque et peut être engagé de nouveau. Seul `boss.combatTimeoutSeconds` (15 minutes,
+comptées depuis le début de la phase du boss) fait abandonner — le raid éjecte alors tout le
+monde et nettoie sans récompense.
 
 ## 10. La récompense
 
@@ -317,7 +321,7 @@ les chutes plus ou moins punitives, `boss.baseLevel` et `levelPerExtraPlayer` fi
 combat, `wave.spawns` fixe l'ouverture. [Toutes les clés](configuration.fr.md).
 
 **Surveille-le depuis le dashboard.** Le module `raids` affiche la phase et une table de
-participants en direct, et peut démarrer, arrêter et recharger.
+participants (rafraîchie à la main avec *Rafraîchir*), et peut démarrer, arrêter et recharger.
 [API dashboard](dashboard.fr.md).
 
 **Lis les manques avant de le lancer pour des joueurs.** Cinq comptent : le héraut a besoin

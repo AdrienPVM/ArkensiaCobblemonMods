@@ -55,16 +55,17 @@ The phase ends on whichever comes first:
   proceeds.
 
 So killing the alpha is a shortcut, not a requirement, and a wave nobody fights still
-advances after three minutes. The only way the raid stalls here is if the world named by
-`wave.arena.world` does not exist, in which case the spawn is skipped entirely and the
-phase falls through to the timeout.
+advances after three minutes. Even a `wave.arena.world` that does not exist does not stall
+it: the spawn is skipped with an error naming the worlds that do exist, nothing is
+tracked, and the phase moves on at the next tick through the zero-mob branch — no wave at
+all, straight to the herald.
 
 ### 3. The herald (`NPC_REVEAL` → `OPEN`)
 
 The rift dimension is created if it does not exist. Then the mod counts EasyNPC entities
 within 10 blocks of `npc.pos` without revealing them.
 
-**If at least one is found**, a ~102-tick crescendo is queued and the phase moves on
+**If at least one is found**, a ~112-tick crescendo is queued and the phase moves on
 immediately. The crescendo runs during `OPEN`:
 
 | Tick | What happens |
@@ -161,8 +162,9 @@ Cobblemon battle removes the wild Pokémon about two seconds **after** the battl
 teleporting players during that window was visibly broken. So the contract is: the entity
 is gone, **and** either a battle id was captured and that battle is no longer registered,
 or no battle was ever captured but the boss survived more than five seconds. A boss that
-vanishes within five seconds with no battle is treated as a spawn failure, not a win, and
-is respawned — up to twice, within 200 ticks of the spawn.
+vanishes with no battle within 200 ticks of its spawn is treated as a spawn failure, not a
+win, and is respawned — up to twice. Once those two respawns are spent, the same vanish
+counts as a kill as soon as five seconds have passed since the last spawn.
 
 The phase ends on victory, or on `boss.combatTimeoutSeconds` (900 by default), which
 ejects everyone and cleans up **without rewards**.
@@ -215,7 +217,7 @@ Collected in one place, because the sequence above reads smoother than the mod p
 | Rewards are not gated on participation | everyone online when the boss dies is rewarded, arrived or not |
 | `stop` does not eject players | manual stop leaves players in a dimension whose floor is being deleted |
 | Discord announcements are a log line | `announce.discord` sends nothing anywhere |
-| Nine config keys do nothing | listed in [configuration](configuration.md) |
+| Sixteen config keys do nothing | listed in [configuration](configuration.md) |
 | Nothing is translated | every player-facing string is a French literal in Java |
 | Four reflection hooks | EasyNPC, Cobblemon spawning, Cobblemon battles and CobbleSafari are all reached by reflection. Any of them can break on a dependency update, and three of the four degrade silently |
 

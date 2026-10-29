@@ -21,10 +21,9 @@ Les quatre positions, et à quoi chacune sert :
 | `exitPos` | là où les joueurs sont téléportés à la fin du raid | les joueurs sont éjectés à l'origine, éventuellement dans des blocs |
 
 `arena.center` est une cinquième position, mais elle se trouve dans la faille générée et son
-défaut (`cheeseguard:hoopa_rift` en `0.5 / 100 / 0.5`) est déjà correct. N'y touche pas, sauf
-si tu changes aussi `arena.riftDimId` — les deux doivent s'accorder, parce que le code
-construit l'identifiant de monde comme `cheeseguard:` + `riftDimId` et lit le centre de la
-plateforme dans le champ `arena.center`.
+défaut (`cheeseguard:hoopa_rift` en `0.5 / 100 / 0.5`) est déjà correct. N'y touche pas.
+Seuls ses `x`/`y`/`z` sont lus : le code construit toujours l'identifiant de monde comme
+`cheeseguard:` + `riftDimId` et ignore `arena.center.world`.
 
 ---
 
@@ -89,7 +88,7 @@ substitué comme `{type}` dans les modèles facultatifs `showCommand` / `hideCom
 
 ## Étape 3 — écris les coordonnées dans le fichier
 
-Édite `config/cheeseraids/raids/hoopa.json`. Seuls les cinq objets de position demandent une
+Édite `config/cheeseraids/raids/hoopa.json`. Seuls les quatre objets de position demandent une
 intervention ; tout le reste a un défaut fonctionnel.
 
 ```json
@@ -132,9 +131,9 @@ la syntaxe JSON, le fichier est **laissé intact** et la console le dit :
 ```
 
 C'est volontaire : un fichier mal formé n'est jamais écrasé par les valeurs par défaut, tu ne
-perds donc pas ton travail. Mais l'ancienne définition reste chargée, ce qui veut dire qu'un
-rechargement peut sembler réussir alors que ton changement n'a rien fait. Lis la console après
-chaque rechargement.
+perds donc pas ton travail. Mais l'ancienne définition n'est pas conservée non plus : le
+rechargement la retire, et le raid disparaît sans bruit de la mémoire (`status` cesse de le
+lister) alors que la réponse annonce un succès. Lis la console après chaque rechargement.
 
 ## Étape 4 — vérifie chaque position
 
@@ -171,8 +170,10 @@ Vérifie ensuite que la bascule fonctionne réellement :
 1 EasyNPC rendu(s) visible(s).
 ```
 
-Le NPC doit apparaître avec un contour lumineux. `0 EasyNPC rendu(s) visible(s).` avec un
-`info` correct désigne l'API de visibilité d'EasyNPC plutôt que tes coordonnées — voir
+Le NPC doit apparaître avec un contour lumineux. Le compte est celui des NPC **trouvés**, pas
+basculés : `1 EasyNPC rendu(s) visible(s).` sans changement visible désigne l'API de
+visibilité d'EasyNPC plutôt que tes coordonnées — la ligne de console indique alors
+`0 toggled`. Voir
 [les intégrations](integrations.fr.md#easynpc).
 
 ### Les portails de récompense
@@ -233,12 +234,13 @@ peuvent encore être fausses alors que les coordonnées sont bonnes :
 ## Changer l'identifiant de la dimension de faille
 
 `arena.riftDimId` vaut `hoopa_rift` par défaut, ce qui donne l'identifiant de monde
-`cheeseguard:hoopa_rift`. Si tu le changes, change aussi `arena.center.world` en
-conséquence : le générateur résout la faille par concaténation et le centre par le champ
-`center` — l'un ne découle pas de l'autre. Une incohérence produit une faille qui s'ouvre
-mais une plateforme de boss construite et cherchée dans un monde qui n'existe pas.
+`cheeseguard:hoopa_rift`. Le changer suffit : chaque recherche résout la faille par
+concaténation, et `arena.center.world` n'est jamais lu, donc il ne peut pas se désaccorder.
+Une faille créée sous l'ancien identifiant n'est ni renommée ni supprimée ; elle cesse
+simplement d'être utilisée.
 
-La dimension est créée à la demande, la première fois qu'un joueur entre, avec
+La dimension est créée à la demande, la première fois qu'un raid atteint `NPC_REVEAL` (ou
+qu'un joueur entre, selon ce qui arrive en premier), avec
 `enabled = false` pour que personne ne puisse y pénétrer hors d'un raid, `pvp = false`,
 `mobSpawning = false`, l'heure verrouillée à 18000 (minuit) et la météo verrouillée. Ces
 valeurs sont fixées dans le code, pas dans la définition du raid : le fichier de configuration

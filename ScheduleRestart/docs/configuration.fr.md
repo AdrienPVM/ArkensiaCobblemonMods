@@ -56,8 +56,8 @@ Les numéros de ligne correspondent au fichier tel qu'il est en version `1.0.0+1
 `i * 60 * 1000L` de la boucle des rappels est déjà promu en `long` par le littéral
 `1000L`.
 
-Ce qui n'est **pas** sûr, c'est la conséquence : une planification de 24 heures met 1440
-tâches en file et suppose que la JVM vivra une journée sans être redémarrée par autre
+Ce qui n'est **pas** sûr, c'est la conséquence : une planification de 24 heures met
+1 450 tâches en file (1 439 rappels de minute, 10 secondes de décompte, la tâche finale) et suppose que la JVM vivra une journée sans être redémarrée par autre
 chose. Le mod n'a aucune persistance : un crash à la vingtième heure oublie tout
 silencieusement.
 

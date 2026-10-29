@@ -33,14 +33,15 @@ gradle wrapper --gradle-version 8.10
 ls -l build/libs/
 ```
 
-Un jar correct pèse quelques kilooctets et contient `fabric.mod.json` ainsi que
-`com/schedulerestart/ScheduledRestart.class` :
+Un jar correct pèse environ 10 Ko et contient `fabric.mod.json`,
+`com/schedulerestart/ScheduledRestart.class` et les trois classes `TimerTask` anonymes
+`ScheduledRestart$1.class` à `ScheduledRestart$3.class` :
 
 ```bash
 unzip -l build/libs/ScheduleRestart-1.0.0+1.21.1.jar
 ```
 
-Si ce listing montre ces deux entrées plus un manifeste, tu as un vrai jar.
+Si ce listing montre ces cinq fichiers plus un manifeste, tu as un vrai jar.
 
 ---
 
@@ -139,8 +140,8 @@ Cherche la seule ligne de log du mod :
 grep -n "ScheduledRestart" logs/latest.log
 ```
 
-**Aucune ligne `Relancement :`, et une trace terminée par
-`Impossible de trouver le jar du serveur pour le redémarrage !`** — la relance n'a pas pu
+**Aucune ligne `Relancement :`, et une trace qui commence par
+`java.lang.Exception: Impossible de trouver le jar du serveur pour le redémarrage !`** — la relance n'a pas pu
 identifier de jar de serveur. Le serveur n'a pas été lancé avec `-jar`, et le repli par
 répertoire de travail n'a trouvé ni `fabric-server-launch*.jar` ni `server*.jar`.
 L'exception est attrapée puis jetée, donc l'arrêt a eu lieu quand même.
@@ -259,7 +260,9 @@ compter sur son propre thread alors que rien de ce qu'elle met en file ne s'exé
 `logs/latest.log` les lignes *Can't keep up* ou *A single server tick took* du watchdog
 Minecraft, ou un vidage de threads du watchdog, et attaque-toi à ça. Dès que le thread
 serveur récupère, il dépile toute la file d'un coup : attends-toi donc à une rafale de
-messages de décompte en retard, immédiatement suivie de l'arrêt.
+messages de décompte en retard, immédiatement suivie de l'arrêt. En mode redémarrage,
+vérifie aussi qu'aucun second processus Java ne tourne : la relance s'exécute sur le thread
+de la minuterie et part à zéro, que le thread serveur soit vivant ou non.
 
 ---
 

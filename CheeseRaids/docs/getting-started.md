@@ -96,8 +96,9 @@ Définitions de raids rechargées.
 ```
 
 **Read the console now.** That reply is unconditional — it says the same thing whether your
-JSON parsed or not. A `FAILED to parse raid def` line means your edit was rejected and the
-old definition is still loaded.
+JSON parsed or not. A `FAILED to parse raid def` line means your edit was rejected — and
+the raid is no longer loaded at all: the reload dropped the old definition, so `status`
+will not list `hoopa` until the file parses.
 
 ## 4. Verify the herald
 
@@ -168,7 +169,9 @@ Calibration is done. Everything from here is the raid itself.
 
 ## 7. Start the raid and fight the wave
 
-Stand near the wave arena — the chunk has to be loaded for the spawn to succeed — and:
+Stand near the wave arena and stay there — the spawn loads the chunk itself, but the wave
+is tracked through loaded entities only, so if its chunk unloads the alpha counts as
+defeated and the wave ends on its own — and:
 
 ```mcfunction
 /cheeseraids start hoopa
@@ -219,8 +222,8 @@ Talk to him if you bound his dialogue in step 5. Otherwise:
 ```
 
 You arrive 75 blocks from the rift's centre, on a 3×3 purpur platform under a floating
-gold-and-magenta ring, facing inward into the dark. For about a second a portal column
-tightens around you. Then the parkour materialises ahead of you, eight blocks per tick,
+gold-and-magenta ring, facing inward into the dark. For three seconds (`arena.revealDelayTicks`, 60 ticks) a
+portal column tightens around you. Then the parkour materialises ahead of you, eight blocks per tick,
 with a rising musical pitch, until a flourish at the far end connects it to the boss disk.
 
 Jump inward. Five zones in sequence: amethyst caverns, an ice bridge, moss and cobwebs, a
@@ -261,8 +264,9 @@ A 1.5× Hoopa Unbound at level 80, plus three levels per additional participant.
 ordinary Cobblemon battle: engage it and fight. There is no raid mechanic and no shared
 health bar — with several players on the disk, the first to engage gets the battle.
 
-Win and the rest is automatic. If you lose or the fight drags past
-`boss.combatTimeoutSeconds` (15 minutes), the raid ejects everyone and cleans up with no
+Win and the rest is automatic. Losing does not end the raid: the boss stays on the disk
+and can be engaged again. Only `boss.combatTimeoutSeconds` (15 minutes, counted from the
+start of the boss phase) gives up — the raid then ejects everyone and cleans up with no
 reward.
 
 ## 10. The reward
@@ -307,8 +311,8 @@ starts itself. It is not a cron: a server down for that whole minute misses the 
 makes falls more or less punishing, `boss.baseLevel` and `levelPerExtraPlayer` set the
 fight, `wave.spawns` sets the opening. [Every key](configuration.md).
 
-**Watch it from the dashboard.** The `raids` module shows the phase and a live participant
-table, and can start, stop and reload. [Dashboard API](dashboard.md).
+**Watch it from the dashboard.** The `raids` module shows the phase and a participant table
+(refreshed by hand with *Rafraîchir*), and can start, stop and reload. [Dashboard API](dashboard.md).
 
 **Read the gaps before you run it for players.** Five of them matter: the herald needs
 dialogue you bind yourself, the boss fight has no raid mechanic, rewards are not gated on

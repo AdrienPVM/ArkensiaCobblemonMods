@@ -162,7 +162,8 @@ whenever FTB Quests' `TeamData` class is first loaded rather than at a fixed poi
 [CheeseFixQuests] TeamDataClaimRewardSyncMixin loaded — claimReward is now thread-atomic.
 ```
 
-Then, within ten seconds of the first player joining:
+Then, about ten seconds after the server starts ticking — the first sweep runs, and arms
+its phases, whether or not anyone is online:
 
 ```text
 [CheeseFixQuests] Phase A (detect) armed — sweep every 200 ticks.

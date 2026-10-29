@@ -93,13 +93,14 @@ Join with the first account. The migration fires inside that login, before the q
 data is sent:
 
 ```text
-[CheeseFixQuests] Processing team 8f3c1d20-… [PLAYER] — 1 reward UUID(s), 1 total player(s), filter=true
-[CheeseFixQuests]   8f3c1d20-… — 0 new entries [FILTERED (0 quest IDs — only copying claimedRewards)]
 [CheeseFixQuests] No new data to migrate
 [CheeseFixQuests] Auto-migration complete: 0 player(s) migrated
 ```
 
-On the test world you just made, zero is the right answer — there was nothing to move. On a
+On the test world you just made, zero is the right answer — there was nothing to move. No
+`Processing team` line appears either: the reward from step 1 was never claimed, and the
+party no longer exists, so no team has a single player the migration could attribute
+anything to, and every one is skipped silently. On a
 server with history you will see real counters, and you should read
 [the migration](migration.md) to understand what it decided to copy and what it left
 behind.
@@ -144,14 +145,19 @@ normally makes FTB Quests merge the joiner's progress into the party's, and
 
 ## 7. Complete a quest on one account
 
-Pick the simplest item task you have and have the **first** player satisfy it.
+Pick the simplest item task you have and have the **first** player satisfy it by picking
+the item up or crafting it — FTB's inventory listener, redirected by this mod, writes that
+progress to the player's own record at once, and the quest completes with its reward
+claimable.
 
-Within ten seconds, the finalizer sweep will have noticed — and if the item arrived through
-a path FTB's own listener does not watch, such as a shift-click out of a chest, that sweep
-is the only thing that will notice at all. Either way the first player's quest completes
-and its reward becomes claimable.
+Do not use a shift-click out of a chest for this test. FTB's listener never sees that path,
+and the finalizer sweep that would normally catch it works, for a player in a party, on the
+party's record rather than the player's own (see
+[known weaknesses](architecture.md#known-weaknesses-and-deliberate-trade-offs)).
 
-The first time this mixin fires for a player, the log says so once:
+The log will already show this line for each player, within ten seconds of their login —
+phase A of the sweep calls the listener for every online player, so the first redirect
+happens without them touching anything. It is printed once per player:
 
 ```text
 [CheeseFixQuests] InventoryListener.detect: redirected to PlayerTeam for <FirstPlayer> (first redirect for this player; total redirects since startup: 1)

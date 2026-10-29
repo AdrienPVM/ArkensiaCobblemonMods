@@ -66,8 +66,9 @@ mod n'écrase jamais un fichier mal formé : tes éditions sont toujours là.
 
 1. Le fichier n'a pas été analysé. `/cheeseraids reload` répond *Définitions de raids
    rechargées.* sans condition — elle dit la même chose que le rechargement ait fonctionné ou
-   non. L'ancienne définition reste en mémoire.
-2. La clé ne fait rien. Neuf clés du fichier ne sont lues par aucun code ; elles sont listées
+   non. L'ancienne définition ne reste pas non plus en mémoire : le rechargement la retire,
+   et le raid disparaît de `status` tant que le fichier ne s'analyse pas.
+2. La clé ne fait rien. Seize clés du fichier ne sont lues par aucun code ; elles sont listées
    dans la [configuration](configuration.fr.md). `boss.spawnCommand`, `wave.spawnCommand`,
    `boss.provider` et `arena.gapMin`/`gapMax` sont celles vers lesquelles on se tourne en
    premier.
@@ -88,7 +89,7 @@ vérifiée plutôt que supposée.
 
 ## Une commande est refusée ou invisible
 
-**Cause.** Cinq des six sous-commandes exigent le niveau de permission 2. En dessous, la
+**Cause.** Six des sept sous-commandes exigent le niveau de permission 2. En dessous, la
 sous-commande n'apparaît pas dans la complétion par tabulation et la taper donne le vanilla
 *Unknown or incomplete command*. L'exception est `/cheeseraids enter`, qui n'exige aucune
 permission.
@@ -99,8 +100,8 @@ bloc de commande — toutes deux exigent un joueur. Et rien ne complète l'ident
 l'argument est un simple mot sans fournisseur de suggestions, donc une faute de frappe est
 indiscernable d'un raid inconnu.
 
-**Remède.** `/op <joueur>`, ou lance-la depuis la console pour les cinq branches
-d'administration. Prends l'identifiant exact dans `/cheeseraids status`.
+**Remède.** `/op <joueur>`, ou lance-la depuis la console pour les branches
+d'administration autres que `testreward`. Prends l'identifiant exact dans `/cheeseraids status`.
 
 ## `start` refuse sans explication
 
@@ -192,8 +193,8 @@ dépôt ne le fait pour toi et rien ne vérifie que c'est fait.
 ## Le chemin de parkour n'apparaît pas
 
 **Cause.** La branche est vidée puis animée à `arena.revealBlocksPerTick` blocs par tick, après
-`arena.revealDelayTicks` ticks de montée en puissance — une seconde entière de particules avant
-que quoi que ce soit ne soit posé, par défaut. Un chemin long à huit blocs par tick prend un
+`arena.revealDelayTicks` ticks de montée en puissance — trois secondes entières de particules
+avant que quoi que ce soit ne soit posé, par défaut (60 ticks). Un chemin long à huit blocs par tick prend un
 moment. Si rien n'apparaît du tout après ce délai, la file de révélation a été vidée :
 `clearReveals` tourne au nettoyage, et `/cheeseraids stop` le déclenche.
 
@@ -209,7 +210,8 @@ téléporte-le dehors.
 [CheeseRaids] Boss rift world cheeseguard:hoopa_rift not loaded
 ```
 
-`arena.riftDimId` et `arena.center.world` ne s'accordent pas, ou la dimension n'existe pas.
+La faille `cheeseguard:` + `arena.riftDimId` n'existe pas ou n'est pas chargée
+(`arena.center.world` n'y est pour rien : il n'est jamais lu).
 
 ```text
 [CheeseRaids] Boss spawn FAILED for hoopa — see preceding log.
@@ -224,21 +226,25 @@ Aucune ligne de journal du tout, avec le raid bloqué en `COMBAT` : une exceptio
 d'effets a abandonné l'apparition avant qu'elle atteigne le tick 36, où a lieu la création.
 Cherche `FX task error` juste avant.
 
-**Remède.** Fais en sorte que `arena.center.world` vaille `cheeseguard:` + `arena.riftDimId`.
-Installe Cobblemon. Pour le troisième cas, le raid se résout de lui-même après
+**Remède.** Cherche `Failed to create rift dimension` plus haut dans le journal et vérifie que
+CheeseGuard est chargé. Installe Cobblemon. Pour le troisième cas, le raid se résout de lui-même après
 `boss.combatTimeoutSeconds` — 15 minutes par défaut, donc arrête-le à la main.
 
 ## Le boss a disparu et personne n'a gagné
 
-**Cause.** Le fournisseur distingue un K.O. d'une disparition. Un boss parti dans les cinq
-secondes suivant son apparition, sans combat enregistré, est traité comme un échec d'apparition
-et non comme une victoire, et il réapparaît jusqu'à deux fois :
+**Cause.** Le fournisseur tente de distinguer un K.O. d'une disparition. Un boss parti dans les
+200 ticks (dix secondes) suivant son apparition, sans combat enregistré, est traité comme un
+échec d'apparition et non comme une victoire, et il réapparaît jusqu'à deux fois :
 
 ```text
 [CheeseRaids] Boss for hoopa vanished pre-battle — respawning (1/2).
 ```
 
-Passé deux réapparitions, ou passé cinq secondes, le raid attend le timeout de combat.
+Passé deux réapparitions, ou pour une disparition plus de dix secondes après l'apparition,
+plus rien ne réapparaît — et le raid n'attend **pas** le timeout de combat. Sans combat
+enregistré, un boss absent une fois écoulées cinq secondes depuis sa dernière apparition
+compte comme un K.O. : le raid passe en `REWARD` et tous les joueurs connectés sont
+récompensés alors que personne n'a gagné.
 
 **Remède.** Une disparition répétée avant combat traduit une asphyxie ou une chute dans le
 vide. Augmente `arena.center.y`, ou vérifie que rien d'autre n'écrit de blocs dans la faille.
@@ -314,8 +320,9 @@ que l'entrypoint n'a pas été découvert.
 
 **Cause.** Le canal WebSocket `raids` ne porte qu'un seul type de message, `raid_update`, et il
 n'est émis qu'aux **transitions de phase**. Rien ne diffuse quand un joueur entre, franchit un
-checkpoint, ou quand le boss apparaît. La table des participants de la vue est redessinée à un
-changement de phase ou quand tu appuies sur *Rafraîchir*.
+checkpoint, ou quand le boss apparaît — et la vue livrée n'écoute même pas ce canal (voir
+[la page dashboard](dashboard.fr.md#websocket)). La table des participants n'est redessinée
+que quand tu appuies sur *Rafraîchir* ou utilises l'un des boutons de la vue.
 
 **Remède.** Appuie sur *Rafraîchir*. C'est une limitation connue, pas un problème de connexion.
 
@@ -349,8 +356,9 @@ Ouvre une issue sur
    ```bash
    grep '\[CheeseRaids\]' logs/latest.log > cheeseraids.log
    ```
-   Le mod journalise une ligne à chaque transition de phase, chaque tentative d'apparition et
-   chaque échec de hook : la séquence entière est beaucoup plus utile que la dernière ligne.
+   Les transitions de phase elles-mêmes ne sont pas journalisées, mais les étapes autour le
+   sont (vague apparue, vague terminée, boss apparu, récompenses, nettoyage), ainsi que chaque
+   échec de hook : la séquence entière est beaucoup plus utile que la dernière ligne.
 2. **La définition du raid**, depuis `GET /api/v1/raids/definitions` plutôt que depuis le
    fichier — c'est ce que le serveur a réellement en mémoire. N'en masque rien ; elle ne
    contient aucun secret.

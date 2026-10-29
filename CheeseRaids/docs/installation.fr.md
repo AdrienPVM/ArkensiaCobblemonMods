@@ -93,7 +93,7 @@ config/cheeseraids/
 ├── raids/
 │   └── hoopa.json        la définition par défaut de l'Invasion de Hoopa
 ├── instances/            vide ; un fichier par raid en cours
-└── state.json            écrit seulement après le premier déclenchement planifié
+└── state.json            écrit au premier arrêt du serveur, puis à chaque déclenchement planifié
 ```
 
 `raids/` et `instances/` sont créés systématiquement. `hoopa.json` n'est écrit **que si
@@ -102,8 +102,9 @@ mal formé bloque l'écriture du défaut, et tu peux te retrouver avec un dossie
 fichier cassé et aucune définition.
 
 `state.json` associe un identifiant de raid à la date ISO de son dernier déclenchement
-planifié : c'est le registre anti-rejeu du planificateur. Il n'existe pas avant qu'un raid
-planifié se déclenche.
+planifié : c'est le registre anti-rejeu du planificateur. Il est écrit à chaque arrêt du
+serveur (sous la forme `{}` tant que rien n'a été planifié) et à chaque déclenchement
+planifié : il apparaît donc après le premier arrêt.
 
 Le `hoopa.json` par défaut n'est **pas utilisable en l'état.** Quatre de ses positions
 valent `minecraft:overworld` en `0.5 / 65 / 0.5` — l'origine du monde, sous la terre. Rien
@@ -140,7 +141,7 @@ Et sur le dashboard, une entrée **CheeseRaids** dans la barre latérale, décri
 
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:44311/api/v1/auth/login \
-  -H 'Content-Type: application/json' -d '{"token":"<master token>"}' | jq -r .token)
+  -H 'Content-Type: application/json' -d '{"token":"<master token>"}' | jq -r .sessionId)
 
 curl -s http://localhost:44311/api/v1/raids/ -H "Authorization: Bearer $TOKEN"
 ```

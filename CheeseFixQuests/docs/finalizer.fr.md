@@ -87,8 +87,12 @@ cassée ne doit pas arrêter les autres.
 
 `enableQuestFinalization`, défaut `true`.
 
-La plus substantielle. Elle résout le `TeamData` du joueur, puis parcourt chaque quête en
-trois sous-étapes, en sautant les quêtes déjà terminées et celles dont les dépendances ne sont
+La plus substantielle. Elle résout un `TeamData` pour le joueur — le sien quand il n'est pas
+en groupe, mais celui **du groupe** quand il l'est, parce que la recherche aboutit à
+`PlayerTeam.getTeamId()`, qui renvoie l'identifiant de l'équipe effective (voir
+[les faiblesses connues](architecture.fr.md#faiblesses-connues-et-compromis-assumés)). La
+phase B travaille sur ce même enregistrement. Elle parcourt ensuite chaque quête en trois
+sous-étapes, en sautant les quêtes déjà terminées et celles dont les dépendances ne sont
 pas satisfaites.
 
 **C0 — scan direct de l'inventaire pour les `ItemTask`.** L'écouteur d'inventaire de FTB est

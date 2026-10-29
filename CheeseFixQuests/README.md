@@ -17,7 +17,7 @@ the first time one of them kills a boss the quest vanishes from everyone else's.
 CheeseFixQuests decouples the two. Quests become per-player, and teams go on doing
 everything else they do.
 
-The mechanism is nine mixins into FTB's internals, all of which turn FTB Teams'
+The mechanism is nine mixins into FTB's internals, most of which turn FTB Teams'
 "which team is this player effectively on?" lookup into "which team is this player's own?"
 There is no per-task-type logic: the redirect sits at the storage-resolution layer, so
 every quest and every task type is covered. A one-shot migration copies existing team

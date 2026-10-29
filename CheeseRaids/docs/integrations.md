@@ -97,7 +97,7 @@ com.cheeseguard.CheeseGuardMod.INSTANCE.getDimensionManager()
 Three calls:
 
 - **`createDimension(id, name, GenType.VOID, cfg -> …)`** — creates the rift the first
-  time a player enters, as a void world named `<displayName> — Faille`, with spawn at
+  time a raid reaches `NPC_REVEAL` (or a player enters, if that comes first), as a void world named `<displayName> — Faille`, with spawn at
   `arena.center` + 1, `keepInventory` from the config, PvP off, mob spawning off, raid dens
   off, time locked to 18000, weather locked, and `enabled = false` so nobody can enter
   outside a raid. `createDimension` early-returns if the dimension already exists, which
@@ -110,7 +110,8 @@ Three calls:
 
 The old README claimed raids "hook its events". They do not: there is no CheeseGuard
 `EventEffect` type for raids in this mod, in either direction. Compare
-[CheeseKart](../../CheeseKart/), which does register `KART_START_ALL` and `KART_STOP_ALL`.
+[CheeseKart](../../CheeseKart/), which does have `KART_START_ALL` and `KART_STOP_ALL`
+effects — defined on CheeseGuard's side, in its `EventEffect` enum and `CheeseKartHook`.
 
 Because the dependency is compile-time and declared in `depends`, a CheeseGuard API change
 breaks the **build**, loudly, which is the good failure mode. There is no graceful
@@ -265,8 +266,10 @@ Since `reward.fromage` defaults to 0, the hook is inert unless you enable it.
 The pattern to copy is `CobblemonSpawnHook`: a `private static volatile boolean init`, one
 synchronized lazy resolver, an `available()` predicate, shape-based method matching, a
 distinct log line for every failure point, and a return value the caller can check. The
-pattern to avoid is a hook that returns `void` and logs nothing — `CobbleSafariHook` is
-closer to that, and it is the one you will spend an evening on when it stops working.
+pattern to avoid is a hook that returns `void` and logs nothing. `CobbleSafariHook` does
+return a boolean and log its failures, but its fallback can report success for a portal
+opened near the owner instead of at the anchor — it is the one you will spend an evening
+on when it stops working.
 
 ---
 

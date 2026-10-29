@@ -22,8 +22,9 @@ be isolated to one mechanism without rebuilding the jar.
 
 ### `forceIndividualProgress`
 
-Checked at the top of all seven team-lookup redirects, both `mergeData` blocks, the
-finalizer's team resolution and the auto-migration. Setting it to `false` makes the jar
+Checked at the top of all six team-lookup `@Redirect`s, both `isPlayerOnTeam` overrides
+(server and client), both `mergeData` blocks, the finalizer's team resolution and the
+auto-migration. Setting it to `false` makes the jar
 inert: FTB Quests goes back to party-keyed progress, `mergeData` works again, and the
 finalizer sweep resolves the *effective* team rather than the player team — so it keeps
 running, against party data.

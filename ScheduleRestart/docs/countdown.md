@@ -33,8 +33,8 @@ server tick count. Two consequences follow, and they cut in opposite directions:
 
 - **Server lag does not stretch the countdown.** A server running at 8 TPS still shuts
   down exactly ten minutes after the command. The warnings keep their spacing, because
-  they are broadcast from the timer thread and only the final hand-off touches the server
-  thread.
+  they are scheduled on the timer thread; each one only waits for the server thread to
+  pick up its broadcast, which on a lagging server is a fraction of a second.
 - **A clock step moves the countdown.** If NTP corrects the host clock forward by two
   minutes during the schedule, every remaining task becomes overdue and `Timer` fires
   them back to back — players get a burst of warnings and then the shutdown. Backwards
@@ -136,9 +136,12 @@ warning at all.
 ⚠️ Because the broadcasts are queued onto the server thread, a server whose main thread
 is wedged — a deadlock, a long chunk-save stall, a watchdog freeze — stops showing
 warnings while the timer thread keeps counting. The same wedged thread will also never
-run the `server.stop(false)` hand-off, so the shutdown silently does not happen. The
-countdown and the shutdown both fail closed on a frozen server, which is the safe
-direction, but it looks to an admin like the schedule simply vanished.
+run the `server.stop(false)` hand-off, so the shutdown silently does not happen. In
+shutdown mode that fails closed, which is the safe direction, but it looks to an admin
+like the schedule simply vanished. In **restart mode it does not fail closed**:
+`restartServer()` runs on the timer thread, not the server thread, so at zero the
+replacement JVM is spawned anyway, next to a frozen server that still holds the port and
+`session.lock`.
 
 ## What you cannot change
 

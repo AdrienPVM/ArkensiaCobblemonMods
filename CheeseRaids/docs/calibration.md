@@ -21,9 +21,8 @@ The four positions, and what each one is for:
 
 `arena.center` is a fifth position, but it lives inside the generated rift dimension and
 its default (`cheeseguard:hoopa_rift` at `0.5 / 100 / 0.5`) is already correct. Leave it
-alone unless you also change `arena.riftDimId` — the two must agree, because the code
-builds the world id as `cheeseguard:` + `riftDimId` and reads the platform centre from
-`arena.center`.
+alone. Only its `x`/`y`/`z` are read: the code always builds the world id as
+`cheeseguard:` + `riftDimId` and ignores `arena.center.world`.
 
 ---
 
@@ -85,7 +84,7 @@ used for the search: it is only substituted into the optional `showCommand` /
 
 ## Step 3 — write the coordinates into the file
 
-Edit `config/cheeseraids/raids/hoopa.json`. Only the five position objects need
+Edit `config/cheeseraids/raids/hoopa.json`. Only the four position objects need
 touching; everything else has a working default.
 
 ```json
@@ -128,8 +127,9 @@ JSON syntax, the file is **left untouched** and the console says so:
 ```
 
 That is deliberate: a malformed file is never overwritten with defaults, so you do not
-lose your work. But the old definition stays loaded, which means a reload can appear to
-succeed while your change did nothing. Read the console after every reload.
+lose your work. But the old definition is not kept either: the reload drops it, so the raid
+silently disappears from memory (`status` stops listing it) while the reply still claims
+success. Read the console after every reload.
 
 ## Step 4 — verify each position
 
@@ -165,8 +165,10 @@ Then check the toggle actually works:
 1 EasyNPC rendu(s) visible(s).
 ```
 
-The NPC should appear with a glow outline. `0 EasyNPC rendu(s) visible(s)` with a correct
-`info` output points at the EasyNPC visibility API rather than at your coordinates — see
+The NPC should appear with a glow outline. The count is the number of NPCs **found**, not
+toggled: `1 EasyNPC rendu(s) visible(s).` with no visible change points at the EasyNPC
+visibility API rather than at your coordinates — the console line then reads `0 toggled`.
+See
 [integrations](integrations.md#easynpc).
 
 ### The reward portals
@@ -225,12 +227,12 @@ can still be wrong after the coordinates are right:
 ## Changing the rift dimension id
 
 `arena.riftDimId` defaults to `hoopa_rift`, giving the world id
-`cheeseguard:hoopa_rift`. If you change it, change `arena.center.world` to match, because
-the generator resolves the rift by concatenation and the centre by the `center` field —
-they are not derived from each other. A mismatch produces a rift that opens but a boss
-platform that is built and searched for in a world that does not exist.
+`cheeseguard:hoopa_rift`. Changing it is all it takes: every lookup resolves the rift by
+concatenation, and `arena.center.world` is never read, so it cannot go out of sync. A
+rift created under the old id is not renamed or deleted; it simply stops being used.
 
-The dimension is created on demand, the first time a player enters, with
+The dimension is created on demand, the first time a raid reaches `NPC_REVEAL` (or a player
+enters, whichever comes first), with
 `enabled = false` so nobody can walk into it outside a raid, `pvp = false`,
 `mobSpawning = false`, time locked to 18000 (midnight) and weather locked. Those values
 are set in code, not in the raid definition, so the config file gives you no handle on

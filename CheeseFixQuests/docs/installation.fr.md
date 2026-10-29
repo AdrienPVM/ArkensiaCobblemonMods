@@ -171,7 +171,8 @@ moment fixe du démarrage :
 [CheeseFixQuests] TeamDataClaimRewardSyncMixin loaded — claimReward is now thread-atomic.
 ```
 
-Puis, dans les dix secondes qui suivent l'arrivée du premier joueur :
+Puis, une dizaine de secondes après que le serveur a commencé à tourner — le premier
+balayage s'exécute, et arme ses phases, qu'il y ait quelqu'un en ligne ou non :
 
 ```text
 [CheeseFixQuests] Phase A (detect) armed — sweep every 200 ticks.

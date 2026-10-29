@@ -97,7 +97,7 @@ com.cheeseguard.CheeseGuardMod.INSTANCE.getDimensionManager()
 Trois appels :
 
 - **`createDimension(id, name, GenType.VOID, cfg -> …)`** — crée la faille la première fois
-  qu'un joueur entre, comme un monde vide nommé `<displayName> — Faille`, avec le spawn à
+  qu'un raid atteint `NPC_REVEAL` (ou qu'un joueur entre, si cela arrive avant), comme un monde vide nommé `<displayName> — Faille`, avec le spawn à
   `arena.center` + 1, `keepInventory` depuis la configuration, PvP désactivé, apparition de
   mobs désactivée, antres de raid désactivés, heure verrouillée à 18000, météo verrouillée, et
   `enabled = false` pour que personne n'y entre hors d'un raid. `createDimension` sort
@@ -112,8 +112,9 @@ Trois appels :
 
 L'ancien README affirmait que les raids « s'accrochent à ses événements ». C'est faux : il n'y
 a aucun type d'`EventEffect` CheeseGuard pour les raids dans ce mod, dans aucun sens. Compare
-avec [CheeseKart](../../CheeseKart/), qui enregistre bien `KART_START_ALL` et
-`KART_STOP_ALL`.
+avec [CheeseKart](../../CheeseKart/), qui dispose bien des effets `KART_START_ALL` et
+`KART_STOP_ALL` — définis côté CheeseGuard, dans son énumération `EventEffect` et
+`CheeseKartHook`.
 
 Comme la dépendance est à la compilation et déclarée dans `depends`, un changement d'API de
 CheeseGuard casse la **construction**, bruyamment, ce qui est le bon mode d'échec. Il n'y a
@@ -278,8 +279,9 @@ Le motif à copier est `CobblemonSpawnHook` : un `private static volatile boolea
 résolveur paresseux `synchronized`, un prédicat `available()`, une correspondance de méthode
 par forme, une ligne de journal distincte à chaque point d'échec, et une valeur de retour que
 l'appelant peut vérifier. Le motif à éviter est un hook qui renvoie `void` et ne journalise
-rien — `CobbleSafariHook` s'en approche, et c'est celui sur lequel tu passeras une soirée
-quand il cessera de fonctionner.
+rien. `CobbleSafariHook` renvoie bien un booléen et journalise ses échecs, mais son repli
+peut annoncer un succès pour un portail ouvert près du propriétaire plutôt qu'à l'ancre —
+c'est celui sur lequel tu passeras une soirée quand il cessera de fonctionner.
 
 ---
 

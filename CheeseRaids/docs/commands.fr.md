@@ -2,9 +2,9 @@
 
 # Commandes
 
-CheeseRaids expose une seule commande, `/cheeseraids`, et six sous-commandes. Cinq d'entre
+CheeseRaids expose une seule commande, `/cheeseraids`, et sept sous-commandes. Six d'entre
 elles exigent le **niveau de permission 2** — celui qu'un serveur vanilla accorde à un
-opérateur. La sixième, `enter`, n'exige aucune permission et constitue la seule branche
+opérateur. La septième, `enter`, n'exige aucune permission et constitue la seule branche
 destinée aux joueurs.
 
 Chaque réponse est envoyée au seul appelant, en mauve clair, et **en français** — les
@@ -12,8 +12,8 @@ fichiers de langue du mod contiennent une unique clé (`cheeseraids.title`) et t
 messages sont des `Text.literal` en dur. Il n'y a rien à traduire en changeant de pack de
 ressources.
 
-Les cinq sous-commandes d'administration prennent l'identifiant du raid comme premier
-argument, en un seul mot. Il n'y a **aucune complétion par tabulation** pour lui :
+Toutes les sous-commandes sauf `reload` et `status` prennent l'identifiant du raid comme
+premier argument, en un seul mot. Il n'y a **aucune complétion par tabulation** pour lui :
 l'argument est un simple `StringArgumentType.word()` sans fournisseur de suggestions, donc
 il faut connaître l'identifiant. `/cheeseraids status` les liste.
 
@@ -142,9 +142,12 @@ Définitions de raids rechargées.
 
 La réponse est inconditionnelle : elle dit la même chose que les fichiers aient été analysés
 ou non. Un fichier mal formé est **laissé intact sur le disque** (il n'est jamais écrasé par
-les valeurs par défaut) et la définition précédemment chargée reste en mémoire : une édition
-cassée ressemble donc exactement à un succès, vue du jeu. La console est le seul endroit où
-la vérité apparaît :
+les valeurs par défaut) : une édition cassée ressemble donc exactement à un succès, vue du
+jeu. Pire, la définition précédemment chargée ne **survit pas** : le rechargement vide la
+table avant d'analyser les fichiers, donc un raid dont le fichier échoue disparaît de la
+mémoire — `status` ne le liste plus, `start` le refuse, et une instance en cours de ce raid
+cesse d'avancer (le tick ignore les instances sans définition) jusqu'à ce que le fichier
+soit corrigé et rechargé. La console est le seul endroit où la vérité apparaît :
 
 ```text
 [CheeseRaids] FAILED to parse raid def .../hoopa.json — fix the JSON syntax and
@@ -198,9 +201,9 @@ déconnectés depuis — l'état par joueur survit volontairement à une reconne
 |---|---|---|---|
 | `raid` | mot unique | oui | l'identifiant d'un raid actuellement en phase `OPEN` |
 
-**Aucune permission requise.** C'est la seule sous-commande que tout joueur peut lancer, et
-la seule qui doive être lancée par un joueur plutôt que par la console ou un bloc de
-commande.
+**Aucune permission requise.** C'est la seule sous-commande que tout joueur peut lancer.
+Comme `testreward`, elle doit être lancée par un joueur plutôt que par la console ou un bloc
+de commande.
 
 C'est aussi le chemin d'entrée de secours. Normalement les joueurs entrent en parlant au
 héraut Ho-Oh ; quand celui-ci est introuvable, le mod diffuse cette commande dans le chat à
@@ -357,7 +360,8 @@ Test récompense: 1/1 portail(s) Hoopa à 100, 71, -2030 (minecraft:overworld)
 |---|---|
 | `Monde d'ancrage introuvable: <id>` | `reward.portalAnchor.world` ne désigne aucun monde chargé |
 | `Test récompense: 0/N …` | CobbleSafari est absent, ou ses méthodes de portail n'ont pu être résolues, ou il a refusé le placement |
-| rien du tout, résultat 0 | `raid` n'est pas un identifiant connu, ou la commande a été lancée depuis la console |
+| `Réservé aux joueurs.` | lancée depuis la console ou un bloc de commande |
+| rien du tout, résultat 0 | `raid` n'est pas un identifiant connu |
 
 La dernière ligne est un trou : un identifiant inconnu ne produit strictement aucun retour.
 Vérifie l'identifiant avec `status` d'abord.
@@ -366,11 +370,11 @@ Vérifie l'identifiant avec `status` d'abord.
 
 ## Piloter le mod depuis ailleurs
 
-Trois de ces sous-commandes ont un équivalent sur le dashboard, et le planificateur en
-couvre une quatrième :
+Quatre de ces sous-commandes ont un équivalent sur le dashboard, et le planificateur est une
+seconde façon de démarrer un raid :
 
-- **Dashboard** — le module `raids` expose démarrer, arrêter et recharger. Voir
-  [l'API dashboard](dashboard.fr.md).
+- **Dashboard** — le module `raids` expose démarrer, arrêter et recharger, et sa route de
+  vue d'ensemble est un `status` en lecture seule. Voir [l'API dashboard](dashboard.fr.md).
 - **Planificateur** — `schedule.autoTrigger` démarre un raid à une heure donnée sans que
   personne tape quoi que ce soit. Voir [la configuration](configuration.fr.md#schedule).
 

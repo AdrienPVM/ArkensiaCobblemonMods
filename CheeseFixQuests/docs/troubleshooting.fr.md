@@ -120,6 +120,10 @@ cela devrait se résoudre tout seul en dix secondes. Si ce n'est pas le cas :
    l'exception rencontrée sur cette quête précise.
 3. Si la tâche bloquée est une tâche d'item et que l'item venait d'un coffre, c'est le domaine
    de la phase C0 — cherche `ITEM_REPAIR` ou `ITEM_SET` sur cet identifiant de tâche.
+4. Si le joueur est dans un groupe FTB Teams, le balayage n'atteint pas du tout son propre
+   enregistrement : il résout le `TeamData` du groupe (le champ `team=` des lignes d'audit est
+   l'identifiant du groupe), donc sa quête bloquée n'est jamais réparée. C'est une faiblesse
+   connue du code, décrite dans l'[architecture](architecture.fr.md#faiblesses-connues-et-compromis-assumés).
 
 Les identifiants du journal d'audit sont en hexadécimal majuscule, la même forme que celle du
 carnet et des fichiers `.snbt` : tu peux les rapprocher directement.

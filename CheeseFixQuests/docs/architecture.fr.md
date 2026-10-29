@@ -94,7 +94,7 @@ com.cheesefixquests
     └── ExtraQuestsTimerMixin.java         la réinitialisation du minuteur quotidien d'ExtraQuests
 ```
 
-15 fichiers source, environ 1 920 lignes, dont `QuestFinalizerHook` représente un tiers.
+15 fichiers source, environ 1 920 lignes, dont `QuestFinalizerHook` représente plus d'un quart.
 
 ---
 
@@ -233,8 +233,9 @@ dossier `assets/cheesefixquests/lang/`. Un administrateur anglophone reçoit du 
 Corriger cela demande de convertir quatre méthodes en `Text.translatable` et d'ajouter les
 fichiers de langue.
 
-**`migrate` annonce un succès quand FTB Quests n'est pas chargé.**
-`QuestMigration.migrateAll()` renvoie `0` et journalise un WARN, mais la commande met
+**`migrate` annonce un succès quand le fichier de quêtes n'est pas chargé.** Quand
+`ServerQuestFile.INSTANCE` est encore nul (ou que le gestionnaire de FTB Teams est
+indisponible), `QuestMigration.migrateAll()` renvoie `0` et journalise un WARN, mais la commande met
 `migrationDone = true` et affiche *Migration terminée: 0 joueur(s)*. Il faut ensuite `remigrate`
 pour migrer réellement.
 
@@ -252,6 +253,16 @@ hors de son scénario de réparation.
 chaque `ItemTask` inachevée de chaque quête démarrable, il parcourt tout l'inventaire. Le
 commentaire du code annonce que le balayage complet reste sous la milliseconde à 50 joueurs et
 1000 quêtes ; ce chiffre n'est pas vérifié indépendamment ici.
+
+**Deux recherches utilisent l'identifiant d'équipe effective.** Le `PlayerTeam.getTeamId()`
+de FTB Teams renvoie l'identifiant de l'équipe sur laquelle le joueur est *effectivement* — le
+groupe, s'il en a un ; seul `getId()` est l'identifiant permanent de l'équipe de joueur.
+`QuestMigration` utilise `getId()` précisément pour cette raison, mais deux autres endroits
+appellent `getTeamId()` sur l'équipe de joueur résolue : `QuestFinalizerHook.resolveTeamData`,
+si bien que pour un joueur en groupe le balayage charge et répare le `TeamData` **du groupe**,
+pas le sien ; et `ServerQuestFileMixin.isPlayerOnTeam`, qui pour un membre de groupe répond
+donc `true` pour l'enregistrement du groupe et `false` pour le sien. Les joueurs hors groupe ne
+sont pas concernés.
 
 **Commentaires périmés.** Le javadoc de classe de `QuestFinalizerHook` dit que les phases
 tournent « every 5 s » alors que `RESCAN_INTERVAL_TICKS = 200` fait 10 secondes. Les javadocs
