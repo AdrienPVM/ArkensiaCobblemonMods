@@ -353,7 +353,7 @@ The write is atomic through a `.tmp` sibling. These files are **produced** by Co
 **read** by [CobbleCheeseScore](../../CobbleCheeseScore/) — CobbleCap has no code dependency
 on it, and if CobbleCheeseScore is absent the files are simply written and ignored.
 
-Note that `initObjectives` calls `rebuild` at boot. An earlier version wrote empty arrays
+`initObjectives` calls `rebuild` at boot. An earlier version wrote empty arrays
 there, which blanked the dashboard tiles after every restart; the rebuild-from-storage is
 the fix.
 

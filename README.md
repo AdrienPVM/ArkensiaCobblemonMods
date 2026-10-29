@@ -87,6 +87,33 @@ Browser ──WS   44312──┘                ├── CheeseMarket
 
 ---
 
+## Documentation
+
+Every mod has a manual, not just a readme. Its `README.md` is the overview — what it
+does, what it needs, how to install it — and its `docs/` directory holds the detail:
+
+| Page | What is in it |
+|---|---|
+| `installation.md` | exact prerequisites, build order, what the first launch creates, the log line that proves it loaded, clean removal |
+| `getting-started.md` | a tutorial, from a blank server to a working result |
+| `commands.md` | every command, argument by argument, with permission levels, worked examples and every failure message |
+| `configuration.md` | every config key with its type, default and effect, plus a complete annotated file |
+| one page per subsystem | the deep explanation — zones and flags, dimensions, events, the DNA of a collectible, the OpenBoatUtils protocol, whatever the mod actually has |
+| `dashboard.md` | every REST route and WebSocket message, with the role each one requires |
+| `architecture.md` | package layout, threading, mixins, extension points, and a frank list of known weaknesses |
+| `troubleshooting.md` | symptom, cause, fix |
+
+**All of it exists in French too**, as `*.fr.md` next to each page. Every page carries a
+language switch in its first line.
+
+The documentation was written by reading the source, not by tidying up the old readmes —
+which turned out to describe commands that do not exist, arguments in the wrong order,
+and features that were never wired up. Where a mod is fragile, experimental, or has a
+default you must change before going live, its pages say so rather than letting you find
+out in production.
+
+---
+
 ## Building
 
 You need **JDK 21**. Gradle comes with the wrapper, and every third-party mod

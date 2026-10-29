@@ -90,6 +90,34 @@ Navigateur ──WS   44312──┘                ├── CheeseMarket
 
 ---
 
+## Documentation
+
+Chaque mod a un manuel, pas seulement un readme. Son `README.md` donne la vue d'ensemble
+— ce qu'il fait, ce qu'il exige, comment l'installer — et son dossier `docs/` contient le
+détail :
+
+| Page | Ce qu'on y trouve |
+|---|---|
+| `installation.md` | prérequis exacts, ordre de compilation, ce que crée le premier démarrage, la ligne de log qui prouve le chargement, désinstallation propre |
+| `getting-started.md` | un tutoriel, d'un serveur vierge jusqu'à un résultat qui marche |
+| `commands.md` | chaque commande, argument par argument, avec les niveaux de permission, des exemples complets et tous les messages d'échec |
+| `configuration.md` | chaque clé de configuration avec son type, son défaut et son effet, plus un fichier complet annoté |
+| une page par sous-système | l'explication de fond : zones et drapeaux, dimensions, événements, ADN d'un collectible, protocole OpenBoatUtils, selon ce que le mod a vraiment |
+| `dashboard.md` | chaque route REST et chaque message WebSocket, avec le rôle exigé |
+| `architecture.md` | arborescence des packages, threading, mixins, points d'extension, et une liste franche des faiblesses connues |
+| `troubleshooting.md` | symptôme, cause, remède |
+
+**Tout existe aussi en anglais**, en `*.md` à côté de chaque page française. Chaque page
+porte un sélecteur de langue sur sa première ligne.
+
+Cette documentation a été écrite en relisant le code source, et non en toilettant les
+anciens readmes — qui décrivaient des commandes inexistantes, des arguments dans le
+mauvais ordre et des fonctionnalités jamais branchées. Quand un mod est fragile,
+expérimental, ou qu'il a une valeur par défaut à changer avant toute mise en service, ses
+pages le disent, plutôt que de te le laisser découvrir en production.
+
+---
+
 ## Compilation
 
 Il te faut **JDK 21**. Gradle est fourni avec le wrapper, et toutes les dépendances

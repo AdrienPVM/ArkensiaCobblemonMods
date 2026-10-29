@@ -97,7 +97,7 @@ One player, with the fields the list route omits. Role: any.
 | 400 | `{"error":"Invalid UUID"}` |
 | 404 | `{"error":"Player not found"}` |
 
-Note that `challengeBeaten` and `lastChallengeTimes` are stored on disk but **not**
+`challengeBeaten` and `lastChallengeTimes` are stored on disk but **not**
 exposed by this route. Read `config/cobblecap/players.json` if you need them.
 
 ## `POST /api/v1/cobblecap/players/{uuid}/cap`
@@ -130,8 +130,8 @@ without a relog.
 
 This writes through `CapStorage.setCapLevel`, which persists. It does **not** touch
 `championsBeaten`, so the next champion victory recomputes the cap from the champion list
-and will overwrite whatever you set here. For a lasting change, edit the beaten list on
-disk or grant the champion with `/cobblecap grant`.
+and will overwrite whatever you set here. For a lasting change, record the
+progress too with `/cobblecap addbeaten <player> "<championId>"`.
 
 ## `POST /api/v1/cobblecap/players/{uuid}/explock`
 

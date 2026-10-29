@@ -47,7 +47,7 @@ Only two conditions are listed here, and only when they fail: the Pokédex count
 (`requiredPokedex`) and the FTB quest (`requiredQuestId`). The scoreboard gate
 (`requiredScoreboard`) is enforced at the NPC but **is not shown** by this command — a
 player blocked by a scoreboard requirement sees no reason why. Use
-[`/cobblecap status <player>`](#cobblecap-status-player) as an admin to see it.
+[`/cobblecap status <player>`](#cobblecap-status) as an admin to see it.
 
 | Message | Cause |
 |---|---|

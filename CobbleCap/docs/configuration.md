@@ -270,7 +270,7 @@ A parse failure leaves the in-memory list untouched and logs:
 The chat reply to `/cobblecap reload` reports a count. A count of `0` right after editing a
 populated file means the parse failed — read the log.
 
-Note that `ChampionEntry.toJson` omits conditional fields, so a `GET` followed by a `PUT`
+`ChampionEntry.toJson` omits conditional fields, so a `GET` followed by a `PUT`
 is lossless but not byte-identical to a hand-written file: `requiredScoreboard` and friends
 disappear when empty, `challengeRequiresAllBeaten` only appears when `false`, and
 `challengeCapGranted` only when above zero.

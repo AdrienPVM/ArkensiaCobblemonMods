@@ -25,9 +25,8 @@ There is no formula. The cap is a stored integer, and it changes in exactly four
    `CapStorage.raiseCapLevel`. That method only ever raises: if the player's cap is already
    at or above the new value, nothing happens and it returns `false`. So beating champions
    out of order, or re-beating one, cannot lower anyone's cap.
-2. **`+10` per champion in the Hall of Fame.** Once a player has become League Master, the
-   champion system adds a bonus on top. [The champion system](champions.md) covers how that
-   is applied and persisted.
+2. **A challenge victory,** when that champion's `challengeCapGranted` is above zero — again
+   raise-only. [The champion system](champions.md) covers that path.
 3. **An admin setting it** — `/cobblecap set <player> <level>`, or
    `POST /api/v1/cobblecap/players/{uuid}/cap`. Both write the value directly with no
    raise-only guard, so an admin can lower a cap.
