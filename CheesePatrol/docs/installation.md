@@ -67,8 +67,10 @@ Nothing else. There is no config file to pre-create.
 Nothing. This is worth stating because every sibling mod writes a config file on first
 start and CheesePatrol does not. `PatrolManager.load()` reads
 `config/cheesepatrol_data.json` **if it exists** and is otherwise silent; the file is
-only written by `PatrolManager.save()`, which runs the first time you add a waypoint,
-change a setting, start or stop a patrol.
+only written by `PatrolManager.save()`, which runs the first time you right-click an NPC
+with the wand, add a waypoint, change a setting, start or stop a patrol — and,
+unconditionally, at every `SERVER_STOPPING`. So the first clean shutdown writes the file
+even if you never touched a patrol: `{"debug": false, "patrols": []}`.
 
 Once you have created a patrol, two things exist:
 
@@ -79,8 +81,9 @@ config/
     └── <npc-uuid>.dat              compressed NBT snapshot of the NPC entity
 ```
 
-The `.dat` files appear on the first periodic backup, 60 seconds after a patrol's NPC is
-found loaded, and at shutdown. Both are documented in
+The `.dat` files appear on the next periodic backup — the pass runs every 60 seconds,
+counted from server start, and covers every patrol whose NPC is loaded at that moment —
+and at shutdown. Both are documented in
 [configuration](configuration.md) and [keeping NPCs alive](resilience.md).
 
 A third, invisible side effect: force-loaded chunks. CheesePatrol force-loads the chunk
@@ -91,19 +94,21 @@ them. Full reasoning in [keeping NPCs alive](resilience.md#chunk-force-loading).
 
 ## Verifying it loaded
 
-Three log lines, in this order:
+Four log lines, in this order:
 
 ```text
 [CheesePatrol] Initializing...
 [CheesePatrol] Ready.
 [CheesePatrol] Early-loaded 0 patrol(s) for mixin protection
+[CheesePatrol] Forceloaded chunks for 0 patrol(s) (0 active, 0 inactive)
 ```
 
 The first two come from `onInitialize`, during mod loading. The third comes from the
 `SERVER_STARTING` event, which is why it appears after `Ready.` even though it happens
-later. The count is the number of patrols read from `cheesepatrol_data.json`.
+later. The count is the number of patrols read from `cheesepatrol_data.json`. The fourth comes from `SERVER_STARTED` and is printed on
+every start, even with zero patrols.
 
-Once you have patrols, two more lines appear at `SERVER_STARTED`:
+Once you have patrols, the `SERVER_STARTED` output can grow to two lines:
 
 ```text
 [CheesePatrol] Pre-loaded 7 chunks for 3 patrol(s)
@@ -160,8 +165,9 @@ forced chunks both outlive a naive jar deletion.
    /kill @e[type=armor_stand,tag=cheesepatrol]
    ```
 
-   A clean shutdown removes all of them across all worlds, so this is only needed after a
-   crash.
+   A clean shutdown removes every one that is in a loaded chunk, in every world, so this
+   is only needed after a crash, or for markers left in chunks that were not loaded when
+   the server stopped.
 
 4. **Stop the server, delete the jar**, and delete what you no longer want:
 

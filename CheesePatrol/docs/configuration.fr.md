@@ -66,7 +66,7 @@ Avec `debug: true`, tu obtiens en plus, par patrouille et par événement :
 ```text
 [CheesePatrol] Kick-started patrol for NPC a1b2c3d4 at waypoint 2/4
 [CheesePatrol] NPC a1b2c3d4 not found after 30s - respawn attempt 1/10
-[CheesePatrol] NPC a1b2c3d4 found after 812 ticks missing - kick-starting patrol
+[CheesePatrol] NPC a1b2c3d4 found after 412 ticks missing - kick-starting patrol
 [CheesePatrol] NPC a1b2c3d4 stuck for 60s at dist 14.2 - teleporting to waypoint 3
 [CheesePatrol] Integrity check: NPC a1b2c3d4 missing (patrol active) - respawning from backup
 [CheesePatrol] Auto-resuming patrol a1b2c3d4 - entity found, was system-paused
@@ -82,7 +82,8 @@ capricieuses rempliront un log.
 
 1. Arrête le serveur. Ce n'est pas facultatif, et la raison est le chemin de sauvegarde :
    toute action `/npcpatrol` réécrit le fichier entier depuis l'état en mémoire, donc une
-   édition faite serveur allumé est écrasée dès que quelqu'un ajoute un point de passage.
+   édition faite serveur allumé est écrasée dès que quelqu'un ajoute un point de passage —
+   et au plus tard à l'arrêt du serveur, puisque `SERVER_STOPPING` sauvegarde toujours.
 2. Remplace `"debug": false` par `"debug": true`.
 3. Démarre le serveur. `PatrolManager.load()` tourne à `SERVER_STARTING` et lit le drapeau.
 
@@ -95,19 +96,21 @@ chaque blocage en `INFO`, sans condition. Voir
 
 ## Un objet patrouille
 
-Un par entrée de `patrols`. Les clés sont omises quand elles portent leur valeur par défaut,
-d'où une patrouille fraîchement créée longue de trois lignes.
+Un par entrée de `patrols`. Les sept clés marquées *toujours* ci-dessous sont écrites à
+chaque sauvegarde ; seules les clés facultatives sont omises tant qu'elles portent leur
+valeur par défaut, si bien qu'une patrouille fraîchement créée ne contient que ces sept-là,
+avec un tableau `waypoints` vide.
 
 | Clé | Type | Défaut | Écrite quand | Effet |
 |---|---|---|---|---|
 | `npcUuid` | chaîne | — | toujours | L'UUID de l'entité pilotée. C'est l'identité de la patrouille ; il n'y a pas d'autre identifiant |
-| `dimension` | chaîne | `"minecraft:overworld"` | toujours | Identifiant de dimension, sous la forme `namespace:path`. Fixé à la sélection du NPC, jamais modifié ensuite |
+| `dimension` | chaîne | `"minecraft:overworld"` | toujours | Identifiant de dimension, sous la forme `namespace:path`. Fixé sur ton monde courant à chaque sélection du NPC ; rien d'autre ne le modifie |
 | `active` | booléen | `false` | toujours | Si le circuit tourne. Restauré au redémarrage, d'où les patrouilles qui reprennent seules |
 | `speed` | nombre | `0.5` | toujours | Vitesse de marche. Bornée à `0.1`–`5.0` |
 | `playerDetectionRadius` | nombre | `5.0` | toujours | Rayon « regarder un joueur » en blocs. Borné à `1.0`–`32.0` |
 | `currentWaypointIndex` | entier | `0` | toujours | Index, à partir de 0, du point de passage vers lequel le NPC marche |
 | `waypoints` | tableau | `[]` | toujours | Le circuit, dans l'ordre de parcours |
-| `lastX` `lastY` `lastZ` | entiers | absents | dès que le NPC a été vu | Dernière position de bloc connue, mise à jour à chaque tick où l'entité est trouvée. Sert à force-loader le bon chunk au démarrage |
+| `lastX` `lastY` `lastZ` | entiers | absents | dès que le NPC a été vu | Dernière position de bloc connue, mise à jour à chaque tick où l'entité est trouvée pendant que sa patrouille tourne (et fixée sur le point de passage après une réapparition). Sert à force-loader le bon chunk au démarrage |
 | `particleEffect` | chaîne | `"none"` | si différent de `"none"` | Nom de l'effet de traînée |
 | `particleYOffset` | nombre | `0.0` | si différent de `0` | Décalage vertical de la traînée |
 | `particleZOffset` | nombre | `0.0` | si différent de `0` | Décalage avant/arrière de la traînée. Positif = derrière |
@@ -136,13 +139,15 @@ valeur hors bornes ne plante donc pas, elle boucle. `/npcpatrol start` la remet 
 elle dépasse la fin. La régler à la main est une façon légitime de garer un NPC sur un point
 précis de son circuit avant un redémarrage.
 
-**`dimension` n'est fixée qu'une fois**, à la sélection du NPC, et rien ne la met à jour
-ensuite. Déplace un NPC dans une autre dimension et la patrouille garde l'ancien
-identifiant. La recherche d'entité a un repli qui balaie tous les mondes chargés, donc la
-patrouille continue généralement de fonctionner, mais le force-load des chunks au démarrage
-et l'affichage de `show` utilisent tous deux la valeur stockée et viseront le mauvais monde.
-Efface et recrée la patrouille plutôt que d'éditer le champ, pour que la comptabilité des
-chunks forcés reste cohérente.
+**`dimension` est fixée à la sélection du NPC**, et rien d'autre ne la met à jour. Déplace un NPC dans une autre dimension et la patrouille garde l'ancien
+identifiant tant que tu ne le resélectionnes pas : chaque nouvelle sélection (clic droit ou
+`select`) refixe le champ sur ton monde courant. La recherche d'entité a un repli qui balaie
+tous les mondes chargés, donc la patrouille continue généralement de fonctionner, mais le
+force-load des chunks au démarrage et l'affichage de `show` utilisent tous deux la valeur
+stockée et viseront le mauvais monde. Plutôt que d'éditer le champ, fais d'abord
+`/npcpatrol stop` — cela relâche ses chunks forcés dans l'ancien monde, que la comptabilité
+ne retrouve que par l'ancien identifiant — puis va dans le nouveau monde du NPC et
+resélectionne-le.
 
 **`lastX` / `lastY` / `lastZ` sont écrites à chaque tick où l'entité est trouvée** mais ne
 sont persistées qu'à la sauvegarde. Après un crash, elles peuvent avoir quelques minutes de
@@ -178,9 +183,12 @@ réapparition.
 
 Ces fichiers sont ce qui rend un NPC récupérable, et leur seule présence suffit à rendre une
 entité intuable : le mixin de suppression interroge le répertoire pour toute entité qu'il ne
-reconnaît pas. Supprimer l'un d'eux à la main sur un serveur en marche a donc deux effets :
-le NPC perd son filet de sécurité, et il perd sa protection contre la suppression jusqu'à ce
-que la passe de sauvegarde suivante réécrive le fichier. Comportement complet dans
+reconnaît pas. Supprimer l'un d'eux à la main sur un serveur en marche prive le NPC de son
+filet de sécurité jusqu'à ce que la passe de sauvegarde suivante réécrive le fichier —
+aucune réapparition n'est possible entre-temps — mais pas de sa protection contre la
+suppression : la fiche de patrouille suffit à elle seule une fois les données chargées. Le
+fichier ne compte pour la protection que pendant la fenêtre de démarrage avant `load()`, et
+pour une entité dont la fiche a disparu. Comportement complet dans
 [garder les NPC en vie](resilience.fr.md).
 
 Il n'y a ni politique de rétention ni plafond de taille. Un fichier par NPC de patrouille,
@@ -206,12 +214,13 @@ renoncé. JSON n'autorise pas les commentaires, donc les annotations suivent le 
       "lastY": 65,
       "lastZ": -331,
       "particleEffect": "dust_cyan",
+      "particleYOffset": 0.4,
       "particleZOffset": 0.6,
       "particleRange": 48,
       "waypoints": [
         { "x": 112, "y": 65, "z": -340 },
-        { "x": 128, "y": 65, "z": -340, "wait": 100 },
-        { "x": 128, "y": 65, "z": -324 },
+        { "x": 128, "y": 65, "z": -340 },
+        { "x": 128, "y": 65, "z": -324, "wait": 100 },
         { "x": 112, "y": 65, "z": -324 }
       ]
     },
@@ -249,8 +258,9 @@ renoncé. JSON n'autorise pas les commentaires, donc les annotations suivent le 
 ```
 
 - **La patrouille 1** est le résultat du guide [premiers pas](getting-started.fr.md) : un
-  carré de quatre coins, pause de 5 secondes au coin #2 (`"wait": 100` ticks), traînée cyan
-  poussée 0,6 bloc derrière le NPC et visible jusqu'à 48 blocs. Elle marche actuellement
+  carré de quatre coins, pause de 5 secondes au coin #3 (`"wait": 100` ticks), traînée cyan
+  relevée de 0,4 bloc et poussée 0,6 bloc derrière le NPC — plus, un pas au-delà du guide,
+  un `/npcpatrol particlerange 48` qui la rend visible jusqu'à 48 blocs. Elle marche actuellement
   vers le point de passage #3, et a été vue pour la dernière fois à `126 65 -331`, entre le
   #2 et le #3.
 - **La patrouille 2** a été arrêtée par un humain : `active: false` sans `pausedBySystem`.

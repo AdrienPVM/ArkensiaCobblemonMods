@@ -215,7 +215,7 @@ For an **active** patrol, when the entity is not found, `tickPatrol` counts tick
 | every tick | force-load the target waypoint chunk and the last known position chunk |
 | **600 ticks (30 s)** | attempt a respawn from the backup, increment the attempt counter, reset the 30-second timer |
 | every 30 s after | another attempt |
-| **after 10 attempts** (≈5 minutes) | give up: set `active = false`, set `pausedBySystem = true`, save, log an error |
+| **after 10 attempts** (the 11th 30-second mark, ≈5½ minutes) | give up: set `active = false`, set `pausedBySystem = true`, save, log an error |
 
 ```text
 [CheesePatrol] NPC a1b2c3d4 failed to respawn 10 times - pausing patrol (integrity check retries every 5 min)
@@ -223,8 +223,10 @@ For an **active** patrol, when the entity is not found, `tickPatrol` counts tick
 
 Giving up is not giving up permanently. `pausedBySystem = true` is the flag that tells the
 integrity check "this was not a human decision", and the integrity check keeps retrying
-every five minutes forever, re-enabling the patrol the moment the NPC exists again. The
-only thing that stops the retries is `/npcpatrol stop` or `/npcpatrol clear`.
+every five minutes forever, re-enabling the patrol the moment the NPC exists again.
+`/npcpatrol stop` stops the auto-resume (it clears `pausedBySystem`), but the integrity
+check still respawns a missing NPC from its backup; only `/npcpatrol clear` stops the
+retries.
 
 The counter resets completely, missing ticks *and* attempts, the first tick the entity is
 found.
@@ -290,8 +292,11 @@ With `debug: true`, a full recovery cycle looks like this:
 ```text
 [CheesePatrol] NPC a1b2c3d4 not found after 30s - respawn attempt 1/10
 [CheesePatrol] Respawned NPC a1b2c3d4 at waypoint 128, 65, -340
-[CheesePatrol] Kick-started patrol for NPC a1b2c3d4 at waypoint 2/4
+[CheesePatrol] Kick-started patrol for NPC a1b2c3d4 at waypoint 3/4
 ```
+
+The kick-start reports the waypoint *after* the one the NPC was respawned on: the respawn
+puts it exactly on waypoint #2, and a kick-start within 1.5 blocks of its target advances.
 
 A failed cycle, ending in a system pause:
 
@@ -305,7 +310,7 @@ A failed cycle, ending in a system pause:
 And a recovery that came from the chunk finally loading rather than from a respawn:
 
 ```text
-[CheesePatrol] NPC a1b2c3d4 found after 812 ticks missing - kick-starting patrol
+[CheesePatrol] NPC a1b2c3d4 found after 412 ticks missing - kick-starting patrol
 ```
 
 That last line is the common one, and it is the reason the force-loading exists: most

@@ -105,8 +105,11 @@ Two things about the countdown that surprise people:
    A 5-second wait with a player standing next to the NPC lasts as long as the player
    does, then takes its five seconds once they leave.
 2. **It survives nothing.** `waitingAtWaypoint` and `remainingWaitTicks` are transient
-   fields, not saved to disk. A restart mid-wait resumes with the NPC walking toward the
-   waypoint it was standing on, arriving instantly, and starting the wait over.
+   fields, not saved to disk. After a restart mid-wait the per-tick loop finds the NPC
+   already on the waypoint and starts the wait over — but five seconds after start the
+   startup kick-start clears the waiting flag and, since the NPC is still within 1.5 blocks,
+   advances it. A long wait interrupted by a restart is therefore cut to about five
+   seconds.
 
 A wait of `3600` seconds is accepted, which is the supported way to park an NPC somewhere
 for an hour at a time. A hand-edited data file can exceed that, because the loader does
@@ -158,7 +161,7 @@ feels arbitrary.
 | Flying | `speed × 0.15` | 0.075 blocks/tick ≈ **1.5 blocks/s** | ≈ 3.0 blocks/s |
 
 A vanilla player walks at about 4.3 blocks per second, so `speed 0.5` is a genuine stroll
-and `speed 2.0` is already faster than a sprinting player.
+and `speed 2.0`, at about 4.8 blocks per second, already outpaces a walking player.
 
 **For vanilla navigation**, `moveToCurrentWaypoint` passes the same number straight into
 `mob.getNavigation().startMovingTo(x, y, z, speed)`, where it is a multiplier on the

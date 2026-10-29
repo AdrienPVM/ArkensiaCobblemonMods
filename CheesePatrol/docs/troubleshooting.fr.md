@@ -61,7 +61,7 @@ chunk connu à chaque tick jusqu'à ce que le NPC apparaisse, puis la relancera
 automatiquement. Guette :
 
 ```text
-[CheesePatrol] NPC a1b2c3d4 found after 812 ticks missing - kick-starting patrol
+[CheesePatrol] NPC a1b2c3d4 found after 412 ticks missing - kick-starting patrol
 ```
 
 S'il n'apparaît jamais, l'échelle de réapparition prend le relais au bout de 30 secondes. Si
@@ -190,7 +190,7 @@ serveur HTTP encore debout.
 commande de rechargement. Pire, il est réécrit en entier depuis la mémoire par
 `PatrolManager.save()` à chaque modification : une édition faite serveur allumé n'est donc
 pas seulement ignorée, elle est écrasée dès que quelqu'un ajoute un point de passage ou
-démarre une patrouille.
+démarre une patrouille, et au plus tard à l'arrêt du serveur.
 
 **Remède.** Arrête le serveur, édite, démarre. C'est la seule séquence prise en charge, et
 c'est ainsi qu'on change `debug`.
@@ -232,8 +232,9 @@ chaque tentative en `INFO`, sans limitation de débit et **sans** être supprim�
 `debug: false`.
 
 **Remède.** Trouve ce qui supprime — un plugin de nettoyage d'entités, un bloc de commande
-répétitif avec un sélecteur `@e` trop large, un script de mob-cap. Exclus-en les NPC
-`tag=cheesepatrol`, ou resserre le sélecteur. Les lignes de log sont un symptôme, et les
+répétitif avec un sélecteur `@e` trop large, un script de mob-cap. Exclus-en les NPC de
+patrouille — par UUID, ou avec un tag à toi : CheesePatrol ne pose le tag `cheesepatrol` que
+sur ses porte-armures marqueurs, jamais sur les NPC — ou resserre le sélecteur. Les lignes de log sont un symptôme, et les
 faire taire est impossible sans modifier le mod.
 
 ## Un NPC disparaît et revient ailleurs
@@ -271,7 +272,8 @@ tu te tiens**.
 ```
 
 dans chaque monde concerné. Un arrêt propre du serveur retire aussi tous les porte-armures
-tagués dans tous les mondes : un redémarrage les efface donc, mais pas un crash.
+tagués qui se trouvent dans un chunk chargé, dans tous les mondes : un redémarrage en efface
+donc la plupart, mais pas un crash, ni un arrêt pour ceux des chunks non chargés.
 
 ## Mes `/forceload` se font retirer sans arrêt
 

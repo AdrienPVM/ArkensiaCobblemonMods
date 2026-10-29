@@ -95,18 +95,15 @@ re-places; it never just deletes. They go away when:
 
 - `/npcpatrol clear` runs — but only in the world you are standing in
 - the server shuts down cleanly, which removes every `cheesepatrol`-tagged armor stand in
-  every world
+  a loaded chunk, in every world
 - you kill them by tag yourself
 
 A crash therefore leaves them behind, and clearing a patrol from the wrong dimension
 leaves that patrol's markers orphaned with no NPC to associate them with.
 
-**They are solid.** An invisible armor stand still has a collision box, so a marker sits
-as a physical obstacle on the exact block of its waypoint. In practice the NPC's 1.5-block
-arrival threshold means it stops short and never has to walk through the stand, but on a
-narrow route — a one-block bridge, a doorway — a marker can nudge an NPC off its line.
-This is an observation from the geometry, not a measured failure; if a patrol behaves
-differently with markers up and markers down, that is why.
+**They are not obstacles.** An armor stand is not pushable in vanilla and has no movement
+collision, so an NPC — like a player — walks straight through a marker standing on its
+waypoint. Markers cannot nudge a patrol off its line.
 
 **Placing markers scans every entity in the world.** `refreshMarkers` first calls
 `removeMarkers`, which walks `world.iterateEntities()` looking for tagged stands. Running
@@ -148,7 +145,7 @@ one.
 
 ### Density and spread, per effect
 
-Three effects are special-cased; everything else uses the defaults.
+Four effects are special-cased; everything else uses the defaults.
 
 | Effect | Particles per puff | Spread (X/Z) | Spread (Y) | Particle speed |
 |---|---|---|---|---|
@@ -233,15 +230,15 @@ sent per-player, to every player inside that spherical distance of the anchor, w
 `force = true`.
 
 The cost is real and it multiplies: *(players in range) × (3 puffs) × (particles per puff)
-× (5 emissions per second)*. At the default 16 blocks that is a handful of packets to a
+× (10 emissions per second)*. At the default 16 blocks that is a handful of packets to a
 couple of people. At 512 blocks on a 40-player server, every player on the map receives the
-trail of every patrolling NPC, five times a second.
+trail of every patrolling NPC, ten times a second.
 
 Set it to 16 for a town guard and raise it only for something deliberately visible from a
 distance, like a flying NPC circling a landmark.
 
 The range applies **only to the trail**. The `show` route preview goes to the one player
-who asked for it at any distance within the dimension, and the markers are ordinary
+who asked for it at any distance up to 512 blocks within the dimension, and the markers are ordinary
 entities subject to normal entity view distance.
 
 ---

@@ -112,9 +112,12 @@ Deux choses surprennent dans ce décompte :
    entièrement sauté. Une attente de 5 secondes avec un joueur planté à côté du NPC dure
    aussi longtemps que le joueur, puis prend ses cinq secondes dès qu'il s'éloigne.
 2. **Elle ne survit à rien.** `waitingAtWaypoint` et `remainingWaitTicks` sont des champs
-   transitoires, non sauvegardés sur disque. Un redémarrage en pleine attente reprend avec
-   le NPC marchant vers le point de passage sur lequel il se tenait, y arrivant
-   instantanément, et recommençant l'attente depuis le début.
+   transitoires, non sauvegardés sur disque. Après un redémarrage en pleine attente, la
+   boucle par tick trouve le NPC déjà sur le point de passage et recommence l'attente depuis
+   le début — mais cinq secondes après le démarrage, le kick-start de démarrage efface le
+   drapeau d'attente et, puisque le NPC est toujours à moins de 1,5 bloc, le fait avancer.
+   Une longue attente interrompue par un redémarrage est donc ramenée à environ cinq
+   secondes.
 
 Une attente de `3600` secondes est acceptée : c'est la façon prévue de garer un NPC
 quelque part une heure durant. Un fichier de données édité à la main peut dépasser cela,
@@ -168,7 +171,8 @@ que le nombre est arbitraire.
 | En vol | `speed × 0.15` | 0,075 bloc/tick ≈ **1,5 bloc/s** | ≈ 3,0 blocs/s |
 
 Un joueur vanilla marche à environ 4,3 blocs par seconde : `speed 0.5` est donc une vraie
-flânerie et `speed 2.0` dépasse déjà un joueur en sprint.
+flânerie et `speed 2.0`, à environ 4,8 blocs par seconde, dépasse déjà un joueur qui
+marche.
 
 **Pour la navigation vanilla**, `moveToCurrentWaypoint` passe le même nombre directement à
 `mob.getNavigation().startMovingTo(x, y, z, speed)`, où il devient un multiplicateur sur

@@ -174,8 +174,9 @@ For global keys — `updateIntervalMinutes`, `timeZone`, `showLastUpdate`, `last
 ## Images never refresh on their own
 
 **Cause.** `updateIntervalMinutes` is read once, at `SERVER_STARTED`, and passed to
-`scheduleAtFixedRate`. Nothing reschedules it, and a value of `0` or a negative number
-makes the executor throw at startup, leaving you with the initial render and no scheduler.
+`scheduleAtFixedRate`. Nothing reschedules it. (A value of `0` or a negative number does
+not produce this symptom: the executor throws an uncaught `IllegalArgumentException` in
+`SERVER_STARTED`, and the server aborts its start with a crash report.)
 
 **Fix.** Look for the line that confirms the scheduler started, and the interval it
 started with:
@@ -184,8 +185,9 @@ started with:
 [cobblecheesescore] Scoreboard update scheduler started (interval: 10 minutes)
 ```
 
-If that line is missing, look just above it for an `IllegalArgumentException` and fix
-`updateIntervalMinutes` to a positive integer. If the line is present with the old value,
+If the server crashed at start with an `IllegalArgumentException` from
+`scheduleAtFixedRate` in the crash report, fix `updateIntervalMinutes` to a positive
+integer. If the line is present with the old value,
 you changed the config without restarting. Meanwhile, force a pass by hand:
 
 ```bash
@@ -196,8 +198,9 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
 ## Every board fails at once with `Failed to update scoreboard`
 
 **Cause.** The most likely culprit is `timeZone`. It is passed to `ZoneId.of(...)` inside
-the renderer with no guard, so a typo throws a `DateTimeException` for every board in
-turn, each one caught and logged individually.
+the renderer with no guard — whenever `showLastUpdate` is `true`, the default — so a typo
+throws a `DateTimeException` for every board in turn, each one caught and logged
+individually.
 
 **Fix.**
 
@@ -220,7 +223,8 @@ failure. A `404` body is `{"error":"No image for scoreboard: <id>"}`, a `503` bo
 
 - the board id is wrong — check `GET /api/v1/scores/scoreboards` for the exact ids and
   their `hasImage` flags;
-- the board is disabled, so no image was ever rendered;
+- the board has been disabled since the server started, so no image was ever rendered
+  (a board disabled mid-session keeps serving its last image until restart);
 - no refresh has completed yet, which on a cold server means the cache is empty.
 
 Force a refresh and retry. A `503` means the mod has not finished initialising — wait for
@@ -262,10 +266,11 @@ really has. There is no config key for it.
 **Fix.** Test the exact URL from a machine on the players' network, not from the server:
 
 ```bash
-curl -sI http://your-server:44311/scores/api/images/test/pokedex_completed.png
+curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://your-server:44311/scores/api/images/test/pokedex_completed.png
 ```
 
-`200` with `Content-Type: image/png` clears the server side and points at the client. A
+`200 image/png` clears the server side and points at the client. Do not use `curl -I`:
+the route answers only `GET`, so a `HEAD` request gets a `404` whatever the board. A
 connection refused is a firewall or a port binding. A `404` is a board id problem — list
 them with `GET /api/v1/scores/scoreboards`.
 
@@ -361,8 +366,9 @@ Open it at
 5. **For an API problem, the exact request and the full response.** `curl -i` rather than
    `curl -s`, so the status code and headers are in the paste. The status code matters
    more than the body on the image routes, where errors come back as JSON.
-6. **For an in-game display problem, the output of `curl -sI <the exact frame URL>` run
-   from a player's machine**, and the name and version of the image-frame mod. That one
+6. **For an in-game display problem, the output of `curl -s -o /dev/null -w '%{http_code}
+   %{content_type}\n' <the exact frame URL>` run from a player's machine** (a `GET`: the
+   route answers `HEAD` with a `404`), and the name and version of the image-frame mod. That one
    command separates a server problem from a client problem.
 
 Do not open a public issue for a security problem — `SECURITY.md` at the repository root

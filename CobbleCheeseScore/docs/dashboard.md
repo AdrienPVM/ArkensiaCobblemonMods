@@ -195,7 +195,7 @@ until all of that finishes, so expect it to take as long as a full refresh.
 |---|---|
 | `200` | `{"updated":true}` |
 | `404` | no board with that id |
-| `500` | `{"error":"Failed to save config"}` — the config file could not be written. Edits are already in memory at that point and will be lost on restart |
+| `500` | `{"error":"Failed to save config"}` — in practice unreachable for a disk error: `Config.save()` catches its own `IOException` and only logs `Failed to save config`, so a failed write still answers `200`. The edits are in memory either way and are lost on restart if the write failed |
 | `503` | config not loaded |
 
 A refresh that throws after a successful save is logged as a warning and still answers
@@ -228,7 +228,7 @@ curl -H "Authorization: Bearer $TOKEN" \
 | Status | Content type | Condition |
 |---|---|---|
 | `200` | `image/png` | an image is cached for that id |
-| `404` | `application/json` | `{"error":"No image for scoreboard: <id>"}` — board disabled, unknown id, or no refresh yet |
+| `404` | `application/json` | `{"error":"No image for scoreboard: <id>"}` — unknown id, no refresh yet, or board disabled since startup (a board disabled later keeps its last image) |
 | `503` | `application/json` | `{"error":"Cache not initialized"}` |
 
 ⚠️ The error responses are JSON while the success response is a PNG. Check the status
@@ -338,7 +338,7 @@ about what you asked for. `survivor` is still enabled.
 |---|---|
 | `200` | `{"saved":true}` |
 | `404` | `{"error":"Scoreboard not found"}` when `scoreboardId` names nothing |
-| `500` | `{"error":"Failed to save config"}` |
+| `500` | `{"error":"Failed to save config"}` — in practice never for a disk error, which `Config.save()` swallows and logs; the route then still answers `200` |
 | `503` | config not loaded |
 
 ### `GET /api/v1/scores/stats`

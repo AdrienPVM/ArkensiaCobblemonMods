@@ -53,12 +53,15 @@ cd ../CheesePatrol && ./gradlew build
 
 Dépose `build/libs/cheesepatrol-1.0.0+1.21.1.jar` et le jar de CheeseDash dans le dossier
 `mods/` du serveur, à côté d'EasyNPC. Le mod n'écrit rien sur disque avant ta première
-patrouille. Au démarrage il journalise :
+patrouille ou le premier arrêt du serveur, selon ce qui arrive en premier — le hook
+d'arrêt sauvegarde toujours, donc le premier arrêt propre laisse un
+`config/cheesepatrol_data.json` vide. Au démarrage il journalise :
 
 ```text
 [CheesePatrol] Initializing...
 [CheesePatrol] Ready.
 [CheesePatrol] Early-loaded 0 patrol(s) for mixin protection
+[CheesePatrol] Forceloaded chunks for 0 patrol(s) (0 active, 0 inactive)
 ```
 
 Procédure complète : [installation](docs/installation.fr.md).
@@ -109,8 +112,8 @@ l'ancien README de ce mod le décrivait comme un unique nombre de ticks. Détail
 
 S'enregistre sous le préfixe `patrol`. La vue est un tableau en lecture seule de toutes
 les patrouilles — nom du NPC, dimension, point de passage courant sur total, statut,
-vitesse — avec une seule action : te téléporter au point de passage vers lequel le NPC se
-dirige, pour l'intercepter au lieu d'arriver derrière lui. La création et l'édition des
+vitesse — avec une seule action : te téléporter au point de passage *qui suit* celui vers
+lequel le NPC se dirige, pour l'intercepter au lieu d'arriver derrière lui. La création et l'édition des
 circuits passent uniquement par les commandes.
 
 ## Limites connues

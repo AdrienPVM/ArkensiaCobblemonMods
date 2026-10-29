@@ -52,12 +52,14 @@ cd ../CheesePatrol && ./gradlew build
 
 Drop `build/libs/cheesepatrol-1.0.0+1.21.1.jar` and the CheeseDash jar into the server's
 `mods/`, next to EasyNPC. The mod writes nothing to disk until you create your first
-patrol. On start it logs:
+patrol or stop the server, whichever comes first — the shutdown hook always saves, so the
+first clean stop leaves an empty `config/cheesepatrol_data.json`. On start it logs:
 
 ```text
 [CheesePatrol] Initializing...
 [CheesePatrol] Ready.
 [CheesePatrol] Early-loaded 0 patrol(s) for mixin protection
+[CheesePatrol] Forceloaded chunks for 0 patrol(s) (0 active, 0 inactive)
 ```
 
 Full walkthrough: [installation](docs/installation.md).
@@ -108,8 +110,8 @@ earlier README described it as a single tick count. Details in
 
 Registers under the `patrol` prefix. The view is a read-only table of every patrol — NPC
 name, dimension, current waypoint over total, status, speed — plus one action: teleport
-yourself to the waypoint the NPC is heading for, so you intercept it instead of arriving
-behind it. Creating and editing circuits is commands-only.
+yourself to the waypoint *after* the one the NPC is heading for, so you intercept it
+instead of arriving behind it. Creating and editing circuits is commands-only.
 
 ## Known limits
 

@@ -321,7 +321,8 @@ ce NPC **dans ton monde courant uniquement**, retirer la patrouille du registre,
 
 C'est aussi le seul moyen de rendre un NPC de patrouille à nouveau tuable. Tant qu'une fiche
 de patrouille ou un fichier de sauvegarde existe pour une entité, le mixin de suppression
-bloque `/kill`, les dégâts et le despawn — l'ordre pour supprimer un NPC est donc toujours
+bloque la suppression qui suit un `/kill`, un coup mortel ou un despawn (il ne bloque pas
+les dégâts eux-mêmes) — l'ordre pour supprimer un NPC est donc toujours
 `clear` d'abord, kill ensuite. Le suffixe d'état au clic droit est là pour te le rappeler.
 
 Le nettoyage des marqueurs est limité à la dimension où tu te tiens : effacer une patrouille
@@ -550,7 +551,8 @@ sélectionnée, dans **ton monde courant**.
 supprime les marqueurs existants de ce NPC et en pose une nouvelle série. **Il n'existe aucun
 moyen d'éteindre les marqueurs avec cette commande.** Ils sont retirés par
 `/npcpatrol clear`, par un arrêt propre du serveur (qui supprime tous les porte-armures
-tagués `cheesepatrol` dans tous les mondes), ou à la main :
+tagués `cheesepatrol` qui se trouvent dans un chunk chargé, dans tous les mondes), ou à la
+main :
 
 ```mcfunction
 /kill @e[type=armor_stand,tag=cheesepatrol]
@@ -665,7 +667,8 @@ sur un serveur chargé signifie que chaque joueur proche reçoit la traînée de
 Monte-la pour un NPC emblématique, laisse-la à 16 pour un garde de village.
 
 La portée ne concerne que la traînée. L'aperçu de trajet de `show` est toujours envoyé au
-seul joueur qui l'a demandé, à n'importe quelle distance dans la dimension.
+seul joueur qui l'a demandé, à n'importe quelle distance jusqu'à 512 blocs dans la
+dimension — le plafond vanilla des particules envoyées avec `force = true`.
 
 ---
 

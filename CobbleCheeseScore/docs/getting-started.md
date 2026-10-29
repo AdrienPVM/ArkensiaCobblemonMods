@@ -66,10 +66,10 @@ curl -s -X POST http://localhost:44311/api/v1/auth/login \
 ```
 
 ```json
-{"token":"ses_8f2a…","role":"SUPER_ADMIN","username":"admin"}
+{"sessionId":"ses_8f2a…","username":"admin","role":"SUPER_ADMIN","expiresIn":86400000}
 ```
 
-Keep that `ses_…` value; the rest of this page calls it `$TOKEN`.
+Keep that `sessionId` value, `ses_…`; the rest of this page calls it `$TOKEN`.
 
 ```bash
 export TOKEN=ses_8f2a…
@@ -114,14 +114,15 @@ file shiny.png
 ```
 
 ```text
-shiny.png: PNG image data, 660 x 880, 8-bit/color RGB, non-interlaced
+shiny.png: PNG image data, 1270 x 640, 8-bit/color RGB, non-interlaced
 ```
 
 Open it. You should see a gold header reading *Chasseur de Shiny*, one row per ranked
 player with gold, silver and bronze accents on the podium, and a footer with the render
 timestamp.
 
-The size is not fixed — 660 × 880 is what twelve players at `rowsPerColumn: 10` produces.
+The size is not fixed — 1 270 × 640 is what twelve players at `rowsPerColumn: 10`
+produce: two columns of six rows.
 The arithmetic is in [PNG export](png-export.md#geometry).
 
 If `file` reports JSON rather than PNG, you got a `404` or a `503` body: the error
@@ -163,17 +164,18 @@ the in-memory config back over your edit.
 ## 7. Confirm the public URL works
 
 Nothing inside Minecraft can send a Bearer token, so the in-game display uses the
-unauthenticated route. No header this time:
+unauthenticated route. No header this time, and a plain `GET` — the route answers only
+`GET`, so `curl -I` (a `HEAD` request) would get a `404`:
 
 ```bash
-curl -sI http://localhost:44311/scores/api/images/shiny/shiny_hunter.png | head -3
+curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://localhost:44311/scores/api/images/shiny/shiny_hunter.png
 ```
 
 ```text
-HTTP/1.1 200 OK
-Content-Type: image/png
-Cache-Control: public, max-age=60
+200 image/png
 ```
+
+The response also carries `Cache-Control: public, max-age=60`.
 
 The `shiny` segment is free-form — it only decides the filename a browser would save.
 `shiny_hunter` is the real board id.
@@ -181,7 +183,7 @@ The `shiny` segment is free-form — it only decides the filename a browser woul
 Now test it **from a player's network**, not from the server:
 
 ```bash
-curl -sI http://your-server-address:44311/scores/api/images/shiny/shiny_hunter.png
+curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://your-server-address:44311/scores/api/images/shiny/shiny_hunter.png
 ```
 
 The URL is resolved by each player's game, so `localhost` will fail for everyone but you.
@@ -198,8 +200,9 @@ route through a proxy of your own instead.
 Vanilla Minecraft cannot load an image from a URL. This step needs an image-frame mod on
 the clients — WaterFrames is what this was built against.
 
-1. Note the image's aspect ratio from step 5. 660 × 880 is taller than it is wide; a
-   three-column board at 1 880 × 880 is roughly 2:1. Getting this wrong is why
+1. Note the image's aspect ratio from step 5. 1 270 × 640 is roughly 2:1, as is a
+   three-column board at 1 880 × 880; a single column of ten, 660 × 880, is taller than
+   it is wide. Getting this wrong is why
    leaderboards end up looking stretched.
 2. Install the image-frame mod on the clients, and on the server if it needs a
    server-side half.
@@ -259,8 +262,10 @@ for id in conseil4_first_finish conseil4_fastest_time \
 done
 ```
 
-Disabled boards are skipped entirely: no ranking, no image, and a `404` on their image
-route. The seeder only re-adds a Conseil 4 board when its id is **missing** from the
+Disabled boards are skipped by every pass from then on: no new ranking, no new image.
+The image and ranking cached before you disabled them are not evicted, though — the image
+route keeps serving the last render with a `200` until the next restart, after which it
+answers `404`. The seeder only re-adds a Conseil 4 board when its id is **missing** from the
 config, so a disabled entry stays disabled across restarts.
 
 Use `{"enabled": false}` on `PUT /scoreboards/:id` for this, not `PUT /config` — that

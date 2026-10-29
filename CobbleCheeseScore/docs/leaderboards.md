@@ -39,7 +39,7 @@ one value.
 | Field | Type | Default | What it does |
 |---|---|---|---|
 | `id` | string | none | selects the measurement, names the API route, keys the image cache |
-| `enabled` | boolean | `true` | `false` skips the board entirely — no ranking, no image |
+| `enabled` | boolean | `true` | `false` skips the board on every pass — no new ranking, no new image. Whatever was cached before stays served until restart |
 | `filename` | string | none | **dead field.** No code reads it. See the note below |
 | `title` | string | none | the big line in the image header |
 | `description` | string | none | the small line under it |
@@ -235,7 +235,8 @@ formats its score as `#1`.
 `dynamicTitle` is optional and overrides the board's configured `title` in the rendered
 image. Only CobbleCap's failures export sets one, so that the picture carries the current
 champion's name. When a file stops supplying `dynamicTitle`, the override is removed and
-the configured title comes back.
+the configured title comes back. If the file disappears altogether, or fails to parse, the
+last title read stays in place until a readable file says otherwise.
 
 > The field names and the pre-sorted `ranking` array are CobbleCap's contract. Nothing
 > validates them, and nothing here produces them. Both halves have to be kept in step by

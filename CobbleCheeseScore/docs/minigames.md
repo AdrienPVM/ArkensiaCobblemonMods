@@ -84,8 +84,10 @@ sessions. Dropped sessions are gone from `cobblecheesescore_minigames.json` and 
 the rankings: an aggregate ranking is a rolling window of the last 500 results, not a
 lifetime total.
 
-Before rotating, `addSession` hands the result to `MiniGameLegends.recordSession`, which
-appends a permanent record to `config/cobblecheesescore_legends.json`:
+After trimming and saving, `addSession` also hands the result to
+`MiniGameLegends.recordSession`, which appends a permanent record to
+`config/cobblecheesescore_legends.json`. The archive gets every session, including the
+ones the cap later rotates out:
 
 ```json
 {
@@ -151,7 +153,7 @@ submit it again.
   distinct entrant with its own points.
 - Game ids are unvalidated. One containing `/` makes every `/minigames/:id` route
   unreachable for that game; one equal to `global` is shadowed by the global-ranking
-  route.
+  route for `GET` (its `PUT` and `DELETE` still work).
 - `MiniGameManager.save()` rewrites the entire file on every mutation, not atomically.
   A crash during the write can leave a truncated `cobblecheesescore_minigames.json`,
   which `load()` will then fail on, log, and start empty from. The legends file is the

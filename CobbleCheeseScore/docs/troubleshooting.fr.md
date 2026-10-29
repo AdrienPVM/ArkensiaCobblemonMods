@@ -180,8 +180,9 @@ Pour les clés globales — `updateIntervalMinutes`, `timeZone`, `showLastUpdate
 ## Les images ne se rafraîchissent jamais toutes seules
 
 **Cause.** `updateIntervalMinutes` est lue une seule fois, à `SERVER_STARTED`, et passée à
-`scheduleAtFixedRate`. Rien ne la replanifie, et une valeur de `0` ou négative fait lever
-l'exécuteur au démarrage, te laissant avec le rendu initial et aucun planificateur.
+`scheduleAtFixedRate`. Rien ne la replanifie. (Une valeur de `0` ou négative ne produit pas
+ce symptôme : l'exécuteur lève une `IllegalArgumentException` non attrapée dans
+`SERVER_STARTED`, et le serveur avorte son démarrage avec un rapport de crash.)
 
 **Remède.** Cherche la ligne qui confirme le démarrage du planificateur, et l'intervalle
 avec lequel il a démarré :
@@ -190,8 +191,9 @@ avec lequel il a démarré :
 [cobblecheesescore] Scoreboard update scheduler started (interval: 10 minutes)
 ```
 
-Si cette ligne manque, cherche juste au-dessus une `IllegalArgumentException` et corrige
-`updateIntervalMinutes` pour en faire un entier positif. Si la ligne est présente avec
+Si le serveur a planté au démarrage avec une `IllegalArgumentException` venant de
+`scheduleAtFixedRate` dans le rapport de crash, corrige `updateIntervalMinutes` pour en
+faire un entier positif. Si la ligne est présente avec
 l'ancienne valeur, tu as changé la configuration sans redémarrer. En attendant, force une
 passe à la main :
 
@@ -203,8 +205,9 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
 ## Tous les classements échouent d'un coup avec `Failed to update scoreboard`
 
 **Cause.** Le coupable le plus probable est `timeZone`. Elle est passée à `ZoneId.of(...)`
-dans le rendu, sans garde : une faute de frappe lève donc une `DateTimeException` pour
-chaque classement l'un après l'autre, chacune attrapée et journalisée individuellement.
+dans le rendu, sans garde — chaque fois que `showLastUpdate` vaut `true`, la valeur par
+défaut : une faute de frappe lève donc une `DateTimeException` pour chaque classement l'un
+après l'autre, chacune attrapée et journalisée individuellement.
 
 **Remède.**
 
@@ -228,7 +231,9 @@ par classement avec une autre exception — lis la trace de pile plutôt que de 
 
 - l'identifiant du classement est faux — regarde `GET /api/v1/scores/scoreboards` pour les
   identifiants exacts et leur indicateur `hasImage` ;
-- le classement est désactivé, donc aucune image n'a jamais été rendue ;
+- le classement est désactivé depuis le démarrage du serveur, donc aucune image n'a jamais
+  été rendue (un classement désactivé en cours de session continue de servir sa dernière
+  image jusqu'au redémarrage) ;
 - aucun rafraîchissement n'est encore allé au bout, ce qui sur un serveur à froid signifie
   que le cache est vide.
 
@@ -274,10 +279,12 @@ possède vraiment. Il n'y a aucune clé de configuration pour cela.
 serveur :
 
 ```bash
-curl -sI http://ton-serveur:44311/scores/api/images/test/pokedex_completed.png
+curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://ton-serveur:44311/scores/api/images/test/pokedex_completed.png
 ```
 
-Un `200` avec `Content-Type: image/png` dédouane le côté serveur et désigne le client. Une
+`200 image/png` dédouane le côté serveur et désigne le client. N'utilise pas `curl -I` :
+la route ne répond qu'à `GET`, donc une requête `HEAD` reçoit un `404` quel que soit le
+classement. Une
 connexion refusée est un pare-feu ou un problème de liaison de port. Un `404` est un
 problème d'identifiant de classement — liste-les avec `GET /api/v1/scores/scoreboards`.
 
@@ -378,8 +385,9 @@ Ouvre-le sur
    que `curl -s`, pour que le code de statut et les en-têtes figurent dans le collage. Le
    code de statut compte plus que le corps sur les routes d'image, où les erreurs reviennent
    en JSON.
-6. **Pour un problème d'affichage en jeu, la sortie de `curl -sI <l'URL exacte du cadre>`
-   lancée depuis la machine d'un joueur**, et le nom et la version du mod de cadre d'image.
+6. **Pour un problème d'affichage en jeu, la sortie de `curl -s -o /dev/null -w
+   '%{http_code} %{content_type}\n' <l'URL exacte du cadre>` lancée depuis la machine d'un
+   joueur** (un `GET` : la route répond `404` à un `HEAD`), et le nom et la version du mod de cadre d'image.
    Cette seule commande sépare un problème de serveur d'un problème de client.
 
 N'ouvre pas d'issue publique pour un problème de sécurité — `SECURITY.md` à la racine du

@@ -39,7 +39,7 @@ entrées d'un même classement partagent la même valeur.
 | Champ | Type | Défaut | Effet |
 |---|---|---|---|
 | `id` | chaîne | aucun | sélectionne la mesure, nomme la route API, sert de clé au cache d'images |
-| `enabled` | booléen | `true` | `false` ignore entièrement le classement — aucun calcul, aucune image |
+| `enabled` | booléen | `true` | `false` ignore le classement à chaque passe — plus de calcul, plus de nouvelle image. Ce qui était déjà en cache reste servi jusqu'au redémarrage |
 | `filename` | chaîne | aucun | **champ mort.** Aucun code ne le lit. Voir la note ci-dessous |
 | `title` | chaîne | aucun | la grande ligne de l'en-tête de l'image |
 | `description` | chaîne | aucun | la petite ligne juste en dessous |
@@ -244,7 +244,9 @@ classement des premiers vainqueurs formate son score en `#1`.
 `dynamicTitle` est optionnel et remplace le `title` configuré du classement dans l'image
 rendue. Seul l'export des échecs de CobbleCap en définit un, pour que l'image porte le nom
 du champion en titre. Quand un fichier cesse de fournir `dynamicTitle`, le remplacement est
-retiré et le titre configuré revient.
+retiré et le titre configuré revient. Si le fichier disparaît complètement, ou devient
+illisible, le dernier titre lu reste en place jusqu'à ce qu'un fichier lisible dise
+autre chose.
 
 > Les noms de champs et le tableau `ranking` pré-trié sont le contrat de CobbleCap. Rien ne
 > les valide, et rien ici ne les produit. Les deux moitiés doivent être maintenues en phase

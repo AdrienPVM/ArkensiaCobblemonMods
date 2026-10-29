@@ -51,8 +51,10 @@ redémarrage du serveur** : rien ne replanifie l'exécuteur, et `PUT /config` ne
 la clé. Il n'y a pas de borne inférieure : `1` est accepté, et le serveur relira les
 fichiers de chaque joueur chaque minute, ce qui est du gaspillage plutôt qu'un danger
 puisque le travail se fait hors du thread serveur. `0` ou une valeur négative est rejetée
-par `ScheduledExecutorService` avec une `IllegalArgumentException` au démarrage, qui sera
-journalisée et laissera le mod tourner sans planificateur, avec seulement le rendu initial.
+par `ScheduledExecutorService` avec une `IllegalArgumentException`, levée dans le handler
+de `SERVER_STARTED`. Rien dans le mod ne l'attrape : elle remonte dans la séquence de
+démarrage du serveur, qui va donc avorter avec un rapport de crash plutôt que de continuer
+sans planificateur.
 
 Le rafraîchissement initial inconditionnel pendant `SERVER_STARTED` n'est pas affecté par
 cette clé.
@@ -87,8 +89,9 @@ session ne change rien avant redémarrage.
 
 ### `timeZone`
 
-N'importe quel identifiant de zone IANA. Il est passé à `ZoneId.of(...)` sans garde : une
-faute de frappe lève donc une `DateTimeException` dans `generateScoreboard`. Le `catch` par
+N'importe quel identifiant de zone IANA. Il est passé à `ZoneId.of(...)` sans garde — et
+seulement quand `showLastUpdate` vaut `true`, puisque le pied d'image est son seul lecteur :
+une faute de frappe lève donc une `DateTimeException` dans `generateScoreboard`. Le `catch` par
 classement dans `updateAll` transforme cela en `Failed to update scoreboard: <id>` pour
 chaque classement l'un après l'autre, et tu te retrouves sans aucune image. Si tous les
 classements échouent d'un coup, vérifie cette clé en premier.

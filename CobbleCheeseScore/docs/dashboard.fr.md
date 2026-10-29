@@ -202,7 +202,7 @@ longtemps qu'un rafraîchissement complet.
 |---|---|
 | `200` | `{"updated":true}` |
 | `404` | aucun classement avec cet identifiant |
-| `500` | `{"error":"Failed to save config"}` — le fichier de configuration n'a pas pu être écrit. Les modifications sont déjà en mémoire à ce stade et seront perdues au redémarrage |
+| `500` | `{"error":"Failed to save config"}` — inatteignable en pratique pour une erreur disque : `Config.save()` attrape sa propre `IOException` et se contente de journaliser `Failed to save config`, si bien qu'une écriture ratée répond quand même `200`. Les modifications sont en mémoire dans tous les cas et seront perdues au redémarrage si l'écriture a échoué |
 | `503` | configuration non chargée |
 
 Un rafraîchissement qui lève après un enregistrement réussi est journalisé en avertissement
@@ -236,7 +236,7 @@ curl -H "Authorization: Bearer $TOKEN" \
 | Statut | Type de contenu | Condition |
 |---|---|---|
 | `200` | `image/png` | une image est en cache pour cet identifiant |
-| `404` | `application/json` | `{"error":"No image for scoreboard: <id>"}` — classement désactivé, identifiant inconnu, ou aucun rafraîchissement encore passé |
+| `404` | `application/json` | `{"error":"No image for scoreboard: <id>"}` — identifiant inconnu, aucun rafraîchissement encore passé, ou classement désactivé depuis le démarrage (un classement désactivé plus tard garde sa dernière image) |
 | `503` | `application/json` | `{"error":"Cache not initialized"}` |
 
 ⚠️ Les réponses d'erreur sont en JSON alors que la réponse de succès est un PNG. Regarde le
@@ -350,7 +350,7 @@ trompeur sur ce que tu as demandé. `survivor` est toujours activé.
 |---|---|
 | `200` | `{"saved":true}` |
 | `404` | `{"error":"Scoreboard not found"}` quand `scoreboardId` ne désigne rien |
-| `500` | `{"error":"Failed to save config"}` |
+| `500` | `{"error":"Failed to save config"}` — jamais en pratique pour une erreur disque, que `Config.save()` avale et journalise ; la route répond alors quand même `200` |
 | `503` | configuration non chargée |
 
 ### `GET /api/v1/scores/stats`

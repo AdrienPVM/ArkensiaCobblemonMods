@@ -76,7 +76,10 @@ bloc de champs `transient` qui ne sont jamais écrits :
 |---|---|
 | `waypoints`, `waypointWaitTicks`, `speed`, `playerDetectionRadius`, `active`, `currentWaypointIndex`, `dimension`, `lastX/Y/Z`, les quatre champs de particules, `pausedBySystem` | `waitingAtWaypoint`, `remainingWaitTicks`, `lookingAtPlayer`, `missingTicks`, `respawnAttempts`, `stuckTicks`, `stallTicks` |
 
-Noter que `toJson` **omet tout champ portant sa valeur par défaut**, et que `fromJson`
+Noter que `toJson` **écrit toujours les sept champs de base** (`npcUuid`, `speed`,
+`playerDetectionRadius`, `active`, `currentWaypointIndex`, `dimension`, `waypoints`) et omet
+les champs facultatifs — `lastX/Y/Z`, les quatre champs de particules, `pausedBySystem`, le
+`wait` d'un point de passage — tant qu'ils portent leur valeur par défaut, et que `fromJson`
 laisse les champs absents à leurs valeurs de construction. Cela garde le fichier compact et
 signifie qu'ajouter un champ demande de toucher les deux méthodes, sans quoi il ne se
 persiste jamais, en silence.
@@ -87,7 +90,7 @@ commandes, pas par le chargeur.
 
 **`PatrolWand`** est un ensemble de helpers statiques au-dessus du composant `CUSTOM_DATA`.
 C'est lui qui porte la sélection, et c'est pourquoi la baguette doit être en main
-principale pour presque toutes les sous-commandes. Deux de ses cinq méthodes ne sont jamais
+principale pour presque toutes les sous-commandes. Deux de ses six méthodes ne sont jamais
 appelées.
 
 **`PatrolMarker`** réunit trois systèmes d'affichage sans rapport dans un même fichier.
@@ -98,9 +101,11 @@ Voir [rendu visuel](visuals.fr.md).
 Deux fichiers, tous deux écrits de façon synchrone depuis le thread serveur.
 
 **`config/cheesepatrol_data.json`** est réécrit en entier par `PatrolManager.save()`. Appelé
-depuis : chaque sous-commande qui modifie quelque chose, le clic droit de la baguette sur un
-bloc, le chemin d'abandon de réapparition, et le contrôle d'intégrité quand quelque chose a
-changé. Ajouter un point de passage sur un serveur à 50 patrouilles sérialise et écrit donc
+depuis : chaque sous-commande qui modifie quelque chose sauf `select`, les deux clics droits
+de la baguette (entité et bloc), le chemin d'abandon de réapparition, le contrôle
+d'intégrité quand quelque chose a changé, et `SERVER_STOPPING`. `/npcpatrol select` crée la
+fiche de patrouille et fixe sa dimension en mémoire seulement ; elle n'atteint le disque
+qu'à la sauvegarde suivante. Ajouter un point de passage sur un serveur à 50 patrouilles sérialise et écrit donc
 les 50 patrouilles, dans le tick, avant que la commande ne rende la main.
 
 Il est écrit avec `Files.writeString` par-dessus le fichier existant. **Pas de fichier
@@ -125,7 +130,8 @@ Les lectures n'ont lieu qu'une fois chacune : `load()` à `SERVER_STARTING`, et 
 
 Le passage de relais est `WebDashboard.executeOnServerThread(server, …)`, utilisé par
 `POST /tp` pour la téléportation. Il bloque le thread HTTP jusqu'à cinq secondes en
-attendant le thread serveur : un `200` signifie donc *programmé et accusé*, pas *terminé*.
+attendant que la tâche se termine sur le thread serveur : un `200` signifie donc
+*terminé* ; un dépassement de délai remonte en 500.
 
 ⚠️ **`GET /list` touche des entités depuis le thread HTTP.** `resolveNpcName` parcourt
 `server.getWorlds()` et appelle `world.getEntity(uuid)` sans passer par le thread serveur.
@@ -330,7 +336,9 @@ Dites franchement, parce que les découvrir par surprise est pire.
   droit. Sélectionner la mauvaise entité construit une patrouille qui affiche `ACTIVE` et ne
   bouge jamais, sans erreur nulle part.
 - **Les attentes ne survivent pas à un redémarrage.** `waitingAtWaypoint` est transitoire :
-  un NPC en pleine pause recommence sa pause après un redémarrage.
+  un NPC en pleine pause recommence sa pause après un redémarrage, et le kick-start de
+  démarrage l'écourte cinq secondes plus tard. Voir
+  [l'attente sur un point de passage](patrol-circuits.fr.md#lattente-sur-un-point-de-passage).
 
 ### Performance
 
@@ -390,11 +398,11 @@ Dites franchement, parce que les découvrir par surprise est pire.
   `data/cobblemon/species/generation1/charizard.json`, 322 lignes, une surcharge d'espèce
   Cobblemon posée hors de `src/main/resources` et donc absente du jar. Il n'a rien à voir
   avec les patrouilles et rien ne le lit.
-- ⚠️ **Les déclarations de licence se contredisent.** `fabric.mod.json` déclare
-  `PolyForm-Noncommercial-1.0.0`, conforme au dépôt, mais `CheesePatrol/LICENSE` est une
-  licence MIT attribuée à « CacademyTeam », et `build.gradle` embarque ce fichier dans le
-  jar. Le [LICENSE](../../LICENSE) du dépôt est celui qui fait foi ; le fichier propre au mod
-  est un vestige à supprimer.
+- **Un reste de bloc de licence dans `build.gradle`.** Le bloc `jar { from("LICENSE") … }`
+  demande encore à Gradle d'embarquer un `CheesePatrol/LICENSE`, mais ce fichier — une
+  ancienne licence MIT — a été supprimé : rien n'est donc embarqué. `fabric.mod.json`
+  déclare `PolyForm-Noncommercial-1.0.0`, et le [LICENSE](../../LICENSE) du dépôt est celui
+  qui fait foi.
 
 ---
 

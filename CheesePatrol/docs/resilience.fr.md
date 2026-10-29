@@ -228,7 +228,7 @@ ticks :
 | chaque tick | force-loader le chunk du point de passage cible et celui de la dernière position connue |
 | **600 ticks (30 s)** | tenter une réapparition depuis la sauvegarde, incrémenter le compteur de tentatives, réinitialiser le minuteur de 30 secondes |
 | toutes les 30 s ensuite | une nouvelle tentative |
-| **après 10 tentatives** (≈5 minutes) | renoncer : `active = false`, `pausedBySystem = true`, sauvegarder, journaliser une erreur |
+| **après 10 tentatives** (11ᵉ échéance de 30 secondes, ≈5 min 30) | renoncer : `active = false`, `pausedBySystem = true`, sauvegarder, journaliser une erreur |
 
 ```text
 [CheesePatrol] NPC a1b2c3d4 failed to respawn 10 times - pausing patrol (integrity check retries every 5 min)
@@ -237,8 +237,9 @@ ticks :
 Renoncer n'est pas renoncer définitivement. `pausedBySystem = true` est le drapeau qui dit au
 contrôle d'intégrité « ce n'était pas une décision humaine », et le contrôle d'intégrité
 continue de réessayer toutes les cinq minutes indéfiniment, réactivant la patrouille dès que
-le NPC existe à nouveau. Seuls `/npcpatrol stop` ou `/npcpatrol clear` arrêtent les
-tentatives.
+le NPC existe à nouveau. `/npcpatrol stop` met fin à la reprise automatique (il remet
+`pausedBySystem` à faux), mais le contrôle d'intégrité continue de faire réapparaître un
+NPC manquant depuis sa sauvegarde ; seul `/npcpatrol clear` arrête les tentatives.
 
 Le compteur se remet entièrement à zéro, ticks manquants *et* tentatives, au premier tick
 où l'entité est trouvée.
@@ -306,8 +307,12 @@ Avec `debug: true`, un cycle complet de récupération ressemble à ceci :
 ```text
 [CheesePatrol] NPC a1b2c3d4 not found after 30s - respawn attempt 1/10
 [CheesePatrol] Respawned NPC a1b2c3d4 at waypoint 128, 65, -340
-[CheesePatrol] Kick-started patrol for NPC a1b2c3d4 at waypoint 2/4
+[CheesePatrol] Kick-started patrol for NPC a1b2c3d4 at waypoint 3/4
 ```
+
+Le kick-start annonce le point de passage *qui suit* celui où le NPC a réapparu : la
+réapparition le pose exactement sur le point #2, et un kick-start à moins de 1,5 bloc de sa
+cible fait avancer.
 
 Un cycle raté, qui finit en pause système :
 
@@ -321,7 +326,7 @@ Un cycle raté, qui finit en pause système :
 Et une récupération venue du chargement du chunk plutôt que d'une réapparition :
 
 ```text
-[CheesePatrol] NPC a1b2c3d4 found after 812 ticks missing - kick-starting patrol
+[CheesePatrol] NPC a1b2c3d4 found after 412 ticks missing - kick-starting patrol
 ```
 
 Cette dernière ligne est la plus fréquente, et c'est la raison d'être du force-load : la

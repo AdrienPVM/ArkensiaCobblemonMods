@@ -208,6 +208,10 @@ chargé ou dans une autre dimension que celle enregistrée par la patrouille. Vo
 
 Tu dois voir : le NPC se tourner et partir vers le premier coin en un tick ou deux.
 
+Si le NPC se tenait déjà sur le coin #1 — à moins de 1,5 bloc de son centre — le
+kick-start le saute et le message devient `Patrol started at waypoint #2/4` : `start` ne
+commence jamais par attendre sur le point où se tient le NPC.
+
 ## 9. L'observer à l'œuvre
 
 Recule et laisse-le faire un tour complet. Trois comportements à guetter :

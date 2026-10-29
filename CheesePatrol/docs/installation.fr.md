@@ -70,8 +70,10 @@ Rien. Cela mérite d'être dit, parce que tous les mods voisins écrivent un fic
 configuration au premier démarrage et que CheesePatrol n'en écrit pas.
 `PatrolManager.load()` lit `config/cheesepatrol_data.json` **s'il existe** et reste muet
 sinon ; le fichier n'est écrit que par `PatrolManager.save()`, qui tourne la première fois
-que tu ajoutes un point de passage, modifies un réglage, démarres ou arrêtes une
-patrouille.
+que tu fais un clic droit sur un NPC avec la baguette, ajoutes un point de passage,
+modifies un réglage, démarres ou arrêtes une patrouille — et, sans condition, à chaque
+`SERVER_STOPPING`. Le premier arrêt propre écrit donc le fichier même si tu n'as jamais
+touché à une patrouille : `{"debug": false, "patrols": []}`.
 
 Une fois une patrouille créée, deux choses existent :
 
@@ -82,8 +84,9 @@ config/
     └── <npc-uuid>.dat              instantané NBT compressé de l'entité NPC
 ```
 
-Les fichiers `.dat` apparaissent à la première sauvegarde périodique, 60 secondes après
-que le NPC d'une patrouille a été trouvé chargé, et à l'arrêt du serveur. Les deux sont
+Les fichiers `.dat` apparaissent à la sauvegarde périodique suivante — elle tourne toutes
+les 60 secondes, comptées depuis le démarrage du serveur, et couvre chaque patrouille dont
+le NPC est chargé à ce moment-là — et à l'arrêt du serveur. Les deux sont
 documentés dans [configuration](configuration.fr.md) et
 [garder les NPC en vie](resilience.fr.md).
 
@@ -96,20 +99,22 @@ suivant. Ce sont de vrais chunks forcés vanilla, stockés dans les données du 
 
 ## Vérifier le chargement
 
-Trois lignes de log, dans cet ordre :
+Quatre lignes de log, dans cet ordre :
 
 ```text
 [CheesePatrol] Initializing...
 [CheesePatrol] Ready.
 [CheesePatrol] Early-loaded 0 patrol(s) for mixin protection
+[CheesePatrol] Forceloaded chunks for 0 patrol(s) (0 active, 0 inactive)
 ```
 
 Les deux premières viennent de `onInitialize`, pendant le chargement des mods. La
 troisième vient de l'événement `SERVER_STARTING`, ce qui explique qu'elle apparaisse après
 `Ready.` alors qu'elle a lieu plus tard. Le compteur est le nombre de patrouilles lues
-dans `cheesepatrol_data.json`.
+dans `cheesepatrol_data.json`. La quatrième vient de `SERVER_STARTED` et s'affiche à
+chaque démarrage, même sans aucune patrouille.
 
-Dès que tu as des patrouilles, deux lignes de plus apparaissent à `SERVER_STARTED` :
+Dès que tu as des patrouilles, la sortie de `SERVER_STARTED` peut passer à deux lignes :
 
 ```text
 [CheesePatrol] Pre-loaded 7 chunks for 3 patrol(s)
@@ -168,8 +173,9 @@ suppressions et les chunks forcés survivent tous les deux à une simple suppres
    /kill @e[type=armor_stand,tag=cheesepatrol]
    ```
 
-   Un arrêt propre les supprime tous, dans tous les mondes : ceci n'est donc nécessaire
-   qu'après un crash.
+   Un arrêt propre supprime tous ceux qui se trouvent dans un chunk chargé, dans tous les
+   mondes : ceci n'est donc nécessaire qu'après un crash, ou pour les marqueurs restés dans
+   des chunks qui n'étaient pas chargés au moment de l'arrêt.
 
 4. **Arrête le serveur, supprime le jar**, puis supprime ce dont tu ne veux plus :
 

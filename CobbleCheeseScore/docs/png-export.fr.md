@@ -54,7 +54,7 @@ largeur = 580 × colonnes + 30 × (colonnes − 1) + 80
 hauteur = 280 + actualRowsPerColumn × 60
 ```
 
-Trois cas travaillés, tous avec `rowsPerColumn: 10` :
+Quatre cas travaillés, tous avec `rowsPerColumn: 10` :
 
 | Joueurs classés | Colonnes | Lignes par colonne | Taille de l'image |
 |---|---|---|---|
@@ -187,7 +187,7 @@ curl -o pokedex.png \
 | Réponse | Signification |
 |---|---|
 | `200` avec `Content-Type: image/png` | l'image en cache, plus `Cache-Control: public, max-age=60` |
-| `404` avec un corps JSON | aucune image en cache sous cet identifiant — le classement est désactivé, l'identifiant est faux, ou aucun rafraîchissement n'est encore passé |
+| `404` avec un corps JSON | aucune image en cache sous cet identifiant — l'identifiant est faux, aucun rafraîchissement n'est encore passé, ou le classement est désactivé depuis le démarrage du serveur (un classement désactivé en cours de route continue de servir sa dernière image) |
 | `503` avec un corps JSON | `CacheManager` est null, autrement dit le mod n'a pas fini son initialisation |
 
 ⚠️ Un `404` et un `503` reviennent en **JSON**, pas en image. Un client qui fait aveuglément
@@ -225,10 +225,11 @@ qu'Arkensia utilisait.
 
    ```bash
    # depuis une machine située du côté réseau des joueurs
-   curl -I http://ton-serveur:44311/scores/api/images/test/pokedex_completed.png
+   curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://ton-serveur:44311/scores/api/images/test/pokedex_completed.png
    ```
 
-   Un `200` avec `Content-Type: image/png` signifie que tu en as fini avec le côté serveur.
+   `200 image/png` signifie que tu en as fini avec le côté serveur. Ne teste pas avec
+   `curl -I` : la route ne répond qu'à `GET`, et une requête `HEAD` reçoit un `404`.
    Une connexion refusée signifie que le port est fermé ; un `404` signifie qu'aucune image
    n'est encore en cache — force-en une avec `POST /api/v1/scores/refresh`.
 

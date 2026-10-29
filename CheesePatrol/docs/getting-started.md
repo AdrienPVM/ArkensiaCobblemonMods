@@ -205,6 +205,10 @@ dimension than the one the patrol recorded. See
 
 You should see: the NPC turn and set off toward the first corner within a tick or two.
 
+If the NPC was already standing on corner #1 — within 1.5 blocks of its centre — the
+kick-start skips it and the message reads `Patrol started at waypoint #2/4`: `start`
+never begins by waiting at the point the NPC is standing on.
+
 ## 9. Watch it work
 
 Stand back and let it do a full lap. Three behaviours to look for:

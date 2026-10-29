@@ -63,7 +63,7 @@ With `debug: true` you additionally get, per patrol and per event:
 ```text
 [CheesePatrol] Kick-started patrol for NPC a1b2c3d4 at waypoint 2/4
 [CheesePatrol] NPC a1b2c3d4 not found after 30s - respawn attempt 1/10
-[CheesePatrol] NPC a1b2c3d4 found after 812 ticks missing - kick-starting patrol
+[CheesePatrol] NPC a1b2c3d4 found after 412 ticks missing - kick-starting patrol
 [CheesePatrol] NPC a1b2c3d4 stuck for 60s at dist 14.2 - teleporting to waypoint 3
 [CheesePatrol] Integrity check: NPC a1b2c3d4 missing (patrol active) - respawning from backup
 [CheesePatrol] Auto-resuming patrol a1b2c3d4 - entity found, was system-paused
@@ -79,7 +79,8 @@ a log.
 
 1. Stop the server. This is not optional, and the reason is the save path: any
    `/npcpatrol` action rewrites the whole file from the in-memory state, so an edit made
-   while the server runs is overwritten the next time anyone adds a waypoint.
+   while the server runs is overwritten the next time anyone adds a waypoint — and at the
+   latest when the server stops, because `SERVER_STOPPING` always saves.
 2. Edit `"debug": false` to `"debug": true`.
 3. Start the server. `PatrolManager.load()` runs at `SERVER_STARTING` and reads the flag.
 
@@ -92,19 +93,20 @@ removal at `INFO`, unconditionally. See
 
 ## A patrol object
 
-One per entry in `patrols`. Keys are omitted when they hold their default value, which is
-why a freshly created patrol is three lines long.
+One per entry in `patrols`. The seven keys marked *always* below are written on every
+save; only the optional ones are omitted while they hold their default value, so a freshly
+created patrol carries just those seven, with an empty `waypoints` array.
 
 | Key | Type | Default | Written when | What it does |
 |---|---|---|---|---|
 | `npcUuid` | string | — | always | The entity UUID this patrol drives. The identity of the patrol; there is no other id |
-| `dimension` | string | `"minecraft:overworld"` | always | Dimension id, as `namespace:path`. Set when you select the NPC, never changed afterwards |
+| `dimension` | string | `"minecraft:overworld"` | always | Dimension id, as `namespace:path`. Set to your current world each time you select the NPC; nothing else changes it |
 | `active` | boolean | `false` | always | Whether the circuit is running. Restored on restart, which is why patrols resume by themselves |
 | `speed` | number | `0.5` | always | Walk speed. Clamped to `0.1`–`5.0` |
 | `playerDetectionRadius` | number | `5.0` | always | Look-at-player radius in blocks. Clamped to `1.0`–`32.0` |
 | `currentWaypointIndex` | integer | `0` | always | Zero-based index of the waypoint the NPC is walking **toward** |
 | `waypoints` | array | `[]` | always | The circuit, in running order |
-| `lastX` `lastY` `lastZ` | integer | absent | once the NPC has been seen | Last known block position, updated every tick the entity is found. Used to force-load the right chunk at startup |
+| `lastX` `lastY` `lastZ` | integer | absent | once the NPC has been seen | Last known block position, updated every tick the entity is found while its patrol is running (and set to the waypoint after a respawn). Used to force-load the right chunk at startup |
 | `particleEffect` | string | `"none"` | when not `"none"` | Trail effect name |
 | `particleYOffset` | number | `0.0` | when not `0` | Vertical trail offset |
 | `particleZOffset` | number | `0.0` | when not `0` | Forward/backward trail offset. Positive is behind |
@@ -132,12 +134,14 @@ out-of-range value does not crash — it wraps. `/npcpatrol start` resets it to 
 past the end. Setting it by hand is a legitimate way to park an NPC at a specific point
 of its circuit before a restart.
 
-**`dimension` is set once**, when you select the NPC, and nothing updates it afterwards.
-Move an NPC to another dimension and the patrol keeps the old id. The entity lookup has a
-fallback that searches every loaded world, so the patrol usually keeps working, but
-startup chunk force-loading and the `show` display both use the stored value and will
-target the wrong world. Clear and recreate the patrol rather than editing the field, so
-the force-load bookkeeping stays consistent.
+**`dimension` is pinned when you select the NPC**, and re-pinned to your current world
+every time you select it again (right-click or `select`); nothing else updates it. Move an
+NPC to another dimension and the patrol keeps the old id until you reselect it. The entity
+lookup has a fallback that searches every loaded world, so the patrol usually keeps
+working, but startup chunk force-loading and the `show` display both use the stored value
+and will target the wrong world. Rather than editing the field, `/npcpatrol stop` the
+patrol first — that releases its forced chunks in the old world, which the bookkeeping
+can only find through the old id — then go to the NPC's new world and select it again.
 
 **`lastX` / `lastY` / `lastZ` are written every tick the entity is found** but only
 persisted on save. After a crash they can be a few minutes stale, which only matters for
@@ -170,9 +174,11 @@ automatically if it ever fails to parse, to break a respawn retry loop.
 
 These files are what makes an NPC recoverable, and their presence alone is enough to make
 an entity unkillable — the removal mixin checks the directory for any entity it does not
-recognise. Deleting one by hand on a running server therefore has two effects: the NPC
-loses its safety net, and it loses removal protection until the next backup pass rewrites
-the file. Full behaviour in [keeping NPCs alive](resilience.md).
+recognise. Deleting one by hand on a running server costs the NPC its safety net until
+the next backup pass rewrites the file — no respawn is possible in between — but not its
+removal protection: the patrol record alone is enough for that once the data is loaded.
+The file only matters for protection during the startup window before `load()`, and for an
+entity whose record is gone. Full behaviour in [keeping NPCs alive](resilience.md).
 
 There is no retention policy and no size cap. One file per patrol NPC, overwritten in
 place, each a few kilobytes.
@@ -197,12 +203,13 @@ allow comments, so the annotations are below the block.
       "lastY": 65,
       "lastZ": -331,
       "particleEffect": "dust_cyan",
+      "particleYOffset": 0.4,
       "particleZOffset": 0.6,
       "particleRange": 48,
       "waypoints": [
         { "x": 112, "y": 65, "z": -340 },
-        { "x": 128, "y": 65, "z": -340, "wait": 100 },
-        { "x": 128, "y": 65, "z": -324 },
+        { "x": 128, "y": 65, "z": -340 },
+        { "x": 128, "y": 65, "z": -324, "wait": 100 },
         { "x": 112, "y": 65, "z": -324 }
       ]
     },
@@ -240,8 +247,9 @@ allow comments, so the annotations are below the block.
 ```
 
 - **Patrol 1** is the result of following [getting started](getting-started.md): a
-  four-corner square, 5-second pause at corner #2 (`"wait": 100` ticks), cyan trail pushed
-  0.6 blocks behind the NPC and visible out to 48 blocks. It is currently walking toward
+  four-corner square, 5-second pause at corner #3 (`"wait": 100` ticks), cyan trail raised
+  0.4 blocks and pushed 0.6 blocks behind the NPC — plus, one step beyond the tutorial, a
+  `/npcpatrol particlerange 48` that makes it visible out to 48 blocks. It is currently walking toward
   waypoint #3, and was last seen at `126 65 -331`, between #2 and #3.
 - **Patrol 2** is stopped by a human: `active: false` with no `pausedBySystem`. Nothing
   restarts it automatically. Two waypoints is the minimum; it will pace back and forth

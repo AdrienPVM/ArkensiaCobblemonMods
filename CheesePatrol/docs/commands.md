@@ -311,7 +311,8 @@ save.
 ```
 
 This is also the only way to make a patrol NPC killable again. While a patrol record or a
-backup file exists for an entity, the removal mixin blocks `/kill`, damage and despawn —
+backup file exists for an entity, the removal mixin blocks the removal that follows
+`/kill`, a lethal hit or a despawn (it does not block the damage itself) —
 so the order to delete an NPC is always `clear` first, kill second. The right-click status
 suffix exists to remind you.
 
@@ -535,7 +536,7 @@ world**.
 ⚠️ The message says *refresh*, and refresh is all it does — each run deletes this NPC's
 existing markers and places a fresh set. **There is no way to turn markers off with this
 command.** They are removed by `/npcpatrol clear`, by a clean server shutdown (which
-removes every `cheesepatrol`-tagged stand in every world), or by hand:
+removes every `cheesepatrol`-tagged stand in a loaded chunk, in every world), or by hand:
 
 ```mcfunction
 /kill @e[type=armor_stand,tag=cheesepatrol]
@@ -648,7 +649,8 @@ nearby player gets the trail of every NPC. Raise it for a landmark NPC, leave it
 a town guard.
 
 The range applies only to the trail. The `show` route preview is always sent to the one
-player who asked for it, at any distance within the dimension.
+player who asked for it, at any distance up to 512 blocks within the dimension — the
+vanilla ceiling for particles sent with `force = true`.
 
 ---
 

@@ -150,7 +150,7 @@ Il n'y a aucune commande en jeu. La vérification se fait en HTTP.
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:44311/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"token":"<ton master token>"}' | sed 's/.*"token":"\([^"]*\)".*/\1/')
+  -d '{"token":"<ton master token>"}' | sed 's/.*"sessionId":"\([^"]*\)".*/\1/')
 
 curl -s -H "Authorization: Bearer $TOKEN" \
   http://localhost:44311/api/v1/scores/stats
@@ -163,18 +163,21 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 
 `totalScoreboards: 34` et un `lastUpdate` non nul signifient que le module est enregistré
 et qu'un rafraîchissement est passé. La route d'image publique n'a besoin d'aucun token,
-ce qui en fait le test de fumée le plus rapide :
+ce qui en fait le test de fumée le plus rapide. Utilise un simple `GET` — la route ne
+répond qu'à `GET`, donc un `curl -I` (une requête `HEAD`) reçoit un `404` même quand
+l'image existe :
 
 ```bash
-curl -sI http://localhost:44311/scores/api/images/test/pokedex_completed.png | head -2
+curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://localhost:44311/scores/api/images/test/pokedex_completed.png
 ```
 
 ```text
-HTTP/1.1 200 OK
-Content-Type: image/png
+200 image/png
 ```
 
-Dans le dashboard lui-même, la barre latérale gagne une entrée 🏆 **CobbleCheeseScore**. Si
+Dans le dashboard lui-même, la barre latérale gagne une section **CobbleCheeseScore**
+contenant une entrée 🏆 (libellée **Classements** en français, **Leaderboards** en
+anglais). Si
 l'entrée manque, voir
 [dépannage](troubleshooting.fr.md#le-dashboard-na-pas-de-section-cobblecheesescore).
 

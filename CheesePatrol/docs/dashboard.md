@@ -146,7 +146,7 @@ the NPC.
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `npcUuid` | string | yes | Full dashed UUID. Not the truncated form from `/npcpatrol list` |
-| `playerName` | string | yes | An **online** player's name, case-sensitive as `PlayerManager.getPlayer` matches it |
+| `playerName` | string | yes | An **online** player's name. `PlayerManager.getPlayer` matches it case-insensitively |
 
 **Response:**
 
@@ -170,7 +170,7 @@ current one, and preserves the player's yaw and pitch.
 
 | Status | Body | When |
 |---|---|---|
-| `200` | the object above | scheduled successfully |
+| `200` | the object above | the teleport has run |
 | `400` | `{"error":"Missing npcUuid or playerName"}` | one of the two fields is absent |
 | `400` | `{"error":"Invalid UUID"}` | `npcUuid` is not parseable |
 | `400` | `{"error":"Patrol has no waypoints"}` | the patrol exists but its list is empty |
@@ -217,10 +217,11 @@ Three consequences of the real boundary living in the core:
 - **A change to the dispatcher would not disarm `/tp`**, because of the local call — unlike
   modules that guard nothing themselves.
 
-**The 200 means scheduled, not done.** The teleport goes through
-`WebDashboard.executeOnServerThread`, which waits up to 5 seconds for the server thread to
-run it. In practice it has happened by the time you read the response; under a server-thread
-stall the call times out and you get a 500.
+**The 200 means done.** The teleport goes through `WebDashboard.executeOnServerThread`,
+which blocks on the task's completion for up to 5 seconds, so a `200` is only sent once the
+server thread has run it. Under a server-thread stall the wait times out and you get a 500
+— with the body `{"error":"null"}`, because the timeout exception has no message — while the
+queued teleport may still run later.
 
 **Example:**
 
@@ -239,8 +240,9 @@ Anything else under the prefix:
 {"error":"Unknown patrol route: /start"}
 ```
 
-with status **404**. The path is echoed back unescaped beyond basic JSON quoting, which is
-worth knowing if you are parsing the error.
+with status **404**. The path is echoed back with no escaping at all, so a path containing
+a double quote or a backslash produces invalid JSON — worth knowing if you are parsing the
+error.
 
 ## WebSocket channels
 

@@ -58,7 +58,7 @@ memory. Three reasons:
 chunk every tick until the NPC appears, then kick-start it automatically. Watch for:
 
 ```text
-[CheesePatrol] NPC a1b2c3d4 found after 812 ticks missing - kick-starting patrol
+[CheesePatrol] NPC a1b2c3d4 found after 412 ticks missing - kick-starting patrol
 ```
 
 If it never appears, the respawn ladder takes over after 30 seconds. If that also fails ten
@@ -182,7 +182,7 @@ still up.
 **Cause.** The file is read exactly once, at `SERVER_STARTING`. There is no reload command.
 Worse, it is rewritten in full from memory by `PatrolManager.save()` on every mutation — so
 an edit made while the server runs is not merely ignored, it is overwritten the next time
-anyone adds a waypoint or starts a patrol.
+anyone adds a waypoint or starts a patrol, and at the latest when the server stops.
 
 **Fix.** Stop the server, edit, start. That is the only supported sequence, and it is how
 you change `debug`.
@@ -222,8 +222,9 @@ blocking you any more; the mixin is gone with the jar.
 single attempt at `INFO`, with no rate limit and **not** suppressed by `debug: false`.
 
 **Fix.** Find what is doing the deleting — an entity-cleanup plugin, a repeating command
-block with a broad `@e` selector, a mob-cap script. Exclude `tag=cheesepatrol` NPCs from it,
-or narrow the selector. The log lines are a symptom, and silencing them is not possible
+block with a broad `@e` selector, a mob-cap script. Exclude the patrol NPCs from it — by
+UUID, or with a tag of your own: CheesePatrol tags only its armor-stand markers
+`cheesepatrol`, never the NPCs — or narrow the selector. The log lines are a symptom, and silencing them is not possible
 without changing the mod.
 
 ## An NPC disappears and comes back somewhere else
@@ -258,8 +259,9 @@ patrol.
 /kill @e[type=armor_stand,tag=cheesepatrol]
 ```
 
-in each affected world. A clean server shutdown also removes every tagged stand in every
-world, so a restart clears them; a crash does not.
+in each affected world. A clean server shutdown also removes every tagged stand in a
+loaded chunk, in every world, so a restart clears most of them; a crash does not, and
+neither does a shutdown for stands in unloaded chunks.
 
 ## `/forceload` keeps getting removed
 

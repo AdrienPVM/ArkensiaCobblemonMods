@@ -91,9 +91,10 @@ contienne au plus 500 sessions. Les sessions retirées ont disparu de
 `cobblecheesescore_minigames.json` et disparu des classements : un classement agrégé est une
 fenêtre glissante sur les 500 derniers résultats, pas un total à vie.
 
-Avant de faire tourner la fenêtre, `addSession` transmet le résultat à
+Après avoir élagué et sauvegardé, `addSession` transmet aussi le résultat à
 `MiniGameLegends.recordSession`, qui ajoute un enregistrement permanent à
-`config/cobblecheesescore_legends.json` :
+`config/cobblecheesescore_legends.json`. L'archive reçoit chaque session, y compris celles
+que le plafond fera sortir de la fenêtre plus tard :
 
 ```json
 {
@@ -160,7 +161,8 @@ et soumets-la de nouveau.
   un participant distinct avec ses propres points.
 - Les identifiants de jeu ne sont pas validés. Un identifiant contenant `/` rend toutes les
   routes `/minigames/:id` inatteignables pour ce jeu ; un identifiant valant `global` est
-  masqué par la route du classement global.
+  masqué par la route du classement global pour `GET` (ses `PUT` et `DELETE` fonctionnent
+  toujours).
 - `MiniGameManager.save()` réécrit tout le fichier à chaque mutation, sans atomicité. Un
   crash pendant l'écriture peut laisser un `cobblecheesescore_minigames.json` tronqué, sur
   lequel `load()` échouera, journalisera, et repartira de zéro. Le fichier des légendes est

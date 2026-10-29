@@ -70,10 +70,10 @@ curl -s -X POST http://localhost:44311/api/v1/auth/login \
 ```
 
 ```json
-{"token":"ses_8f2a…","role":"SUPER_ADMIN","username":"admin"}
+{"sessionId":"ses_8f2a…","username":"admin","role":"SUPER_ADMIN","expiresIn":86400000}
 ```
 
-Garde cette valeur `ses_…` ; le reste de cette page l'appelle `$TOKEN`.
+Garde cette valeur `sessionId`, `ses_…` ; le reste de cette page l'appelle `$TOKEN`.
 
 ```bash
 export TOKEN=ses_8f2a…
@@ -119,15 +119,15 @@ file shiny.png
 ```
 
 ```text
-shiny.png: PNG image data, 660 x 880, 8-bit/color RGB, non-interlaced
+shiny.png: PNG image data, 1270 x 640, 8-bit/color RGB, non-interlaced
 ```
 
 Ouvre-la. Tu devrais voir un en-tête doré portant *Chasseur de Shiny*, une ligne par joueur
 classé avec des accents or, argent et bronze sur le podium, et un pied d'image avec
 l'horodatage du rendu.
 
-La taille n'est pas fixe : 660 × 880 est ce que produisent douze joueurs avec
-`rowsPerColumn: 10`. Le calcul est dans [export PNG](png-export.fr.md#géométrie).
+La taille n'est pas fixe : 1 270 × 640 est ce que produisent douze joueurs avec
+`rowsPerColumn: 10` — deux colonnes de six lignes. Le calcul est dans [export PNG](png-export.fr.md#géométrie).
 
 Si `file` annonce du JSON plutôt qu'un PNG, tu as reçu un corps de `404` ou de `503` : les
 réponses d'erreur de cette route sont en JSON alors que la réponse de succès est une image.
@@ -170,17 +170,18 @@ prochain `PUT` réécrira la configuration en mémoire par-dessus ton édition.
 ## 7. Confirmer que l'URL publique fonctionne
 
 Rien à l'intérieur de Minecraft ne peut envoyer un token Bearer : l'affichage en jeu passe
-donc par la route non authentifiée. Pas d'en-tête cette fois :
+donc par la route non authentifiée. Pas d'en-tête cette fois, et un simple `GET` — la
+route ne répond qu'à `GET`, donc `curl -I` (une requête `HEAD`) recevrait un `404` :
 
 ```bash
-curl -sI http://localhost:44311/scores/api/images/shiny/shiny_hunter.png | head -3
+curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://localhost:44311/scores/api/images/shiny/shiny_hunter.png
 ```
 
 ```text
-HTTP/1.1 200 OK
-Content-Type: image/png
-Cache-Control: public, max-age=60
+200 image/png
 ```
+
+La réponse porte aussi `Cache-Control: public, max-age=60`.
 
 Le segment `shiny` est libre : il ne décide que du nom de fichier qu'un navigateur
 enregistrerait. `shiny_hunter` est le véritable identifiant du classement.
@@ -188,7 +189,7 @@ enregistrerait. `shiny_hunter` est le véritable identifiant du classement.
 Maintenant, teste-la **depuis le réseau d'un joueur**, pas depuis le serveur :
 
 ```bash
-curl -sI http://adresse-de-ton-serveur:44311/scores/api/images/shiny/shiny_hunter.png
+curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://adresse-de-ton-serveur:44311/scores/api/images/shiny/shiny_hunter.png
 ```
 
 L'URL est résolue par le jeu de chaque joueur, donc `localhost` échouera pour tout le monde
@@ -206,8 +207,9 @@ Minecraft vanilla ne peut pas charger une image depuis une URL. Cette étape exi
 cadre d'image sur les clients — WaterFrames est celui contre lequel tout cela a été
 construit.
 
-1. Note le rapport d'aspect de l'image depuis l'étape 5. 660 × 880 est plus haut que large ;
-   un classement à trois colonnes en 1 880 × 880 est à peu près en 2:1. Se tromper là-dessus
+1. Note le rapport d'aspect de l'image depuis l'étape 5. 1 270 × 640 est à peu près en
+   2:1, comme un classement à trois colonnes en 1 880 × 880 ; une seule colonne de dix,
+   660 × 880, est plus haute que large. Se tromper là-dessus
    est la raison pour laquelle les classements finissent par avoir l'air étirés.
 2. Installe le mod de cadre d'image sur les clients, et sur le serveur s'il a une moitié
    côté serveur.
@@ -271,8 +273,10 @@ for id in conseil4_first_finish conseil4_fastest_time \
 done
 ```
 
-Les classements désactivés sont entièrement ignorés : pas de calcul, pas d'image, et un
-`404` sur leur route d'image. Le semeur ne rajoute un classement Conseil 4 que lorsque son
+Les classements désactivés sont ignorés par chaque passe à partir de là : plus de calcul,
+plus de nouvelle image. L'image et le classement mis en cache avant la désactivation ne sont
+pas évincés pour autant : la route d'image continue de servir le dernier rendu en `200`
+jusqu'au prochain redémarrage, après quoi elle répond `404`. Le semeur ne rajoute un classement Conseil 4 que lorsque son
 identifiant est **absent** de la configuration : une entrée désactivée reste donc
 désactivée d'un redémarrage à l'autre.
 

@@ -100,19 +100,15 @@ supprime puis repose ; il ne supprime jamais seulement. Ils disparaissent quand 
 
 - `/npcpatrol clear` passe — mais seulement dans le monde où tu te tiens
 - le serveur s'arrête proprement, ce qui retire tous les porte-armures tagués
-  `cheesepatrol` dans tous les mondes
+  `cheesepatrol` qui se trouvent dans un chunk chargé, dans tous les mondes
 - tu les tues toi-même par tag
 
 Un crash les laisse donc en place, et effacer une patrouille depuis la mauvaise dimension
 laisse ses marqueurs orphelins, sans NPC auquel les rattacher.
 
-**Ils sont solides.** Un porte-armures invisible conserve sa boîte de collision : un
-marqueur se trouve donc être un obstacle physique sur le bloc exact de son point de passage.
-En pratique, le seuil d'arrivée de 1,5 bloc du NPC fait qu'il s'arrête avant et n'a jamais à
-traverser le porte-armures, mais sur un trajet étroit — un pont d'un bloc, une embrasure de
-porte — un marqueur peut dévier un NPC de sa ligne. C'est une déduction géométrique, pas une
-panne mesurée ; si une patrouille se comporte différemment marqueurs posés et marqueurs
-retirés, voilà pourquoi.
+**Ils ne font pas obstacle.** Un porte-armures n'est pas poussable en vanilla et n'a pas de
+collision de déplacement : un NPC — comme un joueur — traverse tout droit le marqueur posé
+sur son point de passage. Les marqueurs ne peuvent pas dévier une patrouille de sa ligne.
 
 **Poser des marqueurs balaie toutes les entités du monde.** `refreshMarkers` appelle d'abord
 `removeMarkers`, qui parcourt `world.iterateEntities()` à la recherche des porte-armures
@@ -158,7 +154,7 @@ traînée. À l'arrêt, une seule.
 
 ### Densité et dispersion, par effet
 
-Trois effets sont traités à part ; tous les autres utilisent les valeurs par défaut.
+Quatre effets sont traités à part ; tous les autres utilisent les valeurs par défaut.
 
 | Effet | Particules par bouffée | Dispersion (X/Z) | Dispersion (Y) | Vitesse des particules |
 |---|---|---|---|---|
@@ -245,16 +241,16 @@ particule est envoyée joueur par joueur, à tous ceux qui sont dans cette dista
 de l'ancrage, avec `force = true`.
 
 Le coût est réel et il se multiplie : *(joueurs à portée) × (3 bouffées) × (particules par
-bouffée) × (5 émissions par seconde)*. À la valeur par défaut de 16 blocs, cela fait une
+bouffée) × (10 émissions par seconde)*. À la valeur par défaut de 16 blocs, cela fait une
 poignée de paquets vers deux ou trois personnes. À 512 blocs sur un serveur de 40 joueurs,
-chaque joueur de la carte reçoit la traînée de chaque NPC en patrouille, cinq fois par
+chaque joueur de la carte reçoit la traînée de chaque NPC en patrouille, dix fois par
 seconde.
 
 Mets 16 pour un garde de village et ne monte que pour quelque chose de délibérément visible
 de loin, comme un NPC volant qui tourne autour d'un monument.
 
 La portée ne concerne **que la traînée**. L'aperçu de trajet de `show` va au seul joueur qui
-l'a demandé, à n'importe quelle distance dans la dimension, et les marqueurs sont des
+l'a demandé, à n'importe quelle distance jusqu'à 512 blocs dans la dimension, et les marqueurs sont des
 entités ordinaires soumises à la distance d'affichage des entités.
 
 ---

@@ -148,7 +148,7 @@ commande ne déplace pas le NPC.
 | Champ | Type | Requis | Remarques |
 |---|---|---|---|
 | `npcUuid` | chaîne | oui | UUID complet avec tirets. Pas la forme tronquée de `/npcpatrol list` |
-| `playerName` | chaîne | oui | Le nom d'un joueur **connecté**, sensible à la casse comme l'exige `PlayerManager.getPlayer` |
+| `playerName` | chaîne | oui | Le nom d'un joueur **connecté**. `PlayerManager.getPlayer` le compare sans tenir compte de la casse |
 
 **Réponse :**
 
@@ -173,7 +173,7 @@ pas celle du joueur, et conserve son yaw et son pitch.
 
 | Statut | Corps | Quand |
 |---|---|---|
-| `200` | l'objet ci-dessus | programmée avec succès |
+| `200` | l'objet ci-dessus | la téléportation a été exécutée |
 | `400` | `{"error":"Missing npcUuid or playerName"}` | l'un des deux champs est absent |
 | `400` | `{"error":"Invalid UUID"}` | `npcUuid` n'est pas analysable |
 | `400` | `{"error":"Patrol has no waypoints"}` | la patrouille existe mais sa liste est vide |
@@ -223,10 +223,12 @@ cette configuration. Trois conséquences du fait que la vraie frontière vit dan
 - **Une modification du répartiteur ne désarmerait pas `/tp`**, grâce à l'appel local — à la
   différence des modules qui ne se gardent pas eux-mêmes.
 
-**Le 200 signifie « programmé », pas « fait ».** La téléportation passe par
-`WebDashboard.executeOnServerThread`, qui attend jusqu'à 5 secondes que le thread serveur
-l'exécute. En pratique c'est fait au moment où tu lis la réponse ; si le thread serveur est
-bloqué, l'appel expire et tu reçois un 500.
+**Le 200 signifie « fait ».** La téléportation passe par
+`WebDashboard.executeOnServerThread`, qui attend la fin de la tâche jusqu'à 5 secondes : un
+`200` n'est donc envoyé qu'une fois que le thread serveur l'a exécutée. Si le thread serveur
+est bloqué, l'attente expire et tu reçois un 500 — avec le corps `{"error":"null"}`, car
+l'exception de délai n'a pas de message — tandis que la téléportation en file peut encore
+s'exécuter plus tard.
 
 **Exemple :**
 
@@ -245,8 +247,9 @@ Tout le reste sous le préfixe :
 {"error":"Unknown patrol route: /start"}
 ```
 
-avec le statut **404**. Le chemin est renvoyé tel quel, au-delà d'un échappement JSON
-basique, ce qui est à savoir si tu analyses l'erreur.
+avec le statut **404**. Le chemin est renvoyé tel quel, sans aucun échappement : un chemin
+contenant un guillemet double ou une barre oblique inverse produit du JSON invalide — à
+savoir si tu analyses l'erreur.
 
 ## Canaux WebSocket
 

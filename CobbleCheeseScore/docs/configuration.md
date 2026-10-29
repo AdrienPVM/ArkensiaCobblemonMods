@@ -49,8 +49,10 @@ restart** — nothing reschedules the executor, and `PUT /config` does not even 
 key. There is no lower bound: `1` is accepted and will have the server re-reading every
 player's files every minute, which is wasteful rather than dangerous since the work
 happens off the server thread. `0` or a negative value is rejected by
-`ScheduledExecutorService` with an `IllegalArgumentException` at startup, which will be
-logged and leave the mod running with no scheduler and only the initial render.
+`ScheduledExecutorService` with an `IllegalArgumentException`, thrown inside the
+`SERVER_STARTED` handler. Nothing in the mod catches it, so it escapes into the server's
+start-up sequence: expect the server to abort its start with a crash report rather than
+run on without a scheduler.
 
 The unconditional initial refresh during `SERVER_STARTED` is not affected by this key.
 
@@ -82,7 +84,8 @@ auto-detection then throws, the path becomes the literal relative `world`.
 
 ### `timeZone`
 
-Any IANA zone id. It is passed to `ZoneId.of(...)` with no guard, so a typo throws a
+Any IANA zone id. It is passed to `ZoneId.of(...)` with no guard — only while
+`showLastUpdate` is `true`, since the footer is the only reader — so a typo throws a
 `DateTimeException` inside `generateScoreboard`. The per-board `catch` in `updateAll`
 turns that into `Failed to update scoreboard: <id>` for every board in turn, and you end
 up with no images at all. If every board fails at once, check this key first.

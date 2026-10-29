@@ -52,7 +52,7 @@ width  = 580 × columns + 30 × (columns − 1) + 80
 height = 280 + actualRowsPerColumn × 60
 ```
 
-Three worked cases, all with `rowsPerColumn: 10`:
+Four worked cases, all with `rowsPerColumn: 10`:
 
 | Ranked players | Columns | Rows per column | Image size |
 |---|---|---|---|
@@ -179,7 +179,7 @@ curl -o pokedex.png \
 | Response | Meaning |
 |---|---|
 | `200` with `Content-Type: image/png` | the cached image, plus `Cache-Control: public, max-age=60` |
-| `404` with a JSON body | no image cached under that id — the board is disabled, the id is wrong, or no refresh has run yet |
+| `404` with a JSON body | no image cached under that id — the id is wrong, no refresh has run yet, or the board has been disabled since the server started (a board disabled later keeps serving its last image) |
 | `503` with a JSON body | `CacheManager` is null, meaning the mod has not finished initialising |
 
 ⚠️ A `404` and a `503` come back as **JSON**, not as an image. A client that blindly
@@ -212,10 +212,11 @@ in `CobbleCheeseScoreDashboardModule` names WaterFrames, which is what Arkensia 
 
    ```bash
    # from a machine on the players' side of the network
-   curl -I http://your-server:44311/scores/api/images/test/pokedex_completed.png
+   curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://your-server:44311/scores/api/images/test/pokedex_completed.png
    ```
 
-   A `200` with `Content-Type: image/png` means you are done with the server side. A
+   `200 image/png` means you are done with the server side. Do not test with `curl -I`:
+   the route answers only `GET`, and a `HEAD` request gets a `404`. A
    connection refused means the port is closed; a `404` means no image is cached yet —
    force one with `POST /api/v1/scores/refresh`.
 

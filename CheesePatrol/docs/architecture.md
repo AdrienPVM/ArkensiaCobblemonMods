@@ -73,17 +73,20 @@ ticks, backups every 1200, the integrity check every 6000, particles every 10.
 |---|---|
 | `waypoints`, `waypointWaitTicks`, `speed`, `playerDetectionRadius`, `active`, `currentWaypointIndex`, `dimension`, `lastX/Y/Z`, the four particle fields, `pausedBySystem` | `waitingAtWaypoint`, `remainingWaitTicks`, `lookingAtPlayer`, `missingTicks`, `respawnAttempts`, `stuckTicks`, `stallTicks` |
 
-`toJson` **omits any field holding its default**, and `fromJson` leaves absent
-fields at their constructor defaults. That keeps the file small and means adding a field
-requires touching both methods or it silently never persists.
+`toJson` **always writes the seven core fields** (`npcUuid`, `speed`,
+`playerDetectionRadius`, `active`, `currentWaypointIndex`, `dimension`, `waypoints`) and
+omits the optional ones — `lastX/Y/Z`, the four particle fields, `pausedBySystem`, a
+waypoint's `wait` — while they hold their default; `fromJson` leaves absent fields at their
+constructor defaults. That keeps the file small and means adding a field requires touching
+both methods or it silently never persists.
 
 `fromJson` assigns fields **directly**, bypassing the clamping setters. The ranges
 documented in [configuration](configuration.md) are enforced by the commands, not by the
 loader.
 
-**`PatrolWand`** is four static helpers over the `CUSTOM_DATA` component. It holds the
+**`PatrolWand`** is six static helpers over the `CUSTOM_DATA` component. It holds the
 selection, which is why the wand has to be in your main hand for almost every subcommand.
-Two of its five methods are never called.
+Two of its six methods are never called.
 
 **`PatrolMarker`** is three unrelated display systems sharing a file. See
 [visuals](visuals.md).
@@ -93,8 +96,10 @@ Two of its five methods are never called.
 Two files, both written synchronously from the server thread.
 
 **`config/cheesepatrol_data.json`** is rewritten in full by `PatrolManager.save()`. Called
-from: every mutating subcommand, the wand's block right-click, the respawn give-up path, and
-the integrity check when anything changed. So adding a waypoint to a 50-patrol server
+from: every mutating subcommand except `select`, both wand right-clicks (entity and block),
+the respawn give-up path, the integrity check when anything changed, and `SERVER_STOPPING`.
+`/npcpatrol select` creates the patrol record and pins its dimension in memory only; it
+reaches disk with the next save. So adding a waypoint to a 50-patrol server
 serialises and writes all 50 patrols, on the tick, before the command returns.
 
 It is written with `Files.writeString` straight over the existing file. **No temporary file,
@@ -117,8 +122,8 @@ is attempted.
 | **Netty IO** | nothing. The mod registers no payloads and no network handlers |
 
 The hand-off is `WebDashboard.executeOnServerThread(server, …)`, used by `POST /tp` for the
-teleport. It blocks the HTTP thread for up to five seconds waiting for the server thread, so
-a `200` means *scheduled and acknowledged*, not *finished*.
+teleport. It blocks the HTTP thread for up to five seconds waiting for the task to
+complete on the server thread, so a `200` means *finished*; a timeout surfaces as a 500.
 
 ⚠️ **`GET /list` touches entities from the HTTP thread.** `resolveNpcName` walks
 `server.getWorlds()` and calls `world.getEntity(uuid)` with no hop to the server thread.
@@ -310,7 +315,8 @@ Stated plainly, because finding these by surprise is worse.
   path. Selecting the wrong entity builds a patrol that reports `ACTIVE` and never moves,
   with no error anywhere.
 - **Waits do not survive a restart.** `waitingAtWaypoint` is transient, so an NPC mid-pause
-  restarts the pause after a reboot.
+  restarts the pause after a reboot, and the startup kick-start five seconds later cuts it
+  short. See [waiting at a waypoint](patrol-circuits.md#waiting-at-a-waypoint).
 
 ### Performance
 
@@ -363,11 +369,11 @@ Stated plainly, because finding these by surprise is worse.
 - **A stray file in the mod directory:** `data/cobblemon/species/generation1/charizard.json`,
   322 lines, a Cobblemon species override sitting outside `src/main/resources` and therefore
   not packaged into the jar. It has nothing to do with patrols and nothing reads it.
-- ⚠️ **The licence declarations disagree.** `fabric.mod.json` declares
-  `PolyForm-Noncommercial-1.0.0`, matching the repository, but `CheesePatrol/LICENSE` is an
-  MIT licence attributed to "CacademyTeam", and `build.gradle` bundles that file into the
-  jar. The repository-level [LICENSE](../../LICENSE) is the authoritative one; the mod's own
-  file is a leftover that should be deleted.
+- **A leftover licence block in `build.gradle`.** The `jar { from("LICENSE") … }` block
+  still asks Gradle to bundle a `CheesePatrol/LICENSE`, but that file — an old MIT licence —
+  has been deleted, so nothing is bundled. `fabric.mod.json` declares
+  `PolyForm-Noncommercial-1.0.0`, and the repository-level [LICENSE](../../LICENSE) is the
+  authoritative one.
 
 ---
 

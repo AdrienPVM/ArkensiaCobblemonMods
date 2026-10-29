@@ -148,7 +148,7 @@ There is no in-game command. Check it over HTTP.
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:44311/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"token":"<your master token>"}' | sed 's/.*"token":"\([^"]*\)".*/\1/')
+  -d '{"token":"<your master token>"}' | sed 's/.*"sessionId":"\([^"]*\)".*/\1/')
 
 curl -s -H "Authorization: Bearer $TOKEN" \
   http://localhost:44311/api/v1/scores/stats
@@ -161,18 +161,19 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 
 `totalScoreboards: 34` and a non-zero `lastUpdate` mean the module is registered and a
 refresh has completed. The public image route needs no token at all, which makes it the
-quickest smoke test:
+quickest smoke test. Use a plain `GET` — the route answers nothing but `GET`, so a
+`curl -I` (a `HEAD` request) gets a `404` even when the image exists:
 
 ```bash
-curl -sI http://localhost:44311/scores/api/images/test/pokedex_completed.png | head -2
+curl -s -o /dev/null -w '%{http_code} %{content_type}\n' http://localhost:44311/scores/api/images/test/pokedex_completed.png
 ```
 
 ```text
-HTTP/1.1 200 OK
-Content-Type: image/png
+200 image/png
 ```
 
-In the dashboard itself, the sidebar gains a 🏆 **CobbleCheeseScore** entry. If the entry
+In the dashboard itself, the sidebar gains a **CobbleCheeseScore** section holding a
+🏆 **Leaderboards** entry. If the entry
 is missing, see
 [troubleshooting](troubleshooting.md#the-dashboard-has-no-cobblecheesescore-section).
 
