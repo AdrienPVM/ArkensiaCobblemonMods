@@ -224,11 +224,15 @@ jq -r '.[] | select(.action == "auth.login_failed") | "\(.timestamp)  \(.ip)"' \
 ```
 
 Une série de `auth.login_failed` depuis une même IP, c'est à quoi ressemble une tentative
-de force brute vue d'ici. Le limiteur de débit l'arrête à 20 échecs par minute et par IP
-en répondant `429`, et ces rejets ne sont **pas** audités : seules les tentatives allées
-jusqu'à une comparaison de token le sont. Une attaque soutenue se lit donc comme une
-rafale de vingt, puis un trou, encore et encore. Croise avec le log du serveur pour les
-lignes de limitation de débit.
+de force brute vue d'ici, et ⚠️ **rien ne la ralentit** : la route de login est dispatchée
+avant le limiteur de débit, si bien qu'un attaquant obtient autant de tentatives par
+minute que ton serveur peut en servir ([le détail](auth-and-roles.fr.md#limitation-de-débit)).
+Chacune est auditée, ce qui fait du journal d'audit le seul endroit où une attaque
+soutenue soit visible — et elle s'y lira comme une suite continue, pas comme la rafale
+suivie d'un trou qu'un limiteur en état de marche produirait.
+
+Si tu en vois une, la réponse est au niveau réseau : bloque l'adresse au pare-feu, et
+change le master token au cas où il aurait été atteint.
 
 ---
 

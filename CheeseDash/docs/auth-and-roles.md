@@ -114,10 +114,35 @@ Underneath, three helpers do all the work, and they are the ones a module author
 Each returns a boolean and has already written the response when it returns `false`, so
 the calling pattern is `if (!requireWrite(exchange)) return;`.
 
-**Module writes are gated centrally.** Before dispatching a non-`GET` request to a
-module, `DashboardApi` calls `requireWrite` itself. A module therefore cannot
-accidentally expose a write to a `READ_ONLY` account — but it still should call
-`requireAdmin` on its own dangerous routes, because `OPERATOR` passes the central gate.
+### Where the write boundary is actually enforced
+
+For module routes, it is not the module that enforces it. `DashboardApi` gates every
+non-`GET` request before the module ever sees it:
+
+```java
+DashboardModule module = DashboardRegistry.getModule(prefix);
+if (module != null) {
+    // Enforce write permissions for non-GET requests on modules
+    if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+        return;
+    }
+    module.handleRequest(exchange, subRoute);
+```
+
+So a `READ_ONLY` account cannot write to any module route, whether or not that module
+calls a guard of its own. A module's own `requireWrite` call is defence in depth —
+worth writing for clarity, but redundant, and not the boundary itself.
+
+What follows from the boundary living in the core rather than in the module:
+
+- **No module route can require `SUPER_ADMIN`.** The central gate only knows
+  `requireWrite`, so the highest bar reachable on a module is `OPERATOR`. A route that
+  deserves `SUPER_ADMIN` — rewriting a config file wholesale, moving real money — has to
+  call `requireAdmin` itself.
+- **A mutating route exposed as `GET` would not be gated at all.** The central gate reads
+  the HTTP method and nothing else.
+- **One change to this dispatcher would drop every one of these checks at once**, and no
+  module would notice.
 
 ### Two gaps worth knowing
 

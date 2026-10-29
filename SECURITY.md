@@ -43,9 +43,14 @@ CheeseDash opens two ports: **44311** (HTTP) and **44312** (WebSocket).
   audited, but audit is forensics, not prevention. Give accounts the lowest role that
   does their job: `READ_ONLY` or `OPERATOR` rather than `SUPER_ADMIN`.
 - Sessions last 24 hours with a sliding expiry. Log out from shared machines.
-- Failed authentication is rate-limited to 20 attempts per 60 seconds per IP. That
-  slows credential stuffing, it does not stop a determined attacker against a weak
-  token.
+- ⚠️ **The login endpoint is not rate-limited.** There is a limiter — 20 failures per
+  60 seconds per IP — but `POST /api/v1/auth/login` is dispatched and returned *before*
+  the check runs (`WebDashboard.java:114`, ahead of the `isRateLimited` call on line 120),
+  and a failed login never calls `recordFailedAuth`. The limiter therefore only covers
+  invalid `Authorization` headers on the other routes. A master token can be attacked at
+  full speed, so the only thing standing between an attacker and your server is the
+  token's own entropy and your firewall. Treat network-level restriction as mandatory,
+  not advisory.
 
 ### CheeseStore — real payments
 

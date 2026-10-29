@@ -116,11 +116,36 @@ module :
 Chacun renvoie un booléen et a déjà écrit la réponse quand il renvoie `false` ; le motif
 d'appel est donc `if (!requireWrite(exchange)) return;`.
 
-**Les écritures de modules sont filtrées de façon centralisée.** Avant de dispatcher une
-requête non-`GET` vers un module, `DashboardApi` appelle lui-même `requireWrite`. Un
-module ne peut donc pas exposer accidentellement une écriture à un compte `READ_ONLY` —
-mais il doit tout de même appeler `requireAdmin` sur ses propres routes dangereuses,
-puisqu'un `OPERATOR` passe la barrière centrale.
+### Où la frontière d'écriture est réellement appliquée
+
+Pour les routes de modules, ce n'est pas le module qui l'applique. `DashboardApi` garde
+toute requête non-`GET` avant que le module ne la voie :
+
+```java
+DashboardModule module = DashboardRegistry.getModule(prefix);
+if (module != null) {
+    // Enforce write permissions for non-GET requests on modules
+    if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) {
+        return;
+    }
+    module.handleRequest(exchange, subRoute);
+```
+
+Un compte `READ_ONLY` ne peut donc écrire sur aucune route de module, que ce module
+appelle ou non un garde de son côté. Un appel à `requireWrite` dans un module est de la
+défense en profondeur — utile pour la clarté de l'intention, mais redondant, et ce n'est
+pas la frontière elle-même.
+
+Ce qui découle du fait que la frontière vit dans le cœur et non dans le module :
+
+- **Aucune route de module ne peut exiger `SUPER_ADMIN`.** Le garde central ne connaît que
+  `requireWrite` : le rôle maximal atteignable sur un module est donc `OPERATOR`. Une route
+  qui mériterait `SUPER_ADMIN` — réécrire un fichier de configuration en entier, déplacer
+  de l'argent réel — doit appeler `requireAdmin` elle-même.
+- **Une route mutante exposée en `GET` ne serait pas gardée du tout.** Le garde central ne
+  regarde que la méthode HTTP, rien d'autre.
+- **Une seule modification de ce répartiteur ferait tomber tous ces contrôles d'un coup**,
+  sans qu'aucun module ne s'en aperçoive.
 
 ### Deux failles à connaître
 

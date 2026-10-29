@@ -217,10 +217,14 @@ jq -r '.[] | select(.action == "auth.login_failed") | "\(.timestamp)  \(.ip)"' \
 ```
 
 A run of `auth.login_failed` from one IP is what a brute-force attempt looks like from
-here. The rate limiter stops it at 20 failures per minute per IP and answers `429`, and
-those rejections are **not** audited — only the attempts that got as far as a token
-comparison are. So a sustained attack shows up as a burst of twenty and then a gap, over
-and over. Cross-check the server log for the rate-limit lines.
+here, and ⚠️ **nothing slows it down**: the login route is dispatched before the rate
+limiter runs, so an attacker gets as many attempts per minute as your server can answer
+([the detail](auth-and-roles.md#rate-limiting)). Every one of them is audited, which
+means the audit log is the only place a sustained attack is visible at all — and it will
+show a continuous run, not the burst-then-gap pattern a working limiter would produce.
+
+If you see one, the response is at the network layer: block the address at the firewall,
+and rotate the master token in case it was reached.
 
 ---
 
