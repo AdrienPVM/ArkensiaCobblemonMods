@@ -54,9 +54,11 @@ enable debug logging for the `cobbleshift` logger and look for that debug line: 
 message names the method that was not found. That is case 3, and it needs a code fix in
 `SpeciesMapper`, see [reflection](architecture.md#reflection-and-why-the-method-names-matter).
 
-## The command seems to do nothing
+## A valid species is refused
 
-`/cshift transform Steve charizard` returns without a success line and without an error.
+`/cshift transform Steve charizard` answers
+`Failed: species 'charizard' not found or Cobblemon not available`, although
+`/cshift species charizard` works.
 
 **Cause.** `transformCooldownEnabled` is on and Steve was reverted less than
 `transformCooldownSeconds` ago. The refusal goes to **Steve**, on his action bar:
@@ -65,8 +67,9 @@ message names the method that was not found. That is case 3, and it needs a code
 ⛔ Cooldown: 42s before transforming again.
 ```
 
-The caller sees nothing. A dashboard caller gets the generic "species not found" error
-instead.
+`transform()` returns `false` without telling the command why, so the caller only gets the
+generic "species not found" error above. A dashboard caller gets the same generic error,
+with status `400`.
 
 **Fix.** Wait, or transform Steve while he is still transformed: switching species skips
 the cooldown. To remove the cooldown altogether, set `transformCooldownEnabled` to `false`
@@ -110,7 +113,7 @@ If the mod was removed in the meantime, the commands to clear it by hand are in
 `TransformManager.onPlayerDeath()`.
 
 **Fix.** Revert dead players yourself with `/cshift revert <player>`, or from whatever
-killed them (a CheeseGuard event's `REVERT_ALL` effect, for instance). A code fix is
+killed them (a CheeseGuard event's `TRANSFORM_REVERT_ALL` effect, for instance). A code fix is
 described in [architecture](architecture.md#extension-points).
 
 ## A config change has no effect
@@ -160,7 +163,8 @@ rendering, observed rather than specified by CobbleShift.
 
 **Cause.** `abilityTickInterval` is `0` in `cobbleshift.json`. `AbilityManager.tick()` runs
 `tickCounter % 0`, which throws an `ArithmeticException`, before even checking whether
-abilities are enabled. The file value bypasses the setter's minimum of 20.
+abilities are enabled. Nothing catches it, so the first tick ends the server with a crash
+report. The file value bypasses the setter's minimum of 20.
 
 **Fix.** Put a positive value back, `100` by default, and restart.
 
@@ -203,8 +207,9 @@ target. The other cause is EasyNPC missing or renamed: the check is a test on th
 
 **Cause.** One of:
 
-1. The server crashed before any save. NPC transforms are saved on every change, so this
-   only loses the last change.
+1. The save itself failed. NPC transforms are written to disk at once on every change, so
+   a crash after a change loses nothing; look for `Failed to save NPC transforms: <message>`
+   in the log (a read-only `config/` folder, for instance).
 2. The save file sits elsewhere. Its path is relative to the working directory, not to
    the config directory.
 3. One entry in the file was malformed, the load stopped there, and the next save wrote

@@ -94,8 +94,7 @@ Les joueurs et les PNJ dans une seule réponse.
       "bst": 534,
       "shiny": false,
       "transformedAt": 1730200000000,
-      "attacksEnabled": true,
-      "scale": 1.0
+      "locked": false
     }
   ],
   "npcs": [
@@ -113,7 +112,10 @@ Les joueurs et les PNJ dans une seule réponse.
 ```
 
 Les objets joueur viennent de `TransformData.toJson()` ; `form` et `type2` sont omis
-quand ils sont nuls au lieu d'être envoyés à `null`. Toujours `200`.
+quand ils sont nuls au lieu d'être envoyés à `null`. `customScale` n'apparaît qu'une fois
+qu'un `/cshift scale` ou un `POST /scale` a fixé une valeur différente de `1.0`. `locked`
+vaut toujours `false` (le champ n'est jamais modifié), et l'objet ne porte ni l'état
+`noattacks` ni une vitesse personnalisée. Toujours `200`.
 
 ### `POST /api/v1/shift/transform`
 
@@ -321,6 +323,12 @@ explique pourquoi.
 
 Les changements s'appliquent au tick de rafraîchissement suivant. Rien n'exige de
 redémarrage.
+
+Désactiver `abilityGlobalEnabled` ici n'équivaut pas à `POST /ability/global` ni à
+`/cshift ability global disable` : ce handler appelle seulement le setter et n'exécute
+jamais `deactivateAllAndSync()`. Les effets ne sont plus rafraîchis et s'éteignent, mais
+les capacités actives restent en mémoire et dans `GET /abilities`, et les clients gardent le
+HUD de capacité affiché.
 
 ---
 

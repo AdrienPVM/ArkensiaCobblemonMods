@@ -184,7 +184,7 @@ sécurité contre autre chose qui le retirerait.
 | `SERVER_STARTED` | `load()` lit le fichier, s'il existe, dans la map |
 | premier tick serveur après un chargement non vide | journalise que les transformations sont prêtes, rien de plus |
 | chaque transformation, annulation, changement de taille ou de vitesse | `save()` réécrit tout le fichier |
-| `revertallnpc` | un `save()` par PNJ annulé, puis un de plus |
+| `revertallnpc` | un `save()` par PNJ annulé dont l'entité est chargée, puis un de plus |
 | `SERVER_STOPPING` | `save()`, **sans condition**, même sans rien à sauvegarder |
 
 La dernière ligne signifie qu'un arrêt propre laisse toujours un fichier derrière lui,
@@ -231,9 +231,7 @@ Un tableau JSON, un objet par PNJ :
     "npcUuid": "1a2b3c4d-0000-4000-8000-000000000001",
     "species": "snorlax",
     "shiny": false,
-    "form": null,
-    "type1": "normal",
-    "type2": null
+    "type1": "normal"
   },
   {
     "npcUuid": "1a2b3c4d-0000-4000-8000-000000000002",
@@ -241,7 +239,6 @@ Un tableau JSON, un objet par PNJ :
     "shiny": true,
     "form": "midnight",
     "type1": "rock",
-    "type2": null,
     "scale": 1.5,
     "speed": 2.0
   }
@@ -249,7 +246,9 @@ Un tableau JSON, un objet par PNJ :
 ```
 
 `scale` et `speed` ne sont écrits que s'ils diffèrent de `1.0`, et relus comme `1.0` en
-leur absence. `form`, `type1` et `type2` sont écrits en `null` JSON quand ils sont vides.
+leur absence. `form`, `type1` et `type2` sont **omis** quand ils valent `null` : l'instance
+Gson qui écrit le fichier ne sérialise pas les `null`, donc une clé à `null` disparaît.
+`load()` relit une clé absente comme `null`.
 
 Modifier le fichier à la main ne fonctionne que serveur arrêté : la modification suivante
 en jeu l'écrase depuis la mémoire. La valeur `species` n'est pas revalidée au chargement :

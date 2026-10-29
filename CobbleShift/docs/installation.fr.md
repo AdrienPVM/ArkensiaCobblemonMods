@@ -86,8 +86,10 @@ résolue par rapport au dossier de travail du serveur. Sur une arborescence de s
 normale, les deux atterrissent au même endroit. Sur une arborescence inhabituelle, non :
 voir [l'architecture](architecture.fr.md#état-et-disque).
 
-Aucun de ces fichiers n'est créé par le client. Une installation côté client n'écrit
-rien sur le disque.
+Le client ne crée jamais le fichier des PNJ. Il crée en revanche son propre
+`config/cobbleshift.json` : `CobbleShiftMod` est un point d'entrée `main`, il tourne donc
+aussi sur le client au lancement et y écrit la configuration par défaut. Cette copie ne
+compte qu'en solo.
 
 ## Vérifier le chargement
 
@@ -179,14 +181,15 @@ sort des restes :
 | Invisibilité ambiante infinie | **non** | idem |
 | un projectile de type en vol | oui | il est supprimé comme entité inconnue au chargement |
 
-Les deux derniers points dangereux sont la raison pour laquelle on annule d'abord. Si
+Les deux lignes marquées **non** sont la raison pour laquelle on annule d'abord. Si
 tu as retiré le jar alors qu'un joueur était transformé, ce joueur reste invisible et à
 la mauvaise échelle sans plus aucun mod pour le remettre en ordre ; le correctif est
 `/attribute <player> minecraft:generic.scale modifier remove
 cobbleshift:transform_scale` pour chacun des trois, plus `/effect clear <player>
-minecraft:invisibility`. Remettre le jar et lancer `/cshift revertall` est plus facile,
-et une connexion avec le jar présent déclenche `cleanupStaleTransform()`, qui fait
-exactement ce nettoyage automatiquement.
+minecraft:invisibility`. Remettre le jar est plus facile : `/cshift revertall` ne
+trouverait rien, puisque la liste des transformations n'a pas survécu au redémarrage, mais
+une connexion avec le jar présent déclenche `cleanupStaleTransform()`, qui fait exactement
+ce nettoyage automatiquement.
 
 ---
 

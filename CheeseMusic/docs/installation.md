@@ -142,7 +142,6 @@ On the **server**, at `SERVER_STARTED`, in this order:
 [CheeseMusic] Loaded config with 0 assignments
 [CheeseMusic] Created resource pack at: /srv/mc/resourcepacks/CheeseMusic
 [CheeseMusic] Place .ogg files in: /srv/mc/resourcepacks/CheeseMusic/assets/cheesemusic/sounds
-[CheeseMusic] Found 0 tracks in resource pack
 [CheeseMusic] CheeseGuard detected — zone music enabled
 [CheeseMusic] Cobblemon detected — battle detection via getBattleByParticipatingPlayerId()
 [CheeseMusic] Server started — 0 assignments loaded
@@ -150,7 +149,8 @@ On the **server**, at `SERVER_STARTED`, in this order:
 
 The `Loaded config with N assignments` line is absent on a first start, because a freshly
 written file takes the early return in `load`. The two resource-pack lines appear only
-when the directory had to be created.
+when the directory had to be created; that branch returns without counting tracks. On
+every later start they are replaced by `[CheeseMusic] Found <n> tracks in resource pack`.
 
 Three of those lines are diagnostics worth reading every time:
 
@@ -172,7 +172,9 @@ On the **client**:
 the single most useful line in the client log. It can also legitimately be absent at
 start-up: `ReactiveMusicHook.isAvailable()` retries on every call, because ReactiveMusic's
 `thread` field is null until its own player starts. The line then appears later, on the
-first fade.
+first fade. The retry has a side effect when ReactiveMusic really is absent:
+`ReactiveMusic not installed` is logged again on every `play` and every `stop` the client
+receives, so a log full of it means the player crossed many region borders.
 
 ## Verifying in game
 

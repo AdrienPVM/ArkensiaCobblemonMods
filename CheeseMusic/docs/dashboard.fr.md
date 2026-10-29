@@ -122,9 +122,10 @@ Toutes les assignations, en tableau JSON d'objets d'assignation. Rôle : n'impor
 ```
 
 Note que la réponse est construite depuis les **valeurs** de la table : la clé de recherche
-n'est donc pas dans la sortie. Pour une assignation `tag:`, la clé et le champ `zoneId`
-diffèrent, et cette réponse seule ne permet pas de les distinguer. `[]` quand rien n'est
-assigné.
+n'est donc pas dans la sortie. Une entrée créée par `POST` a une clé égale à son `zoneId`
+(une assignation par tag porte `"zoneId": "tag:cave"`) : la réponse suffit alors. Seule
+une entrée dont le `zoneId` a été modifié par un `PUT` ou à la main affiche une valeur qui
+n'est pas sa clé. `[]` quand rien n'est assigné.
 
 ### `POST /api/v1/music/assignments`
 
@@ -168,7 +169,7 @@ Remplacer une assignation existante. Rôle : **OPERATOR**.
 
 | Paramètre | Où | Notes |
 |---|---|---|
-| `clé` | chemin | la clé de recherche, décodée depuis l'URL. Une clé `tag:` a besoin que son deux-points soit encodé, `tag%3Acave` |
+| `clé` | chemin | la clé de recherche. Une clé `tag:` fonctionne telle quelle (`tag:cave`) ou encodée (`tag%3Acave`) : le chemin est décodé par `getPath()` puis une seconde fois par `URLDecoder`, si bien qu'un `+` littéral dans une clé devient une espace |
 
 Corps : un objet d'assignation complet. C'est un remplacement, pas un patch — les champs
 omis retombent sur leurs valeurs par défaut au lieu de conserver les anciennes.
@@ -208,8 +209,9 @@ curl -X DELETE -H "Authorization: Bearer $TOKEN" \
 
 `404` avec `{"error":"Assignment not found"}` si la clé est inconnue. Le fichier de
 configuration est réécrit immédiatement. Les joueurs présents dans la région ne reçoivent
-pas de `stop` ici — le tracker s'en aperçoit à sa vérification suivante et éteint la
-musique en utilisant `defaultFadeOutTicks`.
+pas de `stop` ici — le tracker s'en aperçoit à sa vérification suivante et envoie un
+`stop` portant `defaultFadeOutTicks` : la piste est coupée et ReactiveMusic revient sur
+cette durée.
 
 ---
 

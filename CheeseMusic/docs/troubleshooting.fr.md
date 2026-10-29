@@ -39,15 +39,19 @@ position en « pas de musique ».
 
 ## `[CheeseMusic] CheeseGuard detected but not yet initialized`
 
-**Cause.** `CheeseGuardMod.INSTANCE` ou son `RegionManager` était encore nul quand
-CheeseMusic a exécuté son gestionnaire `SERVER_STARTED`. Les deux mods s'initialisent sur le
-même événement et l'ordre est celui que le loader a choisi.
+(ou sa jumelle, `CheeseGuard RegionManager not yet initialized`)
 
-**Remède.** Redémarre le serveur ; l'ordre est en général stable dès qu'il fonctionne.
+**Cause.** `CheeseGuardMod.INSTANCE` ou son `RegionManager` était encore nul quand
+CheeseMusic a exécuté son gestionnaire `SERVER_STARTED`. Ce n'est pas une course d'ordre de
+chargement : CheeseGuard fixe les deux tout en haut de son propre `onInitialize()`, qui se
+termine toujours avant le démarrage du serveur. Voir cette ligne signifie que
+l'initialisation de CheeseGuard a échoué, et sa propre erreur figure plus haut dans le log.
+
+**Remède.** Corrige ce qui a cassé le démarrage de CheeseGuard, puis redémarre le serveur.
 Contrairement au hook ReactiveMusic, `CheeseGuardHook` **ne retente pas** — `initialized`
 est mis à `true` avant la tentative, donc une initialisation échouée reste échouée pour
-toute la session serveur. Si cela se reproduit à chaque démarrage, cette nouvelle tentative
-est le changement de code nécessaire.
+toute la session serveur. Si cela se reproduit à chaque démarrage, le problème est du côté
+de CheeseGuard, pas ici.
 
 ## `[CheeseMusic] CheeseGuard hook failed: <message>`
 
@@ -82,8 +86,9 @@ cale donc en pleine transition et ne joue rien, tout en maintenant la musique va
 [lecture](playback.fr.md#ce-qui-se-passe-sans-reactivemusic).
 
 **2. Le client n'a pas le resource pack.** Teste-le directement :
-`/playsound cheesemusic:<piste> music @s`. *No sound with that name* signifie que le pack
-manque ou n'est pas activé. *Remède :*
+`/playsound cheesemusic:<piste> music @s`. La commande annonce un succès dans tous les
+cas ; un silence, avec `Unable to play unknown soundEvent` dans le log client, signifie
+que le pack manque ou n'est pas activé. *Remède :*
 [packs de sons](sound-packs.fr.md#livraison-aux-clients).
 
 **3. Le nom de piste de l'assignation n'existe pas.** Compare
@@ -224,13 +229,15 @@ devient `fort.ogg` — renomme ce genre de fichier toi-même d'abord. Les règle
 
 ## Des régions superposées jouent la mauvaise musique
 
-**Cause.** `resolveZoneMusic` renvoie la première région, dans l'ordre d'itération de
-CheeseGuard, qui possède une assignation. La `priority` de CheeseGuard est lue dans
-`ZoneInfo` et jamais utilisée pour la résolution.
+**Cause.** `resolveZoneMusic` renvoie la première région ayant une assignation, dans
+l'ordre que renvoie le `getRegionsAt` de CheeseGuard, c'est-à-dire par `priority`, la plus
+haute d'abord. Deux régions de même priorité sortent dans l'ordre de stockage, et une
+assignation `tag:` sur une région plus prioritaire bat une assignation directe sur une
+région moins prioritaire.
 
-**Remède.** Ne donne pas d'assignations contradictoires à des régions qui se chevauchent.
-Assigne seulement la région extérieure, ou fais de l'intérieure une région séparée qui ne
-se superpose pas. Ce trou est consigné dans
+**Remède.** Donne à la région dont la musique doit gagner une priorité CheeseGuard plus
+haute que celle de la région qui l'entoure. Ou assigne seulement la région extérieure, ou
+fais de l'intérieure une région séparée qui ne se superpose pas. Ce trou est consigné dans
 [architecture](architecture.fr.md#faiblesses-connues).
 
 ---

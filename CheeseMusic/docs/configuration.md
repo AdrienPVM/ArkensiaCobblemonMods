@@ -27,7 +27,7 @@ the next dashboard write will overwrite your edits — see
 |---|---|---|---|
 | `enabled` | boolean | `true` | Master switch. When `false`, `CheeseMusicMod.onTick` skips the tracker entirely, so no zone is evaluated and no packet is sent. Clients keep playing whatever they were last told to play until they leave the world. |
 | `defaultFadeInTicks` | integer | `60` | Stored and exposed over the dashboard, but **not read by the playback path**. See [Keys that do nothing yet](#keys-that-do-nothing-yet). |
-| `defaultFadeOutTicks` | integer | `60` | Fade-out length, in ticks, used when a player leaves a zone that has no assignment of its own to supply a value. 60 ticks = 3 seconds. |
+| `defaultFadeOutTicks` | integer | `60` | Fade-out length, in ticks, used when the assignment of the zone a player was hearing has been deleted before they leave it, so there is nothing left to read a value from. 60 ticks = 3 seconds. |
 | `checkIntervalTicks` | integer | `10` | How often the server re-evaluates which zone every online player stands in. 10 ticks = twice per second. |
 | `defaultVolume` | float | `0.7` | Stored and exposed over the dashboard, but **not read by the playback path**. See [Keys that do nothing yet](#keys-that-do-nothing-yet). |
 | `assignments` | object | `{}` | Map of lookup key to assignment object. A key is either a CheeseGuard zone id, or `tag:<tag>` to match any zone carrying that tag. See [zone music](zone-music.md#resolution-order). |
@@ -52,15 +52,17 @@ hand-edited file can hold `0` — which makes `tickCounter % 0` throw an
 ### `defaultFadeOutTicks`
 
 Used in exactly one place, `ZoneMusicTracker.tick`, when a player's zone changes and the
-zone they just left has no assignment to read a fade-out from:
+key they were hearing no longer has an assignment to read a fade-out from:
 
 ```java
 int fadeOut = oldAssignment != null ? oldAssignment.getFadeOutTicks() : config.getDefaultFadeOutTicks();
 ```
 
-So a player walking out of an unassigned region gets a `stop` carrying this value. A
-player walking between two assigned regions never touches this key, because the region
-they left always supplies its own. What the client does with a fade duration is
+The tracker only ever remembers keys that had an assignment when it resolved them, so a
+player standing in an unassigned region is hearing nothing and gets no `stop` when they
+leave it. The fallback fires in one case: the assignment was deleted from the dashboard
+while the player was inside. Every other `stop` reads `fadeOutTicks` from the assignment
+the player is leaving. What the client does with a fade duration is
 [playback](playback.md#the-fades-are-reactivemusics-fades-not-yours), and it is not what
 the key names suggest.
 
@@ -86,9 +88,9 @@ Each value under `assignments` is serialised by `MusicAssignment.toJson` and rea
 
 | Field | Type | Default when absent | What it does |
 |---|---|---|---|
-| `zoneId` | string | **required** | The CheeseGuard zone id this assignment binds to. `fromJson` calls `obj.get("zoneId").getAsString()` with no presence check, so an entry missing this field throws and aborts the whole config load. |
+| `zoneId` | string | **required** | The CheeseGuard zone id this assignment binds to. `fromJson` calls `obj.get("zoneId").getAsString()` with no presence check, so an entry missing this field throws and stops the load there: the keys and assignments read before it are kept, the ones after it are dropped, and the next dashboard write saves that truncated map over the file. |
 | `zoneName` | string | falls back to `zoneId` | Display label only. Shown in the dashboard; never used for matching. |
-| `tracks` | array of string | `[]` | Bare track names — the `.ogg` filename without its extension, after sanitising. **No namespace prefix.** `ZoneMusicTracker.sendPlay` prepends `cheesemusic:` itself. An empty list means the zone resolves to silence. |
+| `tracks` | array of string | `[]` | Bare track names — the `.ogg` filename without its extension, after sanitising. **No namespace prefix.** `ZoneMusicTracker.sendPlay` prepends `cheesemusic:` itself. An empty list still makes the zone resolve and still sends a `play`, but the client drops it and stays `IDLE`: whatever music was playing carries on. |
 | `mode` | string | `RANDOM` | One of `RANDOM`, `SEQUENTIAL`, `SHUFFLE`. An unrecognised value is swallowed by the `catch (IllegalArgumentException ignored)` block and leaves the mode at `RANDOM`. |
 | `volume` | float | `0.7` | Passed through to the client and into the `SoundInstance` volume. The vanilla music slider still applies on top. |
 | `fadeInTicks` | integer | `60` | How long the client spends fading ReactiveMusic out **before** this zone's track starts. The track itself then starts at full `volume`, with no fade of its own. Floored at 20 ticks client-side. |
@@ -186,12 +188,16 @@ first, because the next write there wipes it.
 
 Reading that file top to bottom:
 
-- `defaultFadeOutTicks` is `90`, so leaving an unassigned region gives ReactiveMusic 4.5
-  seconds to come back up. Leaving `volcano_cave` gives it 6 seconds, because that
-  region's own `fadeOutTicks` of `120` wins.
-- `spawn_plaza` has two tracks in `RANDOM` mode, which with two tracks alternates. The
-  effect is an A/B swap each time the track ends or a player returns to the plaza.
-- `volcano_cave` fades in over one second (`20` ticks) at a low volume. One track in
+- `defaultFadeOutTicks` is `90`, which only matters if one of these assignments is
+  deleted while a player is inside it: ReactiveMusic then gets 4.5 seconds to come back
+  up. Leaving `volcano_cave` normally gives it 6 seconds, from that region's own
+  `fadeOutTicks` of `120`.
+- `spawn_plaza` has two tracks in `RANDOM` mode, which with two tracks alternates: an A/B
+  swap each time a track ends. Every entry into the plaza starts with `spawn_theme`,
+  because the client resets its index to `-1` on each new playlist and the two-track rule
+  then picks index `0`.
+- `volcano_cave` gives ReactiveMusic one second (`20` ticks) to fade out, then starts its
+  track at once at a low volume. One track in
   `SEQUENTIAL` mode loops it indefinitely while the player stays inside.
 - The three names refer to `spawn_theme.ogg`, `spawn_theme_night.ogg` and `volcano.ogg`
   sitting in `resourcepacks/CheeseMusic/assets/cheesemusic/sounds/` on the server, and to

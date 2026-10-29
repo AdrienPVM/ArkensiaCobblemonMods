@@ -11,10 +11,13 @@ config/cobbleshift.json
 The path comes from `FabricLoader.getInstance().getConfigDir().resolve("cobbleshift.json")`
 in `CobbleShiftConfig`, so it follows a relocated config directory. The file is created
 with every key at its default on the first start, if it does not exist yet. The client
-never reads or writes it.
+never reads the server's file. `CobbleShiftMod` is a `main` entrypoint, though, so it
+also runs on every client that has the mod and creates a `cobbleshift.json` in that
+client's own `config/` folder; that copy is used only by a single-player world.
 
 A second file, `config/cobbleshift_npc_transforms.json`, is **not** configuration: it is
-the saved state of the NPC transforms, rewritten by the mod every time an NPC changes. Its
+the saved state of the NPC transforms, rewritten by the mod every time an NPC changes and
+on every server stop. Its
 format is in [NPC transforms](npc-transforms.md#the-save-file). Do not edit it by hand
 while the server runs.
 
@@ -26,7 +29,7 @@ The config is read **once**, in `CobbleShiftMod.onInitialize()`, before the serv
 starts. There is no reload command. A hand edit to the file takes effect on the next
 restart and not before.
 
-The file is written back in three situations, and each one serialises the **in-memory**
+The file is written back in four situations, and each one serialises the **in-memory**
 values, not the file:
 
 | Writer | Keys it changes |
@@ -171,7 +174,7 @@ below.
 
 | Key | Clamp in the setter | What an out-of-range file value does |
 |---|---|---|
-| `abilityTickInterval` | `>= 20` | `0` throws an `ArithmeticException` (`tickCounter % 0`) in the server tick handler on every tick; nothing catches it. A negative value behaves like its absolute value |
+| `abilityTickInterval` | `>= 20` | `0` throws an `ArithmeticException` (`tickCounter % 0`) in the server tick handler on the first tick; nothing catches it, so the server stops with a crash report. A negative value behaves like its absolute value |
 | `abilityEffectDuration` | `>= 40` | `0` or less grants effects that expire at once: abilities appear to do nothing |
 | `attackDamageMultiplier` | `[0.1, 5.0]` | `0` makes projectiles harmless; their status effect still applies |
 | `attackCooldownMultiplier` | `[0.1, 5.0]` | `0` or less lands on the 5-tick floor |

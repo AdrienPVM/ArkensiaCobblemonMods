@@ -53,10 +53,13 @@ index jouable, remonter ReactiveMusic à la place et passer à `FADING_RM_IN`.
 
 Un `play` qui arrive alors qu'on est déjà en `FADING_RM_OUT` ou en `PLAYING` ne relance pas
 la transition. Il remplace la playlist et le volume, de sorte que la **prochaine** piste
-obéit à la nouvelle assignation pendant que la piste en cours se termine. C'est ce qui fait
-qu'un trajet entre deux régions assignées sonne comme un changement de playlist plutôt que
-comme une coupure, et c'est aussi pour cela qu'éditer une assignation depuis le dashboard
-n'interrompt personne.
+obéit à la nouvelle assignation pendant que la piste en cours se termine. En pratique, le
+serveur n'emprunte jamais ce chemin : passer d'une région assignée directement à une autre
+envoie un `stop` pour l'ancienne clé puis un `play` pour la nouvelle, dans le même tick. Le
+client coupe la piste, commence à ramener ReactiveMusic, et le `play` arrive en
+`FADING_RM_IN` (paragraphe suivant). Éditer une assignation depuis le dashboard n'envoie
+aucun paquet : les joueurs déjà à l'intérieur gardent l'ancienne playlist jusqu'à leur
+prochaine entrée dans la région.
 
 Un `play` qui arrive en `FADING_RM_IN` — un joueur qui est sorti d'une région et y revient
 aussitôt — est mis de côté dans `pendingTracksJson` et rejoué une fois le fondu d'entrée

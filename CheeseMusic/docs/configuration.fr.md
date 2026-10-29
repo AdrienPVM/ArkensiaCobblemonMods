@@ -28,7 +28,7 @@ n'a aucun effet, et la prochaine écriture du dashboard écrasera tes modificati
 |---|---|---|---|
 | `enabled` | booléen | `true` | Interrupteur général. À `false`, `CheeseMusicMod.onTick` saute entièrement le tracker : aucune zone n'est évaluée et aucun paquet n'est envoyé. Les clients continuent de jouer ce qu'on leur a dit en dernier jusqu'à ce qu'ils quittent le monde. |
 | `defaultFadeInTicks` | entier | `60` | Stockée et exposée par le dashboard, mais **jamais lue par le chemin de lecture**. Voir [Les clés qui ne font rien](#les-clés-qui-ne-font-rien). |
-| `defaultFadeOutTicks` | entier | `60` | Durée du fondu de sortie, en ticks, utilisée quand un joueur quitte une zone qui n'a pas d'assignation pour fournir sa propre valeur. 60 ticks = 3 secondes. |
+| `defaultFadeOutTicks` | entier | `60` | Durée du fondu de sortie, en ticks, utilisée quand l'assignation de la zone qu'un joueur écoutait a été supprimée avant qu'il en sorte : il ne reste alors rien où lire une valeur. 60 ticks = 3 secondes. |
 | `checkIntervalTicks` | entier | `10` | Fréquence à laquelle le serveur réévalue dans quelle zone se trouve chaque joueur connecté. 10 ticks = deux fois par seconde. |
 | `defaultVolume` | flottant | `0.7` | Stockée et exposée par le dashboard, mais **jamais lue par le chemin de lecture**. Voir [Les clés qui ne font rien](#les-clés-qui-ne-font-rien). |
 | `assignments` | objet | `{}` | Table associant une clé de recherche à un objet d'assignation. Une clé est soit un identifiant de zone CheeseGuard, soit `tag:<tag>` pour viser n'importe quelle zone portant ce tag. Voir [musique de zone](zone-music.fr.md#ordre-de-résolution). |
@@ -55,15 +55,17 @@ cette clé à la main.
 ### `defaultFadeOutTicks`
 
 Utilisée à un seul endroit, `ZoneMusicTracker.tick`, quand la zone d'un joueur change et
-que la zone qu'il vient de quitter n'a aucune assignation d'où lire un fondu de sortie :
+que la clé qu'il écoutait n'a plus d'assignation d'où lire un fondu de sortie :
 
 ```java
 int fadeOut = oldAssignment != null ? oldAssignment.getFadeOutTicks() : config.getDefaultFadeOutTicks();
 ```
 
-Un joueur qui sort d'une région non assignée reçoit donc un `stop` portant cette valeur.
-Un joueur qui passe d'une région assignée à une autre ne touche jamais cette clé, parce
-que la région qu'il quitte fournit toujours la sienne. Ce que le client fait d'une durée de
+Le tracker ne retient que des clés qui avaient une assignation au moment où il les a
+résolues : un joueur dans une région non assignée n'écoute rien et ne reçoit aucun `stop`
+en la quittant. Le repli ne joue que dans un cas : l'assignation a été supprimée depuis le
+dashboard pendant que le joueur était à l'intérieur. Tout autre `stop` lit les
+`fadeOutTicks` de l'assignation que le joueur quitte. Ce que le client fait d'une durée de
 fondu est décrit dans
 [lecture](playback.fr.md#les-fondus-sont-ceux-de-reactivemusic-pas-les-tiens), et ce n'est
 pas ce que le nom des clés suggère.
@@ -90,9 +92,9 @@ Chaque valeur sous `assignments` est sérialisée par `MusicAssignment.toJson` e
 
 | Champ | Type | Défaut si absent | Effet |
 |---|---|---|---|
-| `zoneId` | chaîne | **obligatoire** | L'identifiant de zone CheeseGuard auquel cette assignation se lie. `fromJson` appelle `obj.get("zoneId").getAsString()` sans vérifier la présence du champ : une entrée qui l'omet lève une exception et fait échouer tout le chargement de la configuration. |
+| `zoneId` | chaîne | **obligatoire** | L'identifiant de zone CheeseGuard auquel cette assignation se lie. `fromJson` appelle `obj.get("zoneId").getAsString()` sans vérifier la présence du champ : une entrée qui l'omet lève une exception et arrête le chargement à cet endroit ; les clés et assignations lues avant elle sont gardées, celles d'après sont perdues, et la prochaine écriture du dashboard enregistre cette table tronquée par-dessus le fichier. |
 | `zoneName` | chaîne | retombe sur `zoneId` | Libellé d'affichage seulement. Montré dans le dashboard ; jamais utilisé pour la correspondance. |
-| `tracks` | tableau de chaînes | `[]` | Noms de pistes nus — le nom du fichier `.ogg` sans son extension, après assainissement. **Aucun préfixe de namespace.** `ZoneMusicTracker.sendPlay` ajoute `cheesemusic:` lui-même. Une liste vide fait que la zone se résout en silence. |
+| `tracks` | tableau de chaînes | `[]` | Noms de pistes nus — le nom du fichier `.ogg` sans son extension, après assainissement. **Aucun préfixe de namespace.** `ZoneMusicTracker.sendPlay` ajoute `cheesemusic:` lui-même. Avec une liste vide, la zone se résout quand même et un `play` part quand même, mais le client l'ignore et reste `IDLE` : la musique en cours continue. |
 | `mode` | chaîne | `RANDOM` | Au choix `RANDOM`, `SEQUENTIAL`, `SHUFFLE`. Une valeur inconnue est avalée par le bloc `catch (IllegalArgumentException ignored)` et laisse le mode à `RANDOM`. |
 | `volume` | flottant | `0.7` | Transmis au client puis au volume du `SoundInstance`. Le curseur de musique vanilla s'applique encore par-dessus. |
 | `fadeInTicks` | entier | `60` | Le temps que le client passe à éteindre ReactiveMusic **avant** que la piste de cette zone démarre. La piste démarre ensuite au `volume` plein, sans fondu propre. Plancher de 20 ticks côté client. |
@@ -193,13 +195,16 @@ fichier d'un serveur en marche, arrête d'abord d'utiliser le dashboard : sa pro
 
 Ce fichier se lit de haut en bas :
 
-- `defaultFadeOutTicks` vaut `90`, donc sortir d'une région non assignée laisse 4,5
-  secondes à ReactiveMusic pour remonter. Sortir de `volcano_cave` lui en laisse 6, parce
-  que les `fadeOutTicks` de `120` propres à cette région l'emportent.
-- `spawn_plaza` a deux pistes en mode `RANDOM`, ce qui, avec deux pistes, alterne.
-  L'effet est un échange A/B à chaque fin de piste et à chaque retour du joueur sur la
-  place.
-- `volcano_cave` monte en une seconde (`20` ticks) à volume faible. Une seule piste en
+- `defaultFadeOutTicks` vaut `90`, ce qui ne compte que si l'une de ces assignations est
+  supprimée pendant qu'un joueur s'y trouve : ReactiveMusic a alors 4,5 secondes pour
+  remonter. Sortir normalement de `volcano_cave` lui en laisse 6, grâce aux `fadeOutTicks`
+  de `120` propres à cette région.
+- `spawn_plaza` a deux pistes en mode `RANDOM`, ce qui, avec deux pistes, alterne : un
+  échange A/B à chaque fin de piste. Chaque entrée sur la place commence par
+  `spawn_theme`, parce que le client remet son index à `-1` à chaque nouvelle liste et que
+  la règle des deux pistes choisit alors l'index `0`.
+- `volcano_cave` laisse une seconde (`20` ticks) à ReactiveMusic pour s'effacer, puis
+  démarre aussitôt sa piste à volume faible. Une seule piste en
   mode `SEQUENTIAL` la boucle indéfiniment tant que le joueur reste à l'intérieur.
 - Les trois noms renvoient à `spawn_theme.ogg`, `spawn_theme_night.ogg` et `volcano.ogg`
   posés dans `resourcepacks/CheeseMusic/assets/cheesemusic/sounds/` sur le serveur, et au

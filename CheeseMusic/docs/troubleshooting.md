@@ -38,14 +38,18 @@ the loader will not warn you — the mod starts happily and resolves every posit
 
 ## `[CheeseMusic] CheeseGuard detected but not yet initialized`
 
-**Cause.** `CheeseGuardMod.INSTANCE` or its `RegionManager` was still null when CheeseMusic
-ran its `SERVER_STARTED` handler. Both mods initialise on the same event and the order is
-whatever the loader chose.
+(or its sibling, `CheeseGuard RegionManager not yet initialized`)
 
-**Fix.** Restart the server; the order is usually stable once it works. Unlike the
+**Cause.** `CheeseGuardMod.INSTANCE` or its `RegionManager` was still null when CheeseMusic
+ran its `SERVER_STARTED` handler. This is not a load-order race: CheeseGuard sets both at
+the top of its own `onInitialize()`, which always finishes before any server starts. Seeing
+this line means CheeseGuard's initialisation failed, and its own error is earlier in the
+log.
+
+**Fix.** Fix whatever broke CheeseGuard's start-up, then restart the server. Unlike the
 ReactiveMusic hook, `CheeseGuardHook` **does not retry** — `initialized` is set to `true`
 before the attempt, so a failed init stays failed for the whole server session. If it
-recurs on every start, that retry is the code change needed.
+recurs on every start, the problem is on CheeseGuard's side, not here.
 
 ## `[CheeseMusic] CheeseGuard hook failed: <message>`
 
@@ -80,7 +84,8 @@ mid-transition and plays nothing, while also keeping vanilla music suppressed. L
 [playback](playback.md#what-happens-without-reactivemusic).
 
 **2. The client does not have the resource pack.** Test it directly:
-`/playsound cheesemusic:<track> music @s`. *No sound with that name* means the pack is
+`/playsound cheesemusic:<track> music @s`. The command reports success either way;
+silence, with `Unable to play unknown soundEvent` in the client log, means the pack is
 missing or not enabled. *Fix:* [sound packs](sound-packs.md#delivery-to-clients).
 
 **3. The track name in the assignment does not exist.** Compare
@@ -215,12 +220,14 @@ such files yourself first. Rules: [sound packs](sound-packs.md#filename-sanitisi
 
 ## Overlapping regions play the wrong music
 
-**Cause.** `resolveZoneMusic` returns the first region in CheeseGuard's iteration order
-that has an assignment. CheeseGuard's `priority` is read into `ZoneInfo` and never used for
-resolution.
+**Cause.** `resolveZoneMusic` returns the first region with an assignment in the order
+CheeseGuard's `getRegionsAt` returns them, which is by `priority`, highest first. Two
+regions with the same priority come out in storage order, and a `tag:` assignment on a
+higher-priority region beats a direct assignment on a lower one.
 
-**Fix.** Do not give overlapping regions conflicting assignments. Assign the outer region
-only, or make the inner one a separate non-overlapping region. The gap is recorded in
+**Fix.** Give the region whose music should win a higher CheeseGuard priority than the
+region around it. Or assign the outer region only, or make the inner one a separate
+non-overlapping region. The gap is recorded in
 [architecture](architecture.md#known-weaknesses).
 
 ---

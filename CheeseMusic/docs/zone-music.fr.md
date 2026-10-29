@@ -38,9 +38,11 @@ Une clé de recherche n'est pas toujours un identifiant de zone. C'est soit :
 - un **identifiant de zone**, qui correspond exactement à une région, soit
 - `tag:<tag>`, qui correspond à n'importe quelle région portant ce tag CheeseGuard.
 
-Les deux formes cohabitent dans la même table `assignments`, et c'est pourquoi la clé et le
-champ interne `zoneId` peuvent différer : pour une assignation par tag, la clé est
-`tag:cave` tandis que `zoneId` contient ce que le dashboard y a écrit.
+Les deux formes cohabitent dans la même table `assignments`. `POST /assignments` range une
+entrée sous son propre `zoneId` : une assignation par tag est donc créée avec
+`"zoneId": "tag:cave"`, et la clé et le champ concordent. Ils ne peuvent diverger que par
+un `PUT /assignments/:zoneId` portant un autre `zoneId` dans le corps, ou par une
+modification à la main ; c'est la clé que les recherches utilisent.
 
 ---
 
@@ -64,18 +66,19 @@ recherche, ou en `null` pour le silence :
 Une assignation directe de zone bat donc une assignation par tag **sur la même région**,
 mais une assignation par tag sur une région plus tôt dans la liste bat une assignation
 directe sur une région plus tard. L'ordre des régions est celui que produit le
-`getRegionsAt` de CheeseGuard.
+`getRegionsAt` de CheeseGuard : par priorité, la plus haute d'abord.
 
-### La priorité est lue mais jamais utilisée
+### La priorité vient de l'ordre de CheeseGuard
 
-`ZoneInfo` porte la `priority` de CheeseGuard, et `GET /api/v1/music/zones` la rapporte,
-mais `resolveZoneMusic` ne trie jamais dessus. Des régions qui se chevauchent se résolvent
-donc selon l'ordre d'itération de CheeseGuard, et non selon la priorité que tu as réglée
-dans CheeseGuard. Savoir si cet ordre d'itération reflète déjà la priorité dépend du
-`RegionManager.getRegionsAt` de CheeseGuard lui-même, que ce mod appelle par réflexion sans
-l'inspecter. Considère le comportement de régions assignées qui se chevauchent comme
-indéfini, et évite de donner à deux régions superposées des musiques contradictoires. C'est
-un vrai trou, pas une subtilité — il est repris dans
+`ZoneInfo` porte la `priority` de CheeseGuard, et `GET /api/v1/music/zones` la rapporte.
+`resolveZoneMusic` ne trie jamais dessus lui-même, et n'en a pas besoin : le
+`RegionManager.getRegionsAt` de CheeseGuard renvoie les régions triées par `priority`, la
+plus haute d'abord. Parmi des régions qui se chevauchent, c'est donc la plus prioritaire
+ayant une assignation correspondante (directe ou par tag) qui gagne. Des régions de même
+priorité gardent l'ordre de stockage de CheeseGuard, que tu ne maîtrises pas : donne des
+priorités différentes à des régions superposées qui ont des musiques différentes. La
+dépendance est implicite — si CheeseGuard cessait de trier, ce mod suivrait sans rien
+signaler — et elle est reprise dans
 [architecture](architecture.fr.md#faiblesses-connues).
 
 ---
@@ -206,14 +209,17 @@ vérification suivante. Si la destination n'a aucune région assignée, le joueu
 
 **Une assignation supprimée pendant que quelqu'un écoute.** La vérification suivante résout
 une autre clé (ou `null`), et le fondu du `stop` retombe sur `defaultFadeOutTicks`, parce
-que `config.getAssignment(oldKey)` renvoie maintenant `null`. La musique s'éteint en fondu
-au lieu d'être coupée net, ce qui est le bon comportement, obtenu par accident.
+que `config.getAssignment(oldKey)` renvoie maintenant `null`. La piste de zone est quand
+même coupée net ; la valeur ne règle que le temps que met ReactiveMusic à revenir. C'est le
+seul cas où `defaultFadeOutTicks` est lu.
 
 **Une liste `tracks` vide.** Le serveur envoie quand même un `play`. Le client analyse une
-playlist vide, ne trouve aucune piste à choisir, et ramène les couches vanilla et
-ReactiveMusic. Le résultat net est du silence, atteint par une transition — pas une erreur.
+playlist vide et rend la main avant de quitter `IDLE` : ni fondu, ni suppression. La
+musique vanilla ou ReactiveMusic continue simplement, comme si la région n'avait pas
+d'assignation. Pas une erreur, et pas du silence non plus.
 
-**`lastPos` et `lastSendTime`.** Les deux sont écrits à chaque tick et lus nulle part. Ils
+**`lastPos` et `lastSendTime`.** `lastPos` est écrit à chaque vérification, `lastSendTime`
+à chaque changement de zone, et aucun des deux n'est lu nulle part. Ils
 ressemblent au début d'un anti-rebond basé sur le déplacement, jamais terminé.
 
 ---

@@ -220,10 +220,11 @@ peut s'attacher à une méthode sans rapport et la détection de combat devient 
 moindre erreur. Le nom de la méthode choisie est journalisé, et c'est le seul moyen de
 vérifier.
 
-**La priorité de CheeseGuard est ignorée.** `resolveZoneMusic` prend la première région
-assignée dans l'ordre d'itération de CheeseGuard et ne consulte jamais la `priority` qu'il a
-déjà en main. Des régions assignées qui se chevauchent se résolvent de façon imprévisible du
-point de vue de ce mod.
+**La gestion de la priorité est empruntée à CheeseGuard.** `resolveZoneMusic` prend la
+première région assignée dans l'ordre que renvoie `getRegionsAt` et ne consulte jamais la
+`priority` qu'il a déjà en main. Cet ordre se trouve être la priorité, la plus haute
+d'abord, parce que CheeseGuard le trie ; à priorité égale, c'est l'ordre de stockage. Rien
+dans ce mod ne vérifie cette hypothèse.
 
 **Aucune synchronisation entre le thread HTTP et le thread de tick**, comme décrit plus
 haut.

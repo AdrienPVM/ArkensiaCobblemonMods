@@ -51,7 +51,6 @@ cd /srv/mc && java -Xmx4G -jar fabric-server-launch.jar nogui
 [CheeseMusic] Initialized successfully!
 [CheeseMusic] Created resource pack at: /srv/mc/resourcepacks/CheeseMusic
 [CheeseMusic] Place .ogg files in: /srv/mc/resourcepacks/CheeseMusic/assets/cheesemusic/sounds
-[CheeseMusic] Found 0 tracks in resource pack
 [CheeseMusic] CheeseGuard detected — zone music enabled
 [CheeseMusic] Server started — 0 assignments loaded
 ```
@@ -176,8 +175,10 @@ Now verify, in game:
 ```
 
 **Expect to hear:** your track. This is the checkpoint of the whole tutorial — if it fails
-here, no assignment will ever work. *No sound with that name* means the client cannot
-resolve the event: the pack is not enabled, or `pack.mcmeta` is nested one directory too
+here, no assignment will ever work. The command reports success whether or not the sound
+exists, so the test is your ears: silence, with
+`Unable to play unknown soundEvent: cheesemusic:volcano_theme` in the client log, means
+the client cannot resolve the event: the pack is not enabled, or `pack.mcmeta` is nested one directory too
 deep inside the zip. [Sound packs](sound-packs.md#delivery-to-clients) covers the three
 real distribution routes for when you move past testing on your own client.
 
@@ -241,9 +242,9 @@ curl -s -X PUT -H "Authorization: Bearer $TOKEN" \
 Upload `volcano_calm` first, the same way as step 6. `PUT` is a full replace, not a patch —
 every field you omit falls back to its default rather than keeping its old value.
 
-**Expect:** if you were already inside the region, nothing audible changes. The current
-track finishes, and the **next** one comes from the new list. That is deliberate: editing
-an assignment never interrupts a player.
+**Expect:** if you were already inside the region, nothing audible changes, and nothing
+will while you stay: an edit sends no packet, so your client keeps looping the old
+one-track playlist. Walk out and back in to get the new list.
 
 ## Where to go next
 

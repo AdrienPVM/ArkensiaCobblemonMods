@@ -84,7 +84,9 @@ against the server's working directory. On a normal server layout the two land i
 same place. On an unusual one they do not — see
 [architecture](architecture.md#state-and-disk).
 
-Neither file is created by the client. A client-side install writes nothing to disk.
+The client never creates the NPC file. It does create its own `config/cobbleshift.json`:
+`CobbleShiftMod` is a `main` entrypoint, so it also runs on the client at launch and writes
+the default config there. That copy only matters in single-player.
 
 ## Proving it loaded
 
@@ -171,13 +173,13 @@ what to do with the leftovers:
 | infinite ambient Invisibility | **no** | same |
 | a type projectile in flight | yes | it is discarded as an unknown entity on load |
 
-The last two are the reason for reverting first. If you removed the jar while a player
+The two rows marked **no** are the reason for reverting first. If you removed the jar while a player
 was transformed, that player stays invisible and mis-scaled with no mod left to clean it
 up; the fix is `/attribute <player> minecraft:generic.scale modifier remove
 cobbleshift:transform_scale` for each of the three, plus `/effect clear <player>
-minecraft:invisibility`. Putting the jar back and running `/cshift revertall` is easier,
-and a join with the jar present triggers `cleanupStaleTransform()` which does exactly
-this sweep automatically.
+minecraft:invisibility`. Putting the jar back is easier: `/cshift revertall` would find
+nothing, since the transform list did not survive the restart, but a join with the jar
+present triggers `cleanupStaleTransform()`, which does exactly this sweep automatically.
 
 ---
 

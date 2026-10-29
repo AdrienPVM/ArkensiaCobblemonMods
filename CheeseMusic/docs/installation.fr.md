@@ -145,7 +145,6 @@ Côté **serveur**, à `SERVER_STARTED`, dans cet ordre :
 [CheeseMusic] Loaded config with 0 assignments
 [CheeseMusic] Created resource pack at: /srv/mc/resourcepacks/CheeseMusic
 [CheeseMusic] Place .ogg files in: /srv/mc/resourcepacks/CheeseMusic/assets/cheesemusic/sounds
-[CheeseMusic] Found 0 tracks in resource pack
 [CheeseMusic] CheeseGuard detected — zone music enabled
 [CheeseMusic] Cobblemon detected — battle detection via getBattleByParticipatingPlayerId()
 [CheeseMusic] Server started — 0 assignments loaded
@@ -153,7 +152,9 @@ Côté **serveur**, à `SERVER_STARTED`, dans cet ordre :
 
 La ligne `Loaded config with N assignments` est absente au tout premier démarrage, parce
 qu'un fichier fraîchement écrit prend le retour anticipé de `load`. Les deux lignes de
-resource pack n'apparaissent que si le répertoire a dû être créé.
+resource pack n'apparaissent que si le répertoire a dû être créé ; cette branche rend la
+main sans compter les pistes. À chaque démarrage suivant, elles sont remplacées par
+`[CheeseMusic] Found <n> tracks in resource pack`.
 
 Trois de ces lignes sont des diagnostics à lire chaque fois :
 
@@ -175,7 +176,11 @@ Côté **client** :
 ci-dessus, et c'est la ligne la plus utile du log client. Elle peut aussi être
 légitimement absente au démarrage : `ReactiveMusicHook.isAvailable()` réessaie à chaque
 appel, parce que le champ `thread` de ReactiveMusic est nul jusqu'à ce que son propre
-lecteur démarre. La ligne apparaît alors plus tard, au premier fondu.
+lecteur démarre. La ligne apparaît alors plus tard, au premier fondu. Ce nouvel essai a un
+effet de bord quand ReactiveMusic est vraiment absent : `ReactiveMusic not installed` est
+journalisé de nouveau à chaque `play` et à chaque `stop` reçus par le client, si bien qu'un
+log qui en est rempli signifie simplement que le joueur a franchi beaucoup de frontières de
+région.
 
 ## Vérifier en jeu
 

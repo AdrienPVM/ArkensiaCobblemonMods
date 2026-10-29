@@ -2,8 +2,9 @@
 
 # Sound packs
 
-**CheeseMusic contains no audio.** Search the jar and you will find sixteen class files,
-two tiny language files, a mixin config and `fabric.mod.json` — no `.ogg`, no
+**CheeseMusic contains no audio.** Search the jar and you will find twenty class files
+(the sixteen source classes plus their nested and synthetic ones), two tiny language
+files, a mixin config with its refmap and `fabric.mod.json` — no `.ogg`, no
 `sounds.json`, no `assets/cheesemusic/sounds/` directory. Every track you hear in a zone
 is a file you supplied.
 
@@ -61,7 +62,9 @@ The generated `pack.mcmeta` is exactly this:
 
 `34` is the resource pack format for 1.21.1. The file is written **only when it does not
 already exist**, so you can replace it with your own description, add a `pack.png`, or
-widen the `supported_formats` range, and the mod will leave your version alone.
+widen the `supported_formats` range, and the mod will leave your version alone. It is
+also written only by a scan that has to create `sounds/`: delete `pack.mcmeta` while
+`sounds/` is still there and it does not come back.
 
 ⚠️ The directory is named `resourcepacks/`, which on a dedicated server is not a
 directory vanilla reads for anything. Nothing on the server loads this pack. It is a
@@ -223,8 +226,10 @@ In-game, with the pack enabled:
 /playsound cheesemusic:volcano_theme music @s
 ```
 
-Hearing the track means the pack is loaded and the event id is right. The vanilla error
-*No sound with that name* means the client cannot resolve it — the pack is not enabled,
+Hearing the track means the pack is loaded and the event id is right. `/playsound` does
+not validate the id, so the command reports success either way; silence means the client
+cannot resolve it, and the client log then shows
+`Unable to play unknown soundEvent: cheesemusic:volcano_theme`. The pack is not enabled,
 or `sounds.json` does not list that name, or the `.ogg` is missing from the zip.
 
 Fix this before touching assignments. Everything downstream assumes the client can

@@ -23,9 +23,9 @@ Three pieces of state, all held by `AbilityManager`:
 | `disabledPlayers` | UUIDs that opted out, set by `/cshift ability toggle` | no |
 | `abilityGlobalEnabled` | the master switch | **yes**, in `config/cobbleshift.json` |
 
-Only the master switch survives a restart. Per-player opt-outs and active abilities are
-rebuilt from the party on the next refresh tick, which is usually what you want: nothing
-to clean up after a crash.
+Only the master switch survives a restart. Per-player opt-outs are lost, and forced
+abilities with them; automatic abilities are rebuilt from the party on the next refresh
+tick, which is usually what you want: nothing to clean up after a crash.
 
 An ability can be in one of two modes:
 
@@ -161,10 +161,10 @@ receives it. The effects still apply — only the display is missing.
 
 | Action | Command | Dashboard |
 |---|---|---|
-| turn the subsystem on or off | `/cshift ability global enable\|disable` | `PUT /api/v1/shift/config` |
-| pin a player to a species | `/cshift ability <player> <pokemon>` | — |
-| release that pin | `/cshift ability <player>` | — |
-| opt one player out | `/cshift ability toggle <player>` | — |
+| turn the subsystem on or off | `/cshift ability global enable\|disable` | `POST /api/v1/shift/ability/global` (or `PUT /api/v1/shift/config`, which does not clear the active abilities) |
+| pin a player to a species | `/cshift ability <player> <pokemon>` | `POST /api/v1/shift/ability` with `species` |
+| release that pin | `/cshift ability <player>` | `POST /api/v1/shift/ability` without `species` |
+| opt one player out | `/cshift ability toggle <player>` | `POST /api/v1/shift/ability/toggle` |
 | see what is active | `/cshift list` | `GET /api/v1/shift/abilities` |
 
 `forceAbility` does not validate the species: an unknown name stores `normal` as the type

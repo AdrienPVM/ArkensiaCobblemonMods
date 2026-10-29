@@ -61,7 +61,7 @@ Five formulas in `SpeciesMapper`, all linear and all reading Cobblemon base stat
 
 | Formula | Code | Range |
 |---|---|---|
-| movement speed | `0.1 + (baseSpeed − 80) / 800` | roughly 0.04 to 0.22 |
+| movement speed | `0.1 + (baseSpeed − 80) / 800` | roughly 0.006 (base 5) to 0.25 (base 200) |
 | max health | `10 + baseHP / 15` | roughly 10 to 27 |
 | scale | `clamp(effectiveHitboxHeight / 1.8, 0.15, 2.5)` | 0.15 to 2.5 |
 | attack damage | `min(12, 2 + max(atk, spAtk) / 25)` | 2 to 12 |
@@ -169,7 +169,7 @@ to lock. The field is dead weight left over from a design that was not built.
 | `/cshift revert <player>` | any time |
 | `/cshift revertall` | any time |
 | `POST /api/v1/shift/revert` or `/revertall` | OPERATOR role |
-| CheeseGuard's `REVERT_ALL` effect | during an event |
+| CheeseGuard's `TRANSFORM_REVERT_ALL` effect | during an event |
 | CheeseKart session end | if the racer was transformed by the kart |
 | max duration expiry | `transformMaxDurationEnabled` is on and `transformMaxDurationSeconds` elapsed |
 | server stop | `SERVER_STOPPING` calls `revertAll()` |
@@ -190,8 +190,9 @@ transformed again for `transformCooldownSeconds`. Two things about it are easy t
   *return* to Pokémon form, not how often they can change species.
 
 When the cooldown blocks a transform, the refusal message goes to the **target player** on
-their action bar. The admin who typed the command sees nothing, and an API caller gets the
-generic "species not found" error.
+their action bar. The admin who typed the command gets the generic
+`Failed: species '<name>' not found or Cobblemon not available` error, and an API caller
+the equivalent `400`.
 
 ⚠️ `autoRevertOnDeath` defaults to `true` and **does nothing**. `TransformManager.onPlayerDeath()`
 implements it correctly, but no caller exists anywhere in the mod: no death mixin, no
@@ -234,7 +235,7 @@ Three callers outside the command tree, all documented in
 
 - **CheeseDash** — `POST /api/v1/shift/transform`, species only, no shiny and no form.
 - **CheeseGuard** — the `TRANSFORM_ALL`, `TRANSFORM_RANDOM`, `TRANSFORM_BY_TEAM` and
-  `REVERT_ALL` event effects.
+  `TRANSFORM_REVERT_ALL` event effects.
 - **CheeseKart** — transforms a racer on session start, reverts on session end.
 
 The last two reach in by reflection on `getTransformManager().transform(player, species)`

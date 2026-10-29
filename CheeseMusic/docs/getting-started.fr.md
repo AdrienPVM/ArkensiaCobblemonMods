@@ -51,7 +51,6 @@ cd /srv/mc && java -Xmx4G -jar fabric-server-launch.jar nogui
 [CheeseMusic] Initialized successfully!
 [CheeseMusic] Created resource pack at: /srv/mc/resourcepacks/CheeseMusic
 [CheeseMusic] Place .ogg files in: /srv/mc/resourcepacks/CheeseMusic/assets/cheesemusic/sounds
-[CheeseMusic] Found 0 tracks in resource pack
 [CheeseMusic] CheeseGuard detected — zone music enabled
 [CheeseMusic] Server started — 0 assignments loaded
 ```
@@ -179,8 +178,10 @@ Vérifie maintenant, en jeu :
 ```
 
 **Tu dois entendre :** ta piste. C'est le point de contrôle de tout le tutoriel — si ça
-échoue ici, aucune assignation ne fonctionnera jamais. *No sound with that name* signifie
-que le client ne résout pas l'événement : le pack n'est pas activé, ou `pack.mcmeta` est
+échoue ici, aucune assignation ne fonctionnera jamais. La commande annonce un succès que le
+son existe ou non : c'est ton oreille qui juge. Un silence, avec
+`Unable to play unknown soundEvent: cheesemusic:volcano_theme` dans le log client,
+signifie que le client ne résout pas l'événement : le pack n'est pas activé, ou `pack.mcmeta` est
 imbriqué un répertoire trop profond dans le zip.
 [Packs de sons](sound-packs.fr.md#livraison-aux-clients) couvre les trois vraies voies de
 distribution, pour quand tu dépasseras le test sur ton propre client.
@@ -249,9 +250,10 @@ curl -s -X PUT -H "Authorization: Bearer $TOKEN" \
 Téléverse d'abord `volcano_calm`, comme à l'étape 6. `PUT` est un remplacement complet, pas
 un patch : chaque champ omis retombe sur son défaut au lieu de garder son ancienne valeur.
 
-**Attendu :** si tu étais déjà dans la région, rien ne change à l'oreille. La piste en
-cours se termine, et la **suivante** vient de la nouvelle liste. C'est voulu : éditer une
-assignation n'interrompt jamais un joueur.
+**Attendu :** si tu étais déjà dans la région, rien ne change à l'oreille, et rien ne
+changera tant que tu y restes : une modification n'envoie aucun paquet, ton client continue
+donc de boucler l'ancienne liste d'une seule piste. Sors puis rentre pour recevoir la
+nouvelle liste.
 
 ## Et ensuite
 

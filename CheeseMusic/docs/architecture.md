@@ -213,9 +213,11 @@ returning a reference type. If the preferred name disappears, the fallback can b
 unrelated method and battle detection becomes nonsense without any error. The chosen
 method name is logged, which is the only way to check.
 
-**CheeseGuard priority is ignored.** `resolveZoneMusic` takes the first assigned region in
-CheeseGuard's iteration order and never consults the `priority` it already has in hand.
-Overlapping assigned regions resolve unpredictably from this mod's point of view.
+**Priority handling is borrowed from CheeseGuard.** `resolveZoneMusic` takes the first
+assigned region in the order `getRegionsAt` returns and never consults the `priority` it
+already has in hand. That order happens to be priority, highest first, because CheeseGuard
+sorts it; equal priorities fall back to storage order. Nothing in this mod checks that
+assumption.
 
 **No synchronisation between the HTTP thread and the tick thread**, as described above.
 

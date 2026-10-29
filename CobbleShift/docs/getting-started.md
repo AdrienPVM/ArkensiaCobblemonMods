@@ -58,7 +58,8 @@ Steve sees `✦ You are transformed into charizard!` and, on his screen:
 
 - the camera snaps to third person and F5 no longer does anything
 - a Charizard model where his player model was
-- no held item, no arms, no nametag, no crosshair
+- no held item, no arms, no nametag, and a plain white cross drawn by the mod instead of
+  the vanilla crosshair
 - a Charizard cry, if he is within 32 blocks of himself, which he is
 
 Everyone else sees a Charizard too, as long as they have the mod. A vanilla client sees
@@ -159,12 +160,13 @@ This is the other half of the mod, and it is off in a fresh config.
 ✦ Global abilities enabled
 ```
 
-This is the one subcommand that writes to disk, so the switch survives a restart.
+This is the one subcommand that writes the config file, so the switch survives a restart.
 
 Now have Alex put a Gengar in her first party slot and wait. Within five seconds —
 `abilityTickInterval` is 100 ticks by default — she goes invisible and the ability HUD
-appears. Swap her lead to a Charizard and, on the next refresh, the invisibility is
-replaced by Fire Resistance.
+appears. Swap her lead to a Charizard and, on the next refresh, she gets Fire Resistance;
+the invisibility is no longer refreshed and runs out within `abilityEffectDuration`
+(eight seconds by default).
 
 ⚠️ Ghost-type leads grant real, indefinitely refreshed Invisibility to anyone who catches
 a Gastly. On a PvP server, decide about that before you leave the subsystem on. The full
@@ -198,14 +200,15 @@ And release the pin:
 
 ```text
 ═══ CobbleShift Status ═══
-Active transforms: 1
-  • Steve → charizard (BST=534, 7min)
+Active transforms: 0
 Active abilities: 1
-  • charizard (fire) [FORCED]
+  • charizard (fire)
 Global abilities: ON
 ```
 
-The ability lines carry no player name — the record holds a UUID and the command never
+No transform is listed, since you reverted Steve in step 5, and Alex's ability is no longer
+marked `[FORCED]` since you released the pin. The ability lines carry no player name — the
+record holds a UUID and the command never
 resolves it. If you need the name, read `GET /api/v1/shift/abilities` instead, which
 joins it for you.
 
@@ -233,8 +236,8 @@ Now stop and restart the server. The log shows:
 [CobbleShift] Loaded 1 NPC transform(s), will re-apply on first tick
 ```
 
-The Snorlax is still a Snorlax. Steve, by contrast, is himself again: `SERVER_STOPPING`
-reverted him. Player transforms are session state; NPC transforms are saved. The
+The Snorlax is still a Snorlax. A player still transformed at that point would, by
+contrast, be himself again: `SERVER_STOPPING` reverts every player transform. Player transforms are session state; NPC transforms are saved. The
 difference and its consequences are in [NPC transforms](npc-transforms.md).
 
 ## 9. Tune it from the dashboard

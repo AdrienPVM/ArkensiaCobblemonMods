@@ -34,9 +34,10 @@ A lookup key is not always a zone id. It is either:
 - a **zone id**, matching one region exactly, or
 - `tag:<tag>`, matching any region that carries that CheeseGuard tag.
 
-Both forms sit in the same `assignments` map, which is why the key and the inner `zoneId`
-field can differ: for a tag assignment the key is `tag:cave` while `zoneId` holds whatever
-the dashboard wrote there.
+Both forms sit in the same `assignments` map. `POST /assignments` files an entry under its
+own `zoneId`, so a tag assignment is created with `"zoneId": "tag:cave"` and the key and
+the field agree. They can only drift apart through `PUT /assignments/:zoneId` with a
+different `zoneId` in the body, or a hand edit; the key is what lookups use.
 
 ---
 
@@ -58,18 +59,19 @@ or `null` for silence:
 
 So a direct zone assignment beats a tag assignment **on the same region**, but a tag
 assignment on an earlier region beats a direct assignment on a later one. The order of
-regions is whatever CheeseGuard's `getRegionsAt` produces.
+regions is whatever CheeseGuard's `getRegionsAt` produces: by priority, highest first.
 
-### Priority is read but never used
+### Priority comes from CheeseGuard's ordering
 
-`ZoneInfo` carries CheeseGuard's `priority`, and `GET /api/v1/music/zones` reports it, but
-`resolveZoneMusic` never sorts on it. Overlapping regions therefore resolve by
-CheeseGuard's iteration order, not by the priority you set in CheeseGuard. Whether that
-iteration order already reflects priority depends on CheeseGuard's own
-`RegionManager.getRegionsAt`, which this mod calls reflectively and does not inspect.
-Treat the behaviour of overlapping assigned regions as undefined, and avoid giving two
-overlapping regions conflicting music. This is a real gap, not a subtlety — it is listed
-again in [architecture](architecture.md#known-weaknesses).
+`ZoneInfo` carries CheeseGuard's `priority`, and `GET /api/v1/music/zones` reports it.
+`resolveZoneMusic` never sorts on it itself, and does not need to: CheeseGuard's
+`RegionManager.getRegionsAt` returns the regions sorted by `priority`, highest first. So
+among overlapping regions, the highest-priority one that has a matching assignment
+(direct or by tag) wins. Regions of equal priority keep CheeseGuard's storage order,
+which you do not control; give overlapping regions with different music different
+priorities. The dependency is implicit — if CheeseGuard ever stopped sorting, this mod
+would follow without notice — and it is listed again in
+[architecture](architecture.md#known-weaknesses).
 
 ---
 
@@ -194,14 +196,17 @@ player gets a `stop`; the fade-out comes from the region they left.
 
 **An assignment deleted while someone is listening.** The next check resolves a different
 key (or `null`), and the stop fade falls back to `defaultFadeOutTicks`, because
-`config.getAssignment(oldKey)` now returns `null`. The music fades out rather than
-cutting, which is the right behaviour, arrived at by accident.
+`config.getAssignment(oldKey)` now returns `null`. The zone track is still cut at once;
+the value only sets how long ReactiveMusic takes to come back. This is the one case where
+`defaultFadeOutTicks` is read.
 
 **An empty `tracks` list.** The server still sends a `play`. The client parses an empty
-playlist, finds no track to pick, and fades the vanilla and ReactiveMusic layers back in.
-The net effect is silence, reached through a transition — not an error.
+playlist and returns before leaving `IDLE`: no fade, no suppression. Vanilla music or
+ReactiveMusic simply carries on, as if the region had no assignment. Not an error, and
+not silence either.
 
-**`lastPos` and `lastSendTime`.** Both are written on every tick and read nowhere. They
+**`lastPos` and `lastSendTime`.** `lastPos` is written on every check, `lastSendTime` on
+every zone change, and neither is read anywhere. They
 look like the start of a movement-based debounce that was never finished.
 
 ---

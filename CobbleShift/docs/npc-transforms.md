@@ -168,7 +168,7 @@ stripping it.
 | `SERVER_STARTED` | `load()` reads the file, if it exists, into the map |
 | first server tick after a non-empty load | logs that the transforms are ready, nothing more |
 | each transform, revert, scale or speed change | `save()` rewrites the whole file |
-| `revertallnpc` | one `save()` per reverted NPC, then one more |
+| `revertallnpc` | one `save()` per reverted NPC whose entity is loaded, then one more |
 | `SERVER_STOPPING` | `save()`, **unconditionally**, even with nothing to save |
 
 The last row means a clean stop always leaves a file behind, containing `[]` if no NPC was
@@ -213,9 +213,7 @@ A JSON array, one object per NPC:
     "npcUuid": "1a2b3c4d-0000-4000-8000-000000000001",
     "species": "snorlax",
     "shiny": false,
-    "form": null,
-    "type1": "normal",
-    "type2": null
+    "type1": "normal"
   },
   {
     "npcUuid": "1a2b3c4d-0000-4000-8000-000000000002",
@@ -223,7 +221,6 @@ A JSON array, one object per NPC:
     "shiny": true,
     "form": "midnight",
     "type1": "rock",
-    "type2": null,
     "scale": 1.5,
     "speed": 2.0
   }
@@ -231,7 +228,9 @@ A JSON array, one object per NPC:
 ```
 
 `scale` and `speed` are written only when they differ from `1.0`, and read back as `1.0`
-when absent. `form`, `type1` and `type2` are written as JSON `null` when empty.
+when absent. `form`, `type1` and `type2` are **omitted** when they are `null`: the Gson
+instance that writes the file does not serialise nulls, so a key set to `null` is dropped.
+`load()` reads a missing key back as `null`.
 
 Editing the file by hand works only with the server stopped: the next change in game
 overwrites it from memory. A `species` value is not re-validated on load, so a typo

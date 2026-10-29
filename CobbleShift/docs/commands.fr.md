@@ -110,11 +110,11 @@ vérifier que l'ordre de tes mots a produit les aspects voulus.
 | Message | Cause |
 |---|---|
 | `Échec : espèce '<name>' introuvable ou Cobblemon non disponible` | `SpeciesMapper.resolve()` n'a rien renvoyé. Soit le nom d'espèce est faux, soit Cobblemon n'est pas installé, auquel cas **toutes** les transformations échouent de cette façon |
-| `⛔ Cooldown : encore <n>s avant de pouvoir se transformer.` | `transformCooldownEnabled` est actif et le joueur a annulé sa transformation il y a moins de `transformCooldownSeconds`. Envoyé au **joueur ciblé** dans la barre d'action, pas à celui qui lance la commande ; la commande renvoie seulement 0 |
+| `⛔ Cooldown : encore <n>s avant de pouvoir se transformer.` | `transformCooldownEnabled` est actif et le joueur a annulé sa transformation il y a moins de `transformCooldownSeconds`. Envoyé au **joueur ciblé** dans la barre d'action. Celui qui lance la commande reçoit à la place la ligne générique `Échec : espèce … introuvable` ci-dessus, car `transform()` renvoie seulement `false` |
 | *No player was found* (vanilla) | l'argument `player` ne correspond à aucun joueur connecté |
 
 C'est le cas du cooldown qui déroute les administrateurs : du côté de celui qui lance la
-commande, elle semble ne rien faire du tout.
+commande, il ressemble à un échec de recherche d'espèce, même pour une espèce qui existe.
 
 ---
 
@@ -224,13 +224,14 @@ réellement `global` ou `toggle` ne peut donc pas être ciblé par cette forme.
 ```
 
 Aucun argument au-delà du littéral. Écrit `abilityGlobalEnabled` dans
-`config/cobbleshift.json` immédiatement : c'est la seule sous-commande qui touche au
-disque. Les capacités passives sont **désactivées** par défaut, c'est donc cet
+`config/cobbleshift.json` immédiatement : c'est la seule sous-commande qui écrit le fichier
+de configuration (les sous-commandes de PNJ écrivent le fichier de sauvegarde des PNJ). Les capacités passives sont **désactivées** par défaut, c'est donc cet
 interrupteur qui active tout le sous-système.
 
-La désactivation appelle aussi `deactivateAllAndSync()`, qui retire les effets actifs de
-chaque joueur et pousse une synchronisation de HUD vide, pour qu'aucun client ne reste à
-afficher une capacité qu'il n'a plus.
+La désactivation appelle aussi `deactivateAllAndSync()`, qui vide la table des capacités
+actives et pousse une synchronisation de HUD vide à chaque joueur, pour qu'aucun client ne
+reste à afficher une capacité qu'il n'a plus. Elle ne retire pas les effets déjà accordés :
+ils ne sont plus rafraîchis et s'éteignent d'eux-mêmes en `abilityEffectDuration` ticks.
 
 ```text
 ✦ Abilities globales activées
@@ -490,7 +491,7 @@ Chaque transformation ci-dessus est accessible sans commande :
 - **Dashboard** : le module `shift`, ou directement les endpoints REST. Voir
   [l'API du dashboard](dashboard.fr.md).
 - **Événements CheeseGuard** : les types d'effet `TRANSFORM_ALL`, `TRANSFORM_RANDOM`,
-  `TRANSFORM_BY_TEAM` et `REVERT_ALL` transforment d'un coup tous les participants d'un
+  `TRANSFORM_BY_TEAM` et `TRANSFORM_REVERT_ALL` transforment d'un coup tous les participants d'un
   événement chronométré.
 - **CheeseKart** : transforme un pilote quand il est mis en kart et annule sa
   transformation à la fin de la session.

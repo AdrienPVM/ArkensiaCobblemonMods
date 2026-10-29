@@ -104,11 +104,11 @@ token order produced the aspects you meant.
 | Message | Cause |
 |---|---|
 | `Failed: species '<name>' not found or Cobblemon not available` | `SpeciesMapper.resolve()` returned nothing. Either the species name is wrong, or Cobblemon is not installed, in which case **every** transform fails this way |
-| `⛔ Cooldown: <n>s before transforming again.` | `transformCooldownEnabled` is on and the player reverted less than `transformCooldownSeconds` ago. Sent to the **target player** as an action-bar message, not to the command caller — the command only returns 0 |
+| `⛔ Cooldown: <n>s before transforming again.` | `transformCooldownEnabled` is on and the player reverted less than `transformCooldownSeconds` ago. Sent to the **target player** as an action-bar message. The caller gets the generic `Failed: species … not found` line above instead, because `transform()` only returns `false` |
 | vanilla *No player was found* | the `player` argument matched nobody online |
 
-The cooldown case is the one that confuses admins: from the caller's side the command
-appears to do nothing at all.
+The cooldown case is the one that confuses admins: from the caller's side it looks like a
+species lookup failure, even for a species that exists.
 
 ---
 
@@ -217,12 +217,14 @@ targeted by this form.
 ```
 
 No arguments beyond the literal. Writes `abilityGlobalEnabled` to `config/cobbleshift.json`
-immediately — this is the one subcommand that touches disk. Passive abilities are **off**
+immediately — this is the one subcommand that writes the config file (the NPC subcommands
+write the NPC save file). Passive abilities are **off**
 by default, so this is the switch that turns the whole subsystem on.
 
-Disabling also calls `deactivateAllAndSync()`, which strips the active effects from every
-player and pushes an empty HUD sync so no client is left showing an ability it no longer
-has.
+Disabling also calls `deactivateAllAndSync()`, which empties the active-ability map and
+pushes an empty HUD sync to every player, so no client is left showing an ability it no
+longer has. It does not remove the status effects already granted: they stop being
+refreshed and run out within `abilityEffectDuration` ticks.
 
 ```text
 ✦ Global abilities enabled
@@ -475,7 +477,7 @@ Every transform above is reachable without a command:
 - **Dashboard** — the `shift` module, or the REST endpoints directly. See
   [the dashboard API](dashboard.md).
 - **CheeseGuard events** — the `TRANSFORM_ALL`, `TRANSFORM_RANDOM`, `TRANSFORM_BY_TEAM`
-  and `REVERT_ALL` effect types transform every participant of a timed event at once.
+  and `TRANSFORM_REVERT_ALL` effect types transform every participant of a timed event at once.
 - **CheeseKart** — transforms a racer when they are put into a kart, and reverts them when
   the session ends.
 

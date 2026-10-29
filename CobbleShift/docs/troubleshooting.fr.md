@@ -57,9 +57,11 @@ message nomme la méthode introuvable. C'est le cas 3, et il demande une correct
 de `SpeciesMapper`, voir
 [la réflexion](architecture.fr.md#la-réflexion-et-pourquoi-les-noms-de-méthode-comptent).
 
-## La commande semble ne rien faire
+## Une espèce valide est refusée
 
-`/cshift transform Steve charizard` rend la main sans message de succès ni erreur.
+`/cshift transform Steve charizard` répond
+`Échec : espèce 'charizard' introuvable ou Cobblemon non disponible`, alors que
+`/cshift species charizard` fonctionne.
 
 **Cause.** `transformCooldownEnabled` est activé et Steve a été ramené à sa forme normale
 il y a moins de `transformCooldownSeconds`. Le refus est adressé à **Steve**, dans sa barre
@@ -69,8 +71,9 @@ d'action :
 ⛔ Cooldown : encore 42s avant de pouvoir se transformer.
 ```
 
-L'appelant ne voit rien. Un appelant du dashboard reçoit à la place l'erreur générique
-« espèce introuvable ».
+`transform()` renvoie `false` sans dire pourquoi à la commande : l'appelant ne reçoit que
+l'erreur générique « espèce introuvable » ci-dessus. Un appelant du dashboard reçoit la même
+erreur générique, avec le statut `400`.
 
 **Remède.** Attends, ou transforme Steve pendant qu'il est encore transformé : changer
 d'espèce saute le cooldown. Pour supprimer le cooldown, passe `transformCooldownEnabled` à
@@ -116,7 +119,7 @@ Si le mod a été retiré entre-temps, les commandes pour nettoyer à la main so
 mort n'appelle `TransformManager.onPlayerDeath()`.
 
 **Remède.** Annule toi-même la transformation des joueurs morts avec
-`/cshift revert <player>`, ou depuis ce qui les a tués (l'effet `REVERT_ALL` d'un événement
+`/cshift revert <player>`, ou depuis ce qui les a tués (l'effet `TRANSFORM_REVERT_ALL` d'un événement
 CheeseGuard, par exemple). Une correction du code est décrite dans
 [l'architecture](architecture.fr.md#points-dextension).
 
@@ -168,7 +171,8 @@ supérieure à `abilityTickInterval`.
 
 **Cause.** `abilityTickInterval` vaut `0` dans `cobbleshift.json`. `AbilityManager.tick()`
 exécute `tickCounter % 0`, ce qui lève une `ArithmeticException`, avant même de vérifier si
-les capacités sont activées. La valeur du fichier contourne le minimum de 20 du setter.
+les capacités sont activées. Rien ne l'intercepte : le premier tick arrête le serveur avec un
+rapport de crash. La valeur du fichier contourne le minimum de 20 du setter.
 
 **Remède.** Remets une valeur positive, `100` par défaut, et redémarre.
 
@@ -212,8 +216,10 @@ commence par `easy_npc:` (F3 avec le réticule dessus).
 
 **Cause.** L'une de ces raisons :
 
-1. Le serveur a planté avant toute sauvegarde. Les transformations de PNJ sont sauvegardées
-   à chaque modification : seule la dernière est perdue.
+1. La sauvegarde elle-même a échoué. Les transformations de PNJ sont écrites sur le disque
+   dès chaque modification : un crash après une modification ne perd rien. Cherche
+   `Failed to save NPC transforms: <message>` dans le journal (un dossier `config/` en
+   lecture seule, par exemple).
 2. Le fichier de sauvegarde est ailleurs. Son chemin est relatif au dossier de travail, pas
    au dossier de configuration.
 3. Une entrée du fichier était mal formée, le chargement s'est arrêté là, et la sauvegarde

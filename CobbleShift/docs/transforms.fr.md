@@ -65,7 +65,7 @@ statistiques de base de Cobblemon.
 
 | Formule | Code | Plage |
 |---|---|---|
-| vitesse de déplacement | `0.1 + (baseSpeed − 80) / 800` | environ 0,04 à 0,22 |
+| vitesse de déplacement | `0.1 + (baseSpeed − 80) / 800` | environ 0,006 (base 5) à 0,25 (base 200) |
 | santé maximale | `10 + baseHP / 15` | environ 10 à 27 |
 | échelle | `clamp(effectiveHitboxHeight / 1.8, 0.15, 2.5)` | 0,15 à 2,5 |
 | dégâts d'attaque | `min(12, 2 + max(atk, spAtk) / 25)` | 2 à 12 |
@@ -182,7 +182,7 @@ poids mort, reste d'une conception qui n'a pas été construite.
 | `/cshift revert <player>` | à tout moment |
 | `/cshift revertall` | à tout moment |
 | `POST /api/v1/shift/revert` ou `/revertall` | rôle OPERATOR |
-| l'effet `REVERT_ALL` de CheeseGuard | pendant un événement |
+| l'effet `TRANSFORM_REVERT_ALL` de CheeseGuard | pendant un événement |
 | fin de session CheeseKart | si le pilote a été transformé par le kart |
 | expiration de la durée maximale | `transformMaxDurationEnabled` est actif et `transformMaxDurationSeconds` s'est écoulé |
 | arrêt du serveur | `SERVER_STOPPING` appelle `revertAll()` |
@@ -207,8 +207,9 @@ transformation a été annulée ne peut pas être transformé à nouveau pendant
   à laquelle il peut changer d'espèce.
 
 Quand le cooldown bloque une transformation, le message de refus va au **joueur ciblé**,
-dans sa barre d'action. L'administrateur qui a tapé la commande ne voit rien, et un
-appelant de l'API reçoit l'erreur générique « species not found ».
+dans sa barre d'action. L'administrateur qui a tapé la commande reçoit l'erreur générique
+`Échec : espèce '<name>' introuvable ou Cobblemon non disponible`, et un appelant de l'API
+le `400` équivalent.
 
 ⚠️ `autoRevertOnDeath` vaut `true` par défaut et **ne fait rien**.
 `TransformManager.onPlayerDeath()` l'implémente correctement, mais aucun appelant
@@ -257,7 +258,7 @@ Trois appelants en dehors de l'arbre de commandes, tous documentés dans
 - **CheeseDash** : `POST /api/v1/shift/transform`, espèce seule, sans chromatique ni
   forme.
 - **CheeseGuard** : les effets d'événement `TRANSFORM_ALL`, `TRANSFORM_RANDOM`,
-  `TRANSFORM_BY_TEAM` et `REVERT_ALL`.
+  `TRANSFORM_BY_TEAM` et `TRANSFORM_REVERT_ALL`.
 - **CheeseKart** : transforme un pilote au début de sa session et annule sa
   transformation à la fin.
 

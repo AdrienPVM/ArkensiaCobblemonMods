@@ -90,8 +90,7 @@ Players and NPCs in one response.
       "bst": 534,
       "shiny": false,
       "transformedAt": 1730200000000,
-      "attacksEnabled": true,
-      "scale": 1.0
+      "locked": false
     }
   ],
   "npcs": [
@@ -109,7 +108,10 @@ Players and NPCs in one response.
 ```
 
 The player objects come from `TransformData.toJson()`; `form` and `type2` are omitted when
-null rather than sent as `null`. Always `200`.
+null rather than sent as `null`. `customScale` appears only once `/cshift scale` or
+`POST /scale` has set a value other than `1.0`. `locked` is always `false` (the field is
+never set), and the object carries neither the `noattacks` state nor a custom speed.
+Always `200`.
 
 ### `POST /api/v1/shift/transform`
 
@@ -306,6 +308,12 @@ handler has no branch for them. Sending them is silently ignored. They are vesti
 [configuration](configuration.md#keys-that-do-nothing) explains why.
 
 Changes apply on the next refresh tick. Nothing needs a restart.
+
+Turning `abilityGlobalEnabled` off here is not the same as `POST /ability/global` or
+`/cshift ability global disable`: this handler only calls the setter and never runs
+`deactivateAllAndSync()`. Effects stop being refreshed and run out, but the active
+abilities stay in memory and in `GET /abilities`, and clients keep showing the ability
+HUD.
 
 ---
 

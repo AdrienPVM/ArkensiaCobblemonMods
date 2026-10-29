@@ -25,9 +25,10 @@ Trois éléments d'état, tous détenus par `AbilityManager` :
 | `disabledPlayers` | les UUID exclus, positionnés par `/cshift ability toggle` | non |
 | `abilityGlobalEnabled` | l'interrupteur général | **oui**, dans `config/cobbleshift.json` |
 
-Seul l'interrupteur général survit à un redémarrage. Les exclusions par joueur et les
-capacités actives sont reconstruites depuis l'équipe au tick de rafraîchissement suivant,
-ce qui est en général ce que tu veux : rien à nettoyer après un crash.
+Seul l'interrupteur général survit à un redémarrage. Les exclusions par joueur sont perdues,
+et les capacités forcées avec elles ; les capacités automatiques sont reconstruites depuis
+l'équipe au tick de rafraîchissement suivant, ce qui est en général ce que tu veux : rien à
+nettoyer après un crash.
 
 Une capacité peut être dans l'un de deux modes :
 
@@ -176,10 +177,10 @@ la reçoit jamais. Les effets s'appliquent quand même ; seul l'affichage manque
 
 | Action | Commande | Dashboard |
 |---|---|---|
-| activer ou désactiver le sous-système | `/cshift ability global enable\|disable` | `PUT /api/v1/shift/config` |
-| fixer un joueur sur une espèce | `/cshift ability <player> <pokemon>` | — |
-| lever ce forçage | `/cshift ability <player>` | — |
-| exclure un joueur | `/cshift ability toggle <player>` | — |
+| activer ou désactiver le sous-système | `/cshift ability global enable\|disable` | `POST /api/v1/shift/ability/global` (ou `PUT /api/v1/shift/config`, qui ne vide pas les capacités actives) |
+| fixer un joueur sur une espèce | `/cshift ability <player> <pokemon>` | `POST /api/v1/shift/ability` avec `species` |
+| lever ce forçage | `/cshift ability <player>` | `POST /api/v1/shift/ability` sans `species` |
+| exclure un joueur | `/cshift ability toggle <player>` | `POST /api/v1/shift/ability/toggle` |
 | voir ce qui est actif | `/cshift list` | `GET /api/v1/shift/abilities` |
 
 `forceAbility` ne valide pas l'espèce : un nom inconnu stocke `normal` comme type et le

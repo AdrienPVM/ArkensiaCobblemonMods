@@ -278,8 +278,14 @@ shiny-et-forme, `transform(ServerPlayerEntity, String, boolean, String)`, n'est 
 personne ; son `boolean` est le drapeau shiny, pas celui des attaques, une confusion facile
 pour un appelant.
 
-Le gestionnaire de drapeau de CheeseGuard indique en commentaire qu'une transformation
-« accorde le vol aux espèces volantes » et retire le vol après l'annulation. CobbleShift
+`CobbleShiftHook` contient aussi `getActiveTransformSpecies()`, qui cherche
+`getTransformData(UUID)` sur le gestionnaire. Cette méthode n'existe pas (l'accesseur
+s'appelle `getTransform(UUID)`) : la recherche échouerait toujours. Personne n'appelle cette
+méthode, elle n'a donc aucun effet aujourd'hui.
+
+Le gestionnaire de drapeau de CheeseGuard indique en commentaire qu'une transformation laisse
+derrière elle un vol accordé « pour les espèces volantes », et retire les effets et le vol
+après l'annulation. CobbleShift
 n'accorde le vol nulle part : ce nettoyage est du code défensif dans CheeseGuard.
 
 Côté dashboard, c'est l'inverse : CobbleShift compile contre CheeseDash (`modImplementation`
@@ -316,7 +322,7 @@ Sans détour, à peu près dans l'ordre de ce qu'elles coûtent en jeu.
   serveur : le multiplicateur de cooldown n'a guère d'effet sous 1.0 et provoque des clics
   perdus au-dessus. Voir [la configuration](configuration.fr.md#attaques).
 - **Les valeurs du fichier de config contournent toutes les bornes**, et
-  `abilityTickInterval: 0` lève une exception à chaque tick serveur. Voir
+  `abilityTickInterval: 0` fait planter le serveur dès son premier tick. Voir
   [plages et bornes](configuration.fr.md#plages-et-bornes).
 - **Des modifications hors du thread serveur** dans quatre gestionnaires REST, listées dans
   [threading](#threading).

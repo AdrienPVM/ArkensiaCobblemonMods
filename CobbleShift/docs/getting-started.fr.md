@@ -59,7 +59,8 @@ Steve voit `✦ Vous êtes transformé en charizard !` et, sur son écran :
 
 - la caméra bascule en troisième personne et F5 ne fait plus rien
 - un modèle de Dracaufeu à la place de son modèle de joueur
-- ni item en main, ni bras, ni nom au-dessus de la tête, ni réticule
+- ni item en main, ni bras, ni nom au-dessus de la tête, et une simple croix blanche dessinée
+  par le mod à la place du réticule vanilla
 - un cri de Dracaufeu, s'il se trouve à moins de 32 blocs de lui-même, ce qui est le cas
 
 Tous les autres voient aussi un Dracaufeu, à condition d'avoir le mod. Un client vanilla
@@ -166,14 +167,15 @@ C'est l'autre moitié du mod, désactivée dans une config neuve.
 ✦ Abilities globales activées
 ```
 
-C'est la seule sous-commande qui écrit sur le disque : l'interrupteur survit donc à un
-redémarrage.
+C'est la seule sous-commande qui écrit le fichier de configuration : l'interrupteur survit
+donc à un redémarrage.
 
 Demande maintenant à Alex de mettre un Ectoplasma dans le premier emplacement de son
 équipe et attends. En moins de cinq secondes (`abilityTickInterval` vaut 100 ticks par
 défaut), elle devient invisible et le HUD des capacités apparaît. Remplace son Pokémon
-de tête par un Dracaufeu et, au rafraîchissement suivant, l'invisibilité laisse la place
-à Résistance au feu.
+de tête par un Dracaufeu et, au rafraîchissement suivant, elle reçoit Résistance au feu ;
+l'invisibilité n'est plus rafraîchie et s'éteint en `abilityEffectDuration` (huit secondes
+par défaut).
 
 ⚠️ Un Pokémon de tête de type Spectre accorde une vraie Invisibilité, rafraîchie
 indéfiniment, à quiconque attrape un Fantominus. Sur un serveur PvP, tranche la question
@@ -208,14 +210,15 @@ Et pour lever ce forçage :
 
 ```text
 ═══ CobbleShift Status ═══
-Transforms actives : 1
-  • Steve → charizard (BST=534, 7min)
+Transforms actives : 0
 Abilities actives : 1
-  • charizard (fire) [FORCED]
+  • charizard (fire)
 Abilities globales : ON
 ```
 
-Les lignes de capacités ne portent aucun nom de joueur : l'enregistrement contient un
+Aucune transformation n'apparaît, puisque tu as ramené Steve à l'étape 5, et la capacité
+d'Alex n'est plus marquée `[FORCED]` puisque tu as levé le forçage. Les lignes de capacités
+ne portent aucun nom de joueur : l'enregistrement contient un
 UUID et la commande ne le résout jamais. Si tu as besoin du nom, lis plutôt
 `GET /api/v1/shift/abilities`, qui fait la jointure pour toi.
 
@@ -244,8 +247,8 @@ Arrête maintenant le serveur et redémarre-le. Le log affiche :
 [CobbleShift] Loaded 1 NPC transform(s), will re-apply on first tick
 ```
 
-Le Ronflex est toujours un Ronflex. Steve, lui, a retrouvé son apparence :
-`SERVER_STOPPING` a annulé sa transformation. Les transformations de joueur sont un état
+Le Ronflex est toujours un Ronflex. Un joueur encore transformé à ce moment-là aurait, lui,
+retrouvé son apparence : `SERVER_STOPPING` annule toutes les transformations de joueur. Les transformations de joueur sont un état
 de session ; celles de PNJ sont sauvegardées. La différence et ses conséquences sont
 décrites dans [les transformations de PNJ](npc-transforms.fr.md).
 

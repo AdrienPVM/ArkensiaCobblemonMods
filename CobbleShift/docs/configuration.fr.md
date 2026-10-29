@@ -11,11 +11,14 @@ config/cobbleshift.json
 Le chemin vient de `FabricLoader.getInstance().getConfigDir().resolve("cobbleshift.json")`
 dans `CobbleShiftConfig` : il suit donc un dossier de configuration déplacé. Le fichier est
 créé au premier démarrage, toutes les clés à leur valeur par défaut, s'il n'existe pas
-encore. Le client ne le lit ni ne l'écrit jamais.
+encore. Le client ne lit jamais le fichier du serveur. `CobbleShiftMod` est toutefois un
+point d'entrée `main` : il tourne aussi sur chaque client qui a le mod et crée un
+`cobbleshift.json` dans le dossier `config/` de ce client ; cette copie ne sert qu'à un
+monde solo.
 
 Un second fichier, `config/cobbleshift_npc_transforms.json`, n'est **pas** de la
 configuration : c'est l'état sauvegardé des transformations de PNJ, réécrit par le mod à
-chaque modification d'un PNJ. Son format est décrit dans
+chaque modification d'un PNJ et à chaque arrêt du serveur. Son format est décrit dans
 [les transformations de PNJ](npc-transforms.fr.md#le-fichier-de-sauvegarde). Ne le modifie
 pas à la main pendant que le serveur tourne.
 
@@ -27,7 +30,7 @@ La configuration est lue **une seule fois**, dans `CobbleShiftMod.onInitialize()
 démarrage du serveur. Il n'existe aucune commande de rechargement. Une modification faite à
 la main prend effet au redémarrage suivant, pas avant.
 
-Le fichier est réécrit dans trois situations, et chacune sérialise les valeurs **en
+Le fichier est réécrit dans quatre situations, et chacune sérialise les valeurs **en
 mémoire**, pas celles du fichier :
 
 | Écrivain | Clés modifiées |
@@ -177,7 +180,7 @@ fichier modifié à la main contourne toutes les bornes ci-dessous.
 
 | Clé | Borne du setter | Ce que fait une valeur hors plage dans le fichier |
 |---|---|---|
-| `abilityTickInterval` | `>= 20` | `0` lève une `ArithmeticException` (`tickCounter % 0`) dans le gestionnaire de tick serveur, à chaque tick ; rien ne l'intercepte. Une valeur négative se comporte comme sa valeur absolue |
+| `abilityTickInterval` | `>= 20` | `0` lève une `ArithmeticException` (`tickCounter % 0`) dans le gestionnaire de tick serveur, dès le premier tick ; rien ne l'intercepte, le serveur s'arrête donc avec un rapport de crash. Une valeur négative se comporte comme sa valeur absolue |
 | `abilityEffectDuration` | `>= 40` | `0` ou moins accorde des effets qui expirent aussitôt : les capacités semblent ne rien faire |
 | `attackDamageMultiplier` | `[0.1, 5.0]` | `0` rend les projectiles inoffensifs ; leur effet de statut s'applique toujours |
 | `attackCooldownMultiplier` | `[0.1, 5.0]` | `0` ou moins tombe sur le plancher de 5 ticks |

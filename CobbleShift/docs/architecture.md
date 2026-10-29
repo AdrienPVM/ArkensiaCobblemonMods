@@ -261,8 +261,13 @@ The boolean overload is how CheeseGuard passes `noattacks`. The shiny-and-form o
 `transform(ServerPlayerEntity, String, boolean, String)`, is not reflected by anyone; its
 `boolean` is the shiny flag, not the attacks flag, which is an easy mix-up for a caller.
 
-CheeseGuard's flag handler comments that a transform "grants flight for flying species"
-and clears flight after reverting. CobbleShift grants no flight anywhere; that clean-up
+`CobbleShiftHook` also contains `getActiveTransformSpecies()`, which looks up
+`getTransformData(UUID)` on the manager. No such method exists (the getter is
+`getTransform(UUID)`), so that lookup would always fail; nothing calls the method, so it
+has no effect today.
+
+CheeseGuard's flag handler comments that a transform leaves behind "(for flying species)
+granted flight", and clears effects and flight after reverting. CobbleShift grants no flight anywhere; that clean-up
 is defensive code in CheeseGuard.
 
 The dashboard side is the opposite: CobbleShift compiles against CheeseDash
@@ -296,8 +301,8 @@ Listed candidly, roughly by how much they cost in play.
 - **The client attack bar is a fixed 30 ticks**, unrelated to the real server cooldown, so
   the cooldown multiplier has little effect below 1.0 and causes wasted clicks above it.
   See [configuration](configuration.md#attacks).
-- **Config file values bypass every clamp**, and `abilityTickInterval: 0` throws on every
-  server tick. See [ranges and clamps](configuration.md#ranges-and-clamps).
+- **Config file values bypass every clamp**, and `abilityTickInterval: 0` crashes the
+  server on its first tick. See [ranges and clamps](configuration.md#ranges-and-clamps).
 - **Off-thread mutations** in four REST handlers, listed under [threading](#threading).
 - **The NPC save file can be truncated** by a single malformed entry, and keeps the
   entries of deleted NPCs forever. See [NPC transforms](npc-transforms.md#the-save-file).

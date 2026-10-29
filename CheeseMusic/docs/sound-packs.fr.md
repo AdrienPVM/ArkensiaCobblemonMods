@@ -2,8 +2,9 @@
 
 # Packs de sons
 
-**CheeseMusic ne contient aucun audio.** Fouille le jar et tu y trouveras seize fichiers de
-classes, deux petits fichiers de langue, une configuration de mixin et `fabric.mod.json` —
+**CheeseMusic ne contient aucun audio.** Fouille le jar et tu y trouveras vingt fichiers de
+classes (les seize classes sources plus leurs classes imbriquées et synthétiques), deux
+petits fichiers de langue, une configuration de mixin avec sa refmap et `fabric.mod.json` —
 aucun `.ogg`, aucun `sounds.json`, aucun répertoire `assets/cheesemusic/sounds/`. Chaque
 piste que tu entends dans une zone est un fichier que tu as fourni.
 
@@ -65,7 +66,8 @@ Le `pack.mcmeta` généré est exactement ceci :
 `34` est le format de resource pack de la 1.21.1. Le fichier n'est écrit **que s'il
 n'existe pas déjà** : tu peux donc le remplacer par ta propre description, ajouter un
 `pack.png`, ou élargir la plage `supported_formats`, et le mod laissera ta version
-tranquille.
+tranquille. Il n'est aussi écrit que par un scan qui doit créer `sounds/` : supprime
+`pack.mcmeta` alors que `sounds/` existe encore, et il ne revient pas.
 
 ⚠️ Le répertoire s'appelle `resourcepacks/`, qui sur un serveur dédié n'est pas un
 répertoire que vanilla lit pour quoi que ce soit. Rien sur le serveur ne charge ce pack.
@@ -233,9 +235,10 @@ En jeu, pack activé :
 ```
 
 Entendre la piste veut dire que le pack est chargé et que l'identifiant d'événement est
-bon. L'erreur vanilla *No sound with that name* veut dire que le client ne le résout pas —
-le pack n'est pas activé, ou `sounds.json` ne liste pas ce nom, ou le `.ogg` manque dans le
-zip.
+bon. `/playsound` ne valide pas l'identifiant : la commande annonce un succès dans tous
+les cas. Un silence veut dire que le client ne le résout pas, et son log affiche alors
+`Unable to play unknown soundEvent: cheesemusic:volcano_theme`. Le pack n'est pas activé,
+ou `sounds.json` ne liste pas ce nom, ou le `.ogg` manque dans le zip.
 
 Corrige ça avant de toucher aux assignations. Tout ce qui suit suppose que le client sait
 résoudre l'identifiant.

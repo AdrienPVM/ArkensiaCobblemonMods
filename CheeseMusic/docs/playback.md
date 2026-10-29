@@ -53,9 +53,12 @@ ReactiveMusic back in instead and go to `FADING_RM_IN`.
 
 A `play` arriving while already in `FADING_RM_OUT` or `PLAYING` does not restart the
 transition. It replaces the playlist and volume, so the **next** track obeys the new
-assignment while the current one finishes. That is what makes walking between two
-assigned regions sound like a playlist change rather than a cut, and it is also why
-editing an assignment from the dashboard does not interrupt anyone.
+assignment while the current one finishes. In practice the server never takes this path:
+crossing from one assigned region straight into another sends a `stop` for the old key
+and then a `play` for the new one, in the same tick. The client cuts the track, starts
+fading ReactiveMusic back in, and the `play` lands in `FADING_RM_IN` (next paragraph).
+Editing an assignment from the dashboard sends no packet at all: players already inside
+keep the old playlist until they next enter the region.
 
 A `play` arriving in `FADING_RM_IN` — a player who left a region and walked straight back
 in — is stashed as `pendingTracksJson` and replayed once the fade-in finishes. The

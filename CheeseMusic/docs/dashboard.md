@@ -115,8 +115,10 @@ Every assignment, as a JSON array of assignment objects. Role: any.
 ```
 
 Note the response is built from the map's **values**, so the lookup key is not in the
-output. For a `tag:` assignment the key and the `zoneId` field differ, and you cannot tell
-them apart from this response alone. `[]` when nothing is assigned.
+output. An entry created by `POST` has its key equal to its `zoneId` (a tag assignment
+carries `"zoneId": "tag:cave"`), so the response is enough in that case. Only an entry
+whose `zoneId` was changed by `PUT` or by hand shows a value that is not its key. `[]`
+when nothing is assigned.
 
 ### `POST /api/v1/music/assignments`
 
@@ -160,7 +162,7 @@ Replace an existing assignment. Role: **OPERATOR**.
 
 | Parameter | Where | Notes |
 |---|---|---|
-| `key` | path | the lookup key, URL-decoded. A `tag:` key needs its colon percent-encoded as `tag%3Acave` |
+| `key` | path | the lookup key. A `tag:` key works as is (`tag:cave`) or percent-encoded (`tag%3Acave`): the path is decoded by `getPath()` and once more by `URLDecoder`, so a literal `+` in a key turns into a space |
 
 Body: a full assignment object. This is a replace, not a patch — omitted fields fall back
 to their defaults rather than keeping their old values.
@@ -199,7 +201,8 @@ curl -X DELETE -H "Authorization: Bearer $TOKEN" \
 
 `404` with `{"error":"Assignment not found"}` if the key is unknown. The config file is
 rewritten immediately. Players currently inside the region are not sent a `stop` here —
-the tracker notices at its next check and fades out using `defaultFadeOutTicks`.
+the tracker notices at its next check and sends a `stop` carrying `defaultFadeOutTicks`:
+the track is cut and ReactiveMusic comes back over that duration.
 
 ---
 
