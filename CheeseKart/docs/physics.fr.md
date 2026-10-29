@@ -15,10 +15,10 @@ cas.
 `/cheesekart start` fait six choses, dans cet ordre :
 
 1. **Fait apparaître un bateau** à la position exacte du joueur, avec trois attributs
-   vanilla posés : invisible, invulnérable, silencieux. L'invisibilité est le vrai
-   mécanisme qui le cache — le
-   [mixin de rendu](architecture.fr.md#les-deux-mixins-client) n'est qu'un filet de
-   sécurité.
+   vanilla posés : invisible, invulnérable, silencieux. L'attribut invisible ne cache pas
+   réellement un bateau : le rendu vanilla des bateaux ne le consulte jamais. Ce qui cache
+   le kart, c'est le [mixin de rendu](architecture.fr.md#les-deux-mixins-client), sur les
+   clients qui ont CheeseKart.
 2. **Force la montée** du joueur. « Forcer » désigne ici le chemin vanilla qui ignore
    la question de savoir si c'est normalement permis. Si cela échoue malgré tout, le
    bateau est jeté immédiatement pour ne pas laisser d'entité orpheline dans le monde, et

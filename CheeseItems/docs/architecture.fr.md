@@ -2,7 +2,7 @@
 
 # Architecture
 
-28 fichiers source, environ 4 980 lignes, un mixin, deux modules dashboard, quatre payloads
+28 fichiers source, environ 5 000 lignes, un mixin, deux modules dashboard, quatre payloads
 réseau. Le mod a deux moitiés qui ne partagent que le jar et le logger : les items
 personnalisés, et le catalogue de morphos.
 
@@ -158,9 +158,9 @@ item personnalisé peut utiliser sans danger la texture du totem.
    dupliquent la logique de drain, de régénération, d'affichage dans la barre d'action et
    d'épuisement presque ligne pour ligne, dessin de la barre inclus. Une modification de l'un
    doit être recopiée à la main dans l'autre.
-5. **Le trou de la transformation à sec.** Se transformer avec une réserve vide exécute
-   `cshift transform` *puis* refuse de démarrer le drain, laissant le joueur transformé sans
-   rien pour l'annuler. [Où](morphos.fr.md#la-réserve-dendurance).
+5. **Le trou de la transformation à sec.** Se transformer pendant l'unique tick où la
+   réserve vaut zéro exécute `cshift transform` *puis* refuse de démarrer le drain, laissant
+   le joueur transformé sans limite de temps jusqu'à sa prochaine pression sur `H`. [Où](morphos.fr.md#la-réserve-dendurance).
 6. **La table des transformés n'est pas persistée.** Un redémarrage désynchronise l'idée que
    CheeseItems a de qui est transformé de celle de CobbleShift.
 7. **`cshift` est appelé comme une chaîne de commande.** Pas d'API, pas de vérification de

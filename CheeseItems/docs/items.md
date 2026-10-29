@@ -62,8 +62,8 @@ passive effects from being skipped either — the passive pass checks the flag t
 disabled item is inert in the hand but still a normal vanilla item. It still stacks, still
 drops, still takes an inventory slot. Treat it as "retired", not "removed".
 
-`dyeColor` only shows on items that read the component: leather armour, wolf armour,
-shulker boxes. On a paper it changes nothing.
+`dyeColor` only shows on items that read the component: leather armour, leather horse
+armour, wolf armour. On a paper it changes nothing.
 
 ### Uses and cooldowns
 
@@ -73,8 +73,9 @@ shulker boxes. On a paper it changes nothing.
 | `cooldownTicks` | integer | `0` | per-player cooldown between uses of this definition, in ticks |
 
 `maxUses` is written onto the stack at build time, so changing it later does not change
-the counter on a stack someone already holds — the counter only resets when the base item
-changes and the stack is rebuilt. When the counter reaches zero the handler calls
+the counter on a stack someone already holds — not even a `baseItem` change does, because
+the rebuild copies the old `usesLeft` across. Only a stack that had no counter at all (built
+while `maxUses` was `0`) picks up the new value, and only when a `baseItem` change rebuilds it. When the counter reaches zero the handler calls
 `held.decrement(held.getCount())`, which empties **the entire stack**, not one item. Give
 `maxUses` items one at a time, or expect a stack of five to vanish on the fifth use of the
 first one.
@@ -196,6 +197,10 @@ the normal use path. A second press while draining stops it, runs
 `onDepletedCommands`, applies the cooldown and **skips** `useActions` and `onUseEffects`
 entirely. A press while the pool is at zero is refused with `Endurance depleted!`.
 
+That second press goes through the same gate as the first: conditions, then the cooldown.
+With a `cooldownTicks` set, a player who switches the pool on cannot switch it off again
+until the cooldown has run out — they get `Cooldown: …` and the drain keeps going.
+
 The pool is drawn in the actionbar four times a second, as ten `◆`/`◇` characters coloured
 green above 50%, yellow above 25%, red below — or as a single glyph from the generated
 font if `config/cheeseitems_assets/bar/0.png` … `10.png` all exist. See
@@ -306,7 +311,7 @@ Then `player.currentScreenHandler.sendContentUpdates()` pushes the changes to th
 | The stack is in a chest, ender chest, shulker box, item frame, hopper or on the ground | never touched. Only player inventories are walked |
 | The definition was **deleted** | the stack keeps its tag, its old name and its old lore forever. It no longer resolves, so right-clicking it does nothing beyond the base item's own behaviour, and no pass will ever clean it up |
 | The definition's `id` was changed | identical to a delete: the old stacks are orphaned |
-| `maxUses` was raised or lowered | existing stacks keep their stamped `usesLeft`. Only a `baseItem` change rebuilds the counter |
+| `maxUses` was raised or lowered | existing stacks keep their stamped `usesLeft`, even through a `baseItem` rebuild, which copies it across. Only a stack with no counter at all gets one, and only from such a rebuild |
 | `useActions`, `useConditions`, effects, flags | not stored on the stack at all, so they take effect immediately — nothing to refresh |
 
 An orphaned stack is a cosmetic problem, not a dangerous one: its commands are gone with

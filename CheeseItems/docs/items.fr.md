@@ -63,8 +63,8 @@ effets passifs d'être ignorés — la passe des effets passifs vérifie aussi l
 item désactivé est inerte en main mais reste un item vanilla normal. Il s'empile, il se
 jette, il occupe une case. Traite-le comme « retiré du service », pas comme « supprimé ».
 
-`dyeColor` n'apparaît que sur les items qui lisent le composant : armure en cuir, armure de
-loup, boîtes de Shulker. Sur du papier, il ne change rien.
+`dyeColor` n'apparaît que sur les items qui lisent le composant : armure en cuir, armure en
+cuir pour cheval, armure de loup. Sur du papier, il ne change rien.
 
 ### Utilisations et cooldowns
 
@@ -74,8 +74,10 @@ loup, boîtes de Shulker. Sur du papier, il ne change rien.
 | `cooldownTicks` | entier | `0` | cooldown par joueur entre deux utilisations de cette définition, en ticks |
 
 `maxUses` est écrit sur la pile à la construction : le modifier ensuite ne change pas le
-compteur d'une pile que quelqu'un possède déjà — ce compteur n'est reconstruit que si l'item
-de base change et que la pile est refaite. Quand le compteur atteint zéro, le gestionnaire
+compteur d'une pile que quelqu'un possède déjà — même un changement de `baseItem` ne le fait
+pas, car la reconstruction recopie l'ancien `usesLeft`. Seule une pile qui n'avait aucun
+compteur (construite quand `maxUses` valait `0`) prend la nouvelle valeur, et seulement si un
+changement de `baseItem` la reconstruit. Quand le compteur atteint zéro, le gestionnaire
 appelle `held.decrement(held.getCount())`, ce qui vide **la pile entière**, pas un seul
 exemplaire. Distribue les items à `maxUses` un par un, ou attends-toi à voir une pile de
 cinq disparaître à la cinquième utilisation du premier.
@@ -200,6 +202,10 @@ l'arrête, lance `onDepletedCommands`, applique le cooldown et **ignore** compl�
 `useActions` et `onUseEffects`. Une pression alors que la réserve est à zéro est refusée avec
 `Endurance épuisée !`.
 
+Cette seconde pression passe par le même filtre que la première : les conditions, puis le
+cooldown. Avec un `cooldownTicks`, un joueur qui a lancé la réserve ne peut pas l'arrêter
+avant la fin du cooldown — il reçoit `Cooldown : …` et le drain continue.
+
 La réserve est dessinée dans la barre d'action quatre fois par seconde, sous forme de dix
 caractères `◆`/`◇` colorés en vert au-dessus de 50 %, jaune au-dessus de 25 %, rouge en
 dessous — ou sous forme d'un unique glyphe de la police générée si
@@ -315,7 +321,7 @@ Puis `player.currentScreenHandler.sendContentUpdates()` pousse les changements a
 | La pile est dans un coffre, un coffre de l'Ender, une boîte de Shulker, un cadre, un entonnoir, ou au sol | jamais touchée. Seuls les inventaires de joueurs sont parcourus |
 | La définition a été **supprimée** | la pile garde son tag, son ancien nom et son ancien lore pour toujours. Elle ne correspond plus à rien, donc le clic droit ne fait rien de plus que l'item de base, et aucune passe ne la nettoiera jamais |
 | L'`id` de la définition a changé | identique à une suppression : les anciennes piles sont orphelines |
-| `maxUses` a été augmenté ou réduit | les piles existantes gardent leur `usesLeft` écrit. Seul un changement de `baseItem` reconstruit le compteur |
+| `maxUses` a été augmenté ou réduit | les piles existantes gardent leur `usesLeft` écrit, même lors d'une reconstruction due au `baseItem`, qui le recopie. Seule une pile sans aucun compteur en reçoit un, et seulement lors d'une telle reconstruction |
 | `useActions`, `useConditions`, effets, options | pas stockés sur la pile du tout, donc ils prennent effet immédiatement — rien à rafraîchir |
 
 Une pile orpheline est un problème cosmétique, pas dangereux : ses commandes ont disparu

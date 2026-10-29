@@ -2,7 +2,7 @@
 
 # Architecture
 
-28 source files, about 4 980 lines, one mixin, two dashboard modules, four network
+28 source files, about 5 000 lines, one mixin, two dashboard modules, four network
 payloads. The mod has two halves that share only the jar and the logger: custom items, and
 the morpho catalog.
 
@@ -151,9 +151,9 @@ Written down because the next person will hit them.
    `MorphoEnduranceTracker` has another keyed by player for morphos. They duplicate the
    drain, regen, actionbar-rendering and depletion logic almost line for line, including
    the bar-drawing code. A change to one has to be mirrored by hand.
-5. **The depleted-transform hole.** Transforming with an empty pool executes
-   `cshift transform` and *then* refuses to start the drain, leaving the player
-   transformed with nothing to revert them.
+5. **The depleted-transform hole.** Transforming in the one tick where the pool sits at
+   zero executes `cshift transform` and *then* refuses to start the drain, leaving the
+   player transformed with no time limit until their next `H` press.
    [Where](morphos.md#the-endurance-pool).
 6. **The transformed map is not persisted.** A restart desynchronises CheeseItems' idea of
    who is transformed from CobbleShift's.

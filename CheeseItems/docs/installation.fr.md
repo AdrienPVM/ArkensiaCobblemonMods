@@ -73,7 +73,7 @@ est un crash au démarrage, pas un avertissement.
 
 ## Premier démarrage
 
-Le mod crée trois fichiers dans `config/`, tous vides de contenu :
+Le mod crée deux fichiers dans `config/`, vides de contenu ; le troisième attend :
 
 ```text
 config/cheeseitems.json           {"items":[],"customModelData":{},"resourcePackHost":""}
@@ -91,10 +91,15 @@ Aucun dossier d'assets n'est créé avant le premier envoi.
 ```text
 [CheeseItems] Initializing...
 [CheeseItems] Default config created
-[CheeseItems] MorphoCatalog loaded (0 entries)
 [CheeseItems] Initialized successfully!
+[CheeseItems] Resource pack cleared (no custom icons, no bar images)
 [CheeseItems] Server started — 0 items loaded
 ```
+
+`MorphoCatalog loaded (N entries)` manque au tout premier démarrage : quand le fichier du
+catalogue est absent, `MorphoCatalog.load()` l'écrit et sort avant de journaliser. La ligne
+apparaît à partir du deuxième démarrage, tout comme `MorphoCodex loaded (N players)` dès que
+le fichier du codex existe.
 
 Sur un client, une ligne de plus apparaît :
 

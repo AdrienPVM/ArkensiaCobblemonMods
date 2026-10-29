@@ -16,8 +16,9 @@ dossier `config/` du serveur.
 | `config/cheeseitems_assets/bar/0.png` … `10.png` | toi, à la main | les images de la police de la barre d'endurance |
 | `config/cheeseitems_assets/morphos/<id>.png` | l'envoi d'image de catalogue | une image de morpho par entrée du catalogue |
 
-Les trois fichiers JSON sont créés au premier démarrage s'ils manquent — vides, sans
-contenu d'exemple. `config/cheeseitems.json` sort ainsi :
+Les deux premiers fichiers JSON sont créés au premier démarrage s'ils manquent — vides, sans
+contenu d'exemple. Le troisième, `cheeseitems_morpho.json`, n'apparaît qu'une fois qu'un
+joueur possède une morpho. `config/cheeseitems.json` sort ainsi :
 
 ```json
 {
@@ -111,8 +112,9 @@ Les nombres sont des points abstraits ; seul leur rapport compte. Avec les défa
 transformation dure `100 / 2 = 50` secondes et se recharge en `100 / 1 = 100` secondes.
 
 `drainPerSecond: 0` donne un temps de transformation illimité — la réserve n'atteint jamais
-zéro, donc rien ne s'annule automatiquement et la barre n'est plus dessinée une fois la
-réserve pleine. C'est la façon prévue de désactiver l'endurance. `regenPerSecond: 0` est le
+zéro, donc rien ne s'annule automatiquement, et la barre reste affichée, pleine, dans la
+barre d'action tant que le joueur reste transformé (elle est dessinée dès que la réserve est
+en drain). C'est la façon prévue de désactiver l'endurance. `regenPerSecond: 0` est le
 piège inverse : dès qu'un joueur a vidé la réserve, elle ne se remplit plus pendant sa
 session, et le seul reset est une reconnexion, puisque l'état n'existe qu'en mémoire.
 
@@ -205,14 +207,15 @@ catalogue depuis le dashboard, ou arrête le serveur.
 }
 ```
 
-⚠️ Les commentaires ci-dessus sont là pour la lecture seulement. Le fichier est analysé par
-Gson en mode strict via `JsonParser.parseString`, qui rejette les commentaires `//` — une
-config commentée ne se charge pas, écrit
-`[CheeseItems] Failed to load config: …` et laisse le mod avec **zéro item**, en silence,
-comme si tu les avais tous supprimés. Copie l'exemple sans les lignes de commentaire.
+⚠️ Les commentaires ci-dessus sont là pour la lecture seulement. `JsonParser.parseString`
+lit en mode permissif, donc le fichier se charge bien avec des commentaires `//` — mais le
+mod ne les réécrit jamais : la sauvegarde suivante (n'importe quelle modification depuis le
+dashboard, un envoi d'icône, ou le démarrage du serveur lui-même, qui sauvegarde après avoir
+attribué les `customModelData`) réécrit le fichier sans eux. Garde tes notes ailleurs.
 
-Ce mode d'échec mérite un second regard : une erreur d'analyse est attrapée, écrite au
-niveau `ERROR`, puis ignorée. La liste d'items reste vide et la sauvegarde suivante écrit
+Une vraie erreur de syntaxe est une autre affaire, et mérite un second regard : une erreur
+d'analyse est attrapée, écrite au niveau `ERROR` sous la forme
+`[CheeseItems] Failed to load config: …`, puis ignorée. La liste d'items reste vide et la sauvegarde suivante écrit
 cette liste vide par-dessus ton fichier. Garde une copie de `cheeseitems.json` avant de
 l'éditer à la main, et relis le log après un rechargement.
 

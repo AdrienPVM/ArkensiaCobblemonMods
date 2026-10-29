@@ -35,7 +35,7 @@ com.cheesekart
 
 **`CheeseKartMod`** est le seul singleton, exposé par un `INSTANCE` public statique. Tout
 le reste atteint la configuration et le gestionnaire à travers lui, y compris la couche
-dashboard et le hook par réflexion de CheeseGuard. Il enregistre sept choses à
+dashboard et le hook par réflexion de CheeseGuard. Il enregistre huit choses à
 l'initialisation : le chargement de la configuration, le gestionnaire, les deux types de
 payload, l'arbre de commandes, et les gestionnaires de cycle de vie, de tick, de
 déconnexion et de connexion.
@@ -77,16 +77,20 @@ Les règles que suit le code :
   `WebDashboard.executeOnServerThread(server, …)`. Chaque route d'API qui modifie quelque
   chose le fait — `/start`, `/stop`, `/stopall`, et la réapplication à chaud à l'intérieur
   de `PUT /presets/{id}`.
-- Les lectures et écritures de presets se font directement sur le thread HTTP, ce qui est
-  sûr parce que la table des presets est concurrente et qu'un preset n'est jamais que
-  remplacé entièrement, jamais modifié en partie pendant qu'on le lit.
+- Les lectures et écritures de presets se font directement sur le thread HTTP. La table
+  elle-même est concurrente, mais un `PUT` n'est **pas** un remplacement : `mergeFrom`
+  modifie le `KartPreset` existant sur place, champ par champ, sur le thread HTTP, pendant
+  que le thread serveur peut lire ce même objet pour lancer un kart. Un lancement qui tombe
+  au milieu de la fusion peut pousser un mélange d'anciennes et de nouvelles valeurs ; la
+  réapplication qui suit le `PUT` corrige ensuite les sessions en cours.
 - Le gestionnaire de déconnexion arrive sur un thread réseau : il retire donc la session
   sur place (la table est concurrente) mais planifie le nettoyage du bateau avec
   `server.execute(…)`.
 
-La conséquence pour les appelants de l'API, c'est qu'une route modifiante répond avant
-que son effet ait nécessairement eu lieu. `{"started":true}` signifie *planifié*, pas
-*réussi* — voir [la remarque sur POST /start](dashboard.fr.md#post-start).
+`executeOnServerThread` bloque le thread HTTP jusqu'à ce que la tâche ait tourné (délai de
+cinq secondes) : une route modifiante répond donc après son effet. Ce qu'elle ne fait pas,
+c'est rapporter un résultat : `{"started":true}` signifie *exécuté*, pas *réussi* — voir
+[la remarque sur POST /start](dashboard.fr.md#post-start).
 
 ## La boucle par tick
 
@@ -118,10 +122,10 @@ deux mixins n'est essentiel, et faire planter un client pour un hook cosmétique
 pire des issues.
 
 **`BoatRenderMixin`** annule `BoatEntityRenderer.render` à HEAD quand l'identifiant
-d'entité est celui d'un bateau de kart connu. C'est un filet de sécurité : le bateau est
-déjà marqué invisible côté serveur. Il existe pour la fenêtre entre le moment où un client
-apprend l'existence de l'entité bateau et celui où il apprend l'existence du kart, et pour
-les packs de ressources ou les mods qui rendent les bateaux par un autre chemin.
+d'entité est celui d'un bateau de kart connu. Malgré le commentaire du code qui en fait un
+filet de sécurité, c'est la seule chose qui cache le bateau : le serveur le marque bien
+invisible, mais `BoatEntityRenderer` ne lit jamais cet attribut. Un client sans CheeseKart
+voit donc le bateau, comme l'indique [l'installation](installation.fr.md#client-pour-chaque-pilote).
 
 **`DismountMixin`** annule `ClientPlayerEntity.dismountVehicle` à HEAD quand le joueur
 local est en kart. C'est ce qui fait que Shift donne l'impression de ne rien faire, plutôt

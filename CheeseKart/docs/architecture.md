@@ -35,7 +35,7 @@ com.cheesekart
 
 **`CheeseKartMod`** is the only singleton, exposed as a public static `INSTANCE`.
 Everything else reaches the config and the manager through it, including the dashboard
-layer and CheeseGuard's reflection hook. It registers seven things at init: the config
+layer and CheeseGuard's reflection hook. It registers eight things at init: the config
 load, the manager, both payload types, the command tree, and the lifecycle, tick,
 disconnect and join handlers.
 
@@ -72,14 +72,18 @@ Rules the code follows:
 - Anything that touches the world or an entity goes through
   `WebDashboard.executeOnServerThread(server, …)`. Every mutating API route does this —
   `/start`, `/stop`, `/stopall`, and the live re-apply inside `PUT /presets/{id}`.
-- Preset reads and writes happen straight on the HTTP thread, which is safe because the
-  preset map is concurrent and a preset is only ever fully replaced, never partly
-  mutated while being read.
+- Preset reads and writes happen straight on the HTTP thread. The map itself is
+  concurrent, but a `PUT` is **not** a replacement: `mergeFrom` mutates the existing
+  `KartPreset` in place, field by field, on the HTTP thread, while the server thread may
+  be reading the same object to start a kart. A start that lands mid-merge can push a mix
+  of old and new values; the re-apply that follows the `PUT` then corrects running
+  sessions.
 - The disconnect handler arrives on a network thread, so it removes the session inline
   (the map is concurrent) but schedules the boat cleanup with `server.execute(…)`.
 
-The consequence for API callers is that a mutating route answers before its effect has
-necessarily happened. `{"started":true}` means *scheduled*, not *succeeded* — see
+`executeOnServerThread` blocks the HTTP thread until the task has run (five-second
+timeout), so a mutating route answers after its effect. What it does not do is carry a
+result back: `{"started":true}` means *ran*, not *succeeded* — see
 [the note on POST /start](dashboard.md#post-start).
 
 ## The per-tick loop
@@ -110,10 +114,10 @@ silently skipped mixin, not a crash. That is deliberate — neither mixin is ess
 and crashing a client over a cosmetic hook would be the worse outcome.
 
 **`BoatRenderMixin`** cancels `BoatEntityRenderer.render` at HEAD when the entity id is
-a known kart boat. This is a safety net: the boat is already flagged invisible
-server-side. It exists for the window between a client learning about the boat entity
-and learning about the kart, and for resource packs or mods that render boats through
-another path.
+a known kart boat. Despite the source comment calling it a safety net, it is the only
+thing that hides the boat: the server does flag it invisible, but
+`BoatEntityRenderer` never reads that flag. A client without CheeseKart therefore sees
+the boat, as [installation](installation.md#client-for-each-racer) says.
 
 **`DismountMixin`** cancels `ClientPlayerEntity.dismountVehicle` at HEAD when the local
 player is in a kart. This is what makes Shift feel like it does nothing rather than

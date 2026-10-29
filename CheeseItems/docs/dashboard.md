@@ -182,7 +182,7 @@ other method requires `OPERATOR` or above (see above).
 | `PUT` | `/:id` | partial entry | `200` merged entry | `400` · `404` |
 | `DELETE` | `/:id` | — | `200 {"deleted":true}` | `400` · `404` |
 | `POST` | `/:id/image` | `{"imageBase64":"…"}` | `200 {"uploaded":true}` | `400` · `404` |
-| `GET` | `/:id/image` | — | `200` `image/png`, revalidated | `400` |
+| `GET` | `/:id/image` | — | `200` `image/png`, revalidated | `400` · `404` no image |
 | `DELETE` | `/:id/image` | — | `200 {"deleted":true}` | `400` |
 | `POST` | `/reorder` | `{"ids":["a","b",…]}` | `200 {"ok":true}` | `400` ids required |
 | `POST` | `/grant` | `{"playerUuid"\|"playerName", "morphoId"}` | `200 {"granted":true}` | `400` · `404` · `409` already in codex · `500` |
@@ -222,7 +222,8 @@ An entry looks like this; every field and its default is documented in
 ```
 
 `POST /` generates an 8-character hex id, stamps `createdAt`, and appends the entry at the
-end of the sort order. It runs the body through the same merge code as `PUT`, so a
+end of the sort order — unless the body carries a non-zero `sortOrder`, which the merge
+does read and which is then kept as is. It runs the body through the same merge code as `PUT`, so a
 duplicate created by posting a copy of an existing entry keeps its commands and endurance
 overrides. `id`, `hasImage` and `createdAt` are **ignored** in the body: the merge does not
 read them.
@@ -297,8 +298,9 @@ until it reloads.
 ## What the dashboard views let an admin do
 
 The `items` view lists definitions with their flags, opens an editor for every field
-described in [custom items](items.md), uploads and crops an icon, and has a give button
-that asks for a player name. The `morphos` view lists catalog entries with their
+described in [custom items](items.md), uploads an icon (sent as is — there is no
+cropping), duplicates a definition, triggers a reload, and has a give button that asks for
+a player name and a quantity. The `morphos` view lists catalog entries with their
 thumbnails, edits them, drag-reorders them (which calls `/reorder`), uploads images, edits
 the global endurance defaults and grants an entry to a player.
 

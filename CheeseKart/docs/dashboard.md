@@ -162,9 +162,10 @@ curl -X PUT http://localhost:44311/api/v1/kart/presets/drift \
 | `200` | the full updated preset |
 | `404` | `{"error":"Preset not found: <id>"}` |
 
-The re-application is scheduled onto the server thread, so the response can come back
-marginally before the racers' karts actually change. In practice this is one tick. The
-server logs each batch:
+The re-application runs on the server thread, and `executeOnServerThread` waits for it
+(up to five seconds) before the response is written — so by the time you get the `200`, the
+new physics packets have been sent; the karts change as soon as the clients receive them.
+The server logs each batch:
 
 ```text
 [CheeseKart] Re-applied preset 'drift' to 3 active session(s)
@@ -241,10 +242,12 @@ curl -X POST http://localhost:44311/api/v1/kart/start \
 | `404` | `{"error":"Player not found: <name>"}` |
 | `404` | `{"error":"Preset not found: <id>"}` |
 
-> ⚠️ `{"started":true}` means the start was **scheduled onto the server thread**, not
-> that it succeeded. The force-mount can still fail — if a player is already riding
-> something else, for instance — and that failure appears in the server log, not in this
-> response. Confirm with `GET /active` if it matters.
+> ⚠️ `{"started":true}` means the start **ran** on the server thread —
+> `executeOnServerThread` waits for the task, up to five seconds — not that it succeeded:
+> the `boolean` that `startKart` returns is discarded. A refused force-mount (rare, see
+> [troubleshooting](troubleshooting.md#a-start-command-reports-failed-to-start-kart))
+> appears in the server log, not in this response. Confirm with `GET /active` if it
+> matters. An exception inside the task, or the five-second timeout, comes back as a `500`.
 
 ### `POST /stop`
 
@@ -295,8 +298,10 @@ over HTTP:
 | `KART_STOP_ALL` | — | ends every participant's session |
 
 `kartSpeciesOverride` plays the same role as the command's third argument: left blank,
-each racer gets the preset's own `species`. A missing or unknown `kartPresetId` is
-logged by CheeseGuard and the effect does nothing:
+each racer gets the preset's own `species`. In a timeline block, a missing
+`kartPresetId` falls back to `rally` (`TimelineExecutor` reads it with that default);
+elsewhere, a missing or unknown `kartPresetId` is logged by CheeseGuard and the effect
+does nothing:
 
 ```text
 [CG] KART_START_ALL: no presetId specified

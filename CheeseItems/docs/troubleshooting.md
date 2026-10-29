@@ -24,8 +24,9 @@ console or a command block. `/morpho` is the control test: it needs no permissio
 
 ## `/cheeseitem list` says no items but the file has items
 
-**Cause.** The config failed to parse. A single trailing comma, a smart quote pasted from a
-document, or a `//` comment is enough — the file is read with Gson's strict parser.
+**Cause.** The config failed to parse. A single trailing comma or a missing bracket is
+enough. (`//` comments are not the culprit: `JsonParser.parseString` reads leniently and
+accepts them.)
 
 **Fix.** Look for the line just above the startup banner:
 
@@ -162,11 +163,10 @@ becomes active automatically; after a deletion, nothing re-picks one.
 `cshift transform <player> <species> [form] [shiny]` through the command dispatcher and has
 no way to check the result, so it tells the player *Transformation: Ditto* either way.
 
-**Fix.** Look for:
-
-```text
-[CheeseItems] cshift command failed: cshift transform Steve ditto (…)
-```
+**Fix.** Look in the server log, around the moment of the press, for the error the
+dispatcher sent back to the console — `Unknown or incomplete command, see below for error`
+if `cshift` does not exist. (The mod's own `[CheeseItems] cshift command failed: …` warning
+only fires on an exception, which the dispatcher never lets through.)
 
 Then run the same command by hand as an operator to see the real error. The usual causes
 are a species name CobbleShift does not know, or a `form` value that is not valid for that
@@ -176,11 +176,11 @@ species. [Why this is fragile](morphos.md#wearing-a-morpho).
 
 **Cause.** One of two things. Either the server restarted while they were transformed — the
 transformed map is memory-only, so CheeseItems no longer knows and their next `H` press
-transforms them again instead of reverting. Or they pressed `H` with an empty endurance
-pool, which executes the transform and *then* refuses to start the drain, leaving nothing to
-revert them.
+transforms them again instead of reverting. Or their `H` press landed in the one tick where
+the endurance pool sat at exactly zero, which executes the transform and *then* refuses to
+start the drain: nothing reverts them automatically any more.
 
-**Fix.** `/cshift revert <name>`. Both are known bugs, listed in
+**Fix.** In the second case, one more `H` press reverts them. In both, `/cshift revert <name>`. Both are known bugs, listed in
 [architecture](architecture.md#known-weaknesses).
 
 ## A morpho vanished from a player's Codex

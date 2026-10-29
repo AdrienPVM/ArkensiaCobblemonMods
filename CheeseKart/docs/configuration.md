@@ -15,8 +15,8 @@ player's client.
 
 The file is created on first start if it is missing or contains no presets, seeded with
 the three stock presets described [below](#the-three-stock-presets). It is rewritten
-whenever a preset is created, updated or deleted, whether from the dashboard or from a
-command, and it is written with pretty-printing so it stays readable after the mod has
+whenever a preset is created, updated or deleted from the dashboard or the API — no
+command edits presets — and it is written with pretty-printing so it stays readable after the mod has
 touched it.
 
 > ⚠️ The file is read **once**, at server start. Editing it by hand while the server is
@@ -37,8 +37,12 @@ touched it.
 }
 ```
 
-A top-level object with a single `presets` array. A preset whose `id` is missing or
-`null` is dropped silently while loading, and every unknown key is ignored — so adding
+A top-level object with a single `presets` array. A preset whose `id` key is missing is
+dropped silently while loading. An explicit `"id": null` is worse: it throws, which aborts
+the whole load with `[CheeseKart] Failed to load config: …` and keeps only the presets read
+before it. Whenever a load ends with zero presets — that error on the first entry, a
+missing `presets` array, every entry without an `id` — the three stock presets are seeded
+and **saved over your file**. Every unknown key is ignored — so adding
 your own notes field to a preset is harmless, but it will be erased the next time the
 mod saves the file.
 
@@ -91,7 +95,7 @@ quickly but keeps travelling the way it was already going.
 
 | Key | Type | Default | What it does |
 |---|---|---|---|
-| `stepHeight` | float | `1.25` | How tall a block the kart climbs without jumping. `1.25` clears a single block plus a slab; `2.0` — the `parkour` preset — walks up two-block steps |
+| `stepHeight` | float | `1.25` | How tall a block the kart climbs without jumping. `1.25` clears a full block with a quarter-block margin (not a block plus a slab, which is `1.5`); `2.0` — the `parkour` preset — walks up two-block steps |
 | `gravity` | double | `-0.04` | Downward acceleration. **Negative is down.** Vanilla boats are near `-0.04`; `-0.03` gives longer, floatier jumps |
 | `jumpForce` | float | `0.0` | Upward impulse on jump. At `0.0` the kart cannot jump at all, which is correct for a ground race |
 | `airControl` | boolean | `true` | Whether steering still works mid-air. Off makes a jump commit the racer to their trajectory |
@@ -138,7 +142,7 @@ listed here sits at its default from the table above.
 }
 ```
 
-The baseline. Grips, turns at a sane rate, climbs a block and a half.
+The baseline. Grips, turns at a sane rate, climbs a single block.
 
 ### `drift` — loose and fast
 
@@ -204,7 +208,7 @@ use; they are here to be read, not parsed.
       "yawAccel": 2.2,               // sharp steering to fight the slide
       "turnForwardAccel": 0.008,     // do not die in hairpins
 
-      "stepHeight": 1.25,            // one block plus a slab
+      "stepHeight": 1.25,            // one full block
       "gravity": -0.04,              // standard
       "jumpForce": 0.0,              // ground race, no jumping
       "airControl": true,
@@ -219,8 +223,8 @@ use; they are here to be read, not parsed.
 ```
 
 With the server running, the same preset is created from the dashboard or with one
-request — and that route validates the id, refuses a duplicate, and applies changes to
-live sessions. See [dashboard API](dashboard.md#post-presets).
+request — and that route validates the id and refuses a duplicate, while a later `PUT`
+applies changes to live sessions. See [dashboard API](dashboard.md#post-presets).
 
 ---
 

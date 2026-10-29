@@ -14,8 +14,9 @@ when it does not.
 `/cheesekart start` does six things, in this order:
 
 1. **Spawns a boat** at the player's exact position, with three vanilla flags set:
-   invisible, invulnerable, silent. Invisible is the real mechanism that hides it — the
-   [render mixin](architecture.md#the-two-client-mixins) is only a safety net.
+   invisible, invulnerable, silent. The invisible flag does not actually hide a boat:
+   vanilla's boat renderer never checks it. What hides the kart is the
+   [render mixin](architecture.md#the-two-client-mixins), on clients that have CheeseKart.
 2. **Force-mounts** the player. Force here means the vanilla "ignore whether this is
    normally allowed" path. If it still fails, the boat is discarded immediately so no
    orphan entity is left in the world, and the command reports failure.

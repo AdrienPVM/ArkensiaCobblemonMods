@@ -25,9 +25,9 @@ aucune permission, donc si `/morpho` marche et `/cheeseitem` non, c'est la permi
 
 ## `/cheeseitem list` dit qu'il n'y a aucun item alors que le fichier en contient
 
-**Cause.** La configuration n'a pas pu être analysée. Une seule virgule en trop, un
-guillemet typographique collé depuis un document, ou un commentaire `//` suffit — le fichier
-est lu avec l'analyseur strict de Gson.
+**Cause.** La configuration n'a pas pu être analysée. Une seule virgule en trop ou un
+crochet manquant suffit. (Les commentaires `//` ne sont pas en cause : `JsonParser.parseString`
+lit en mode permissif et les accepte.)
 
 **Remède.** Cherche la ligne juste au-dessus de la bannière de démarrage :
 
@@ -170,11 +170,10 @@ reçoit devient active automatiquement ; après une suppression, rien n'en chois
 aucun moyen de vérifier le résultat, donc il annonce *Transformation : Ditto* dans les deux
 cas.
 
-**Remède.** Cherche :
-
-```text
-[CheeseItems] cshift command failed: cshift transform Steve ditto (…)
-```
+**Remède.** Cherche dans le log du serveur, au moment de la pression, l'erreur que le
+dispatcher a renvoyée à la console — `Unknown or incomplete command, see below for error` si
+`cshift` n'existe pas. (L'avertissement du mod, `[CheeseItems] cshift command failed: …`, ne
+se déclenche que sur une exception, que le dispatcher ne laisse jamais passer.)
 
 Puis lance la même commande à la main en tant qu'opérateur pour voir la vraie erreur. Les
 causes habituelles sont un nom d'espèce que CobbleShift ne connaît pas, ou une valeur de
@@ -185,11 +184,13 @@ causes habituelles sont un nom d'espèce que CobbleShift ne connaît pas, ou une
 
 **Cause.** L'une des deux. Soit le serveur a redémarré pendant qu'il était transformé — la
 table des transformés n'existe qu'en mémoire, donc CheeseItems ne le sait plus et sa
-prochaine pression sur `H` le transforme de nouveau au lieu de l'annuler. Soit il a appuyé
-sur `H` avec une réserve d'endurance vide, ce qui exécute la transformation *puis* refuse de
-démarrer le drain, sans rien pour l'annuler.
+prochaine pression sur `H` le transforme de nouveau au lieu de l'annuler. Soit sa pression
+sur `H` est tombée pendant l'unique tick où la réserve d'endurance valait exactement zéro, ce
+qui exécute la transformation *puis* refuse de démarrer le drain : plus rien ne l'annule
+automatiquement.
 
-**Remède.** `/cshift revert <name>`. Les deux sont des bugs connus, listés dans
+**Remède.** Dans le second cas, une pression de plus sur `H` l'annule. Dans les deux,
+`/cshift revert <name>`. Les deux sont des bugs connus, listés dans
 [architecture](architecture.fr.md#faiblesses-connues).
 
 ## Une morpho a disparu du Codex d'un joueur

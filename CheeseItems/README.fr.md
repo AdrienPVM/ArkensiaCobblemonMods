@@ -25,7 +25,7 @@ appliquée en pilotant la commande `cshift` de [CobbleShift](../CobbleShift/). C
 transformation vide une réserve d'endurance et s'annule d'elle-même quand la réserve est
 vide.
 
-**Minecraft 1.21.1 · Fabric · Java 21 · 28 fichiers source, ~4 980 lignes**
+**Minecraft 1.21.1 · Fabric · Java 21 · 28 fichiers source, ~5 000 lignes**
 
 ---
 

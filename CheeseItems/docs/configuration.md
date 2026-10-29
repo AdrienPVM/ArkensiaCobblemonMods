@@ -16,8 +16,9 @@ actual configuration buried in the first of them. Everything lives under the ser
 | `config/cheeseitems_assets/bar/0.png` … `10.png` | you, by hand | the endurance bar font frames |
 | `config/cheeseitems_assets/morphos/<id>.png` | catalog image upload | one morpho image per catalog entry |
 
-All three JSON files are created on first launch if they are missing — empty, with no
-sample content. `config/cheeseitems.json` comes out as:
+The first two JSON files are created on first launch if they are missing — empty, with no
+sample content. The third, `cheeseitems_morpho.json`, only appears once a player owns a
+morpho. `config/cheeseitems.json` comes out as:
 
 ```json
 {
@@ -108,7 +109,8 @@ The numbers are abstract points; only their ratio matters. With the defaults a
 transformation lasts `100 / 2 = 50` seconds and refills in `100 / 1 = 100` seconds.
 
 `drainPerSecond: 0` gives unlimited transformation time — the pool never reaches zero, so
-nothing auto-reverts and the actionbar bar is never drawn after the pool fills. That is
+nothing auto-reverts, and the bar stays on the actionbar, full, for as long as the player
+stays transformed (it is drawn whenever the pool is draining). That is
 the supported way to turn endurance off. `regenPerSecond: 0` is the opposite trap: once a
 player empties the pool it never refills while they are connected, and the only reset is a
 reconnect, because the state is memory-only.
@@ -200,14 +202,14 @@ next debounced save. Edit the catalog from the dashboard, or stop the server.
 }
 ```
 
-⚠️ The comments above are for reading only. The file is parsed with Gson in strict mode
-through `JsonParser.parseString`, which rejects `//` comments — a config with comments
-fails to load, logs `[CheeseItems] Failed to load config: …` and leaves the mod with **zero
-items**, silently, as if you had deleted them all. Copy the example without the comment
-lines.
+⚠️ The comments above are for reading only. `JsonParser.parseString` reads leniently, so
+the file does load with `//` comments in it — but the mod never writes them back: the next
+save (any dashboard edit, an icon upload, or the server start itself, which saves after
+assigning `customModelData`) rewrites the file without them. Keep your notes
+elsewhere.
 
-That failure mode deserves a second look: a parse error is caught, logged at `ERROR` and
-then ignored. The item list stays empty and the next save writes that empty list over your
+A real syntax error is a different story, and deserves a second look: a parse error is
+caught, logged as `[CheeseItems] Failed to load config: …` at `ERROR` and then ignored. The item list stays empty and the next save writes that empty list over your
 file. Keep a backup of `cheeseitems.json` before editing it by hand, and check the log
 after a reload.
 

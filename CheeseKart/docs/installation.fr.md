@@ -116,7 +116,7 @@ ou non :
 Les deux sont normales.
 [Pourquoi il existe deux chemins](physics.fr.md#pourquoi-le-payload-est-envoyé-de-deux-manières-différentes).
 
-Et une autre à propos de CobbleShift, s'il est présent :
+Et une autre à propos de CobbleShift, selon qu'il est installé ou non :
 
 ```text
 [CheeseKart] CobbleShift integration active
@@ -131,13 +131,14 @@ Confirme ensuite en jeu, en tant qu'opérateur :
 
 ```text
 --- Presets (3) ---
+  parkour — Parkour | slip=0.98 step=2.0 fwd=0.04 [locked]
   rally — Rally | slip=0.98 step=1.25 fwd=0.04 [locked]
   drift — Drift | slip=1.1 step=1.25 fwd=0.06 [locked]
-  parkour — Parkour | slip=0.98 step=2.0 fwd=0.04 [locked]
 ```
 
-Si la commande n'existe pas, le mod n'a pas chargé. Si elle existe mais répond que tu
-n'as pas la permission, tu es en dessous du niveau de permission 2.
+Si la commande n'existe pas, soit le mod n'a pas chargé, soit tu es en dessous du niveau
+de permission 2 — il n'y a pas de message de permission à part : Brigadier cache tout
+l'arbre, et les deux cas donnent *Unknown or incomplete command*. Le log les départage.
 
 Enfin, le dashboard : `kart` doit apparaître dans `GET /api/v1/modules`, et la barre
 latérale doit afficher une entrée 🏎.

@@ -21,9 +21,9 @@ ne peux pas vraiment faire, c'est conduire et regarder les chiffres en même tem
 
 ```text
 --- Presets (3) ---
+  parkour — Parkour | slip=0.98 step=2.0 fwd=0.04 [locked]
   rally — Rally | slip=0.98 step=1.25 fwd=0.04 [locked]
   drift — Drift | slip=1.1 step=1.25 fwd=0.06 [locked]
-  parkour — Parkour | slip=0.98 step=2.0 fwd=0.04 [locked]
 ```
 
 Trois presets, semés au premier démarrage. Si tu obtiens `No presets configured`, quelque
@@ -50,9 +50,11 @@ Du côté de Steve : la caméra descend légèrement en position assise, rien n'
 sous lui, et maintenir la touche avant l'accélère progressivement au lieu de le faire
 marcher. Appuyer sur Shift ne produit strictement rien — `rally` est `locked`.
 
-Si Steve se retrouve plutôt assis dans un bateau visible qui se conduit comme un bateau,
-il n'a pas OpenBoatUtils. Le kart fonctionne quand même, mais ce n'est pas un kart —
-[pourquoi](physics.fr.md#pourquoi-il-doit-être-côté-client).
+Si le kart de Steve se conduit comme un simple bateau, il n'a pas OpenBoatUtils. Le kart
+fonctionne quand même, mais ce n'est pas un kart —
+[pourquoi](physics.fr.md#pourquoi-il-doit-être-côté-client). S'il *voit* le bateau sous
+lui, c'est CheeseKart qui manque sur son client : c'est le mixin de rendu côté client qui
+le cache.
 
 ## 3. Observe la session
 

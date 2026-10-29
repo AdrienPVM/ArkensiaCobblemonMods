@@ -23,7 +23,7 @@ Codex, picked in an in-game GUI (`J`), toggled with `H`, and applied by driving
 [CobbleShift](../CobbleShift/)'s `cshift` command. Each transformation drains an
 endurance pool and reverts on its own when the pool empties.
 
-**Minecraft 1.21.1 · Fabric · Java 21 · 28 source files, ~4 980 lines**
+**Minecraft 1.21.1 · Fabric · Java 21 · 28 source files, ~5 000 lines**
 
 ---
 

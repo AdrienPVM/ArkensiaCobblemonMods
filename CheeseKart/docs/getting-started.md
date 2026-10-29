@@ -21,9 +21,9 @@ the numbers at the same time.
 
 ```text
 --- Presets (3) ---
+  parkour — Parkour | slip=0.98 step=2.0 fwd=0.04 [locked]
   rally — Rally | slip=0.98 step=1.25 fwd=0.04 [locked]
   drift — Drift | slip=1.1 step=1.25 fwd=0.06 [locked]
-  parkour — Parkour | slip=0.98 step=2.0 fwd=0.04 [locked]
 ```
 
 Three presets, seeded on first launch. If you get `No presets configured`, something
@@ -49,9 +49,10 @@ From Steve's side: the camera drops slightly into a sitting position, nothing is
 visible underneath him, and holding forward accelerates him smoothly rather than at
 walking pace. Pressing Shift does nothing at all — `rally` is `locked`.
 
-If Steve instead sits in a visible boat and handles like a boat, he does not have
-OpenBoatUtils. The kart still works, it is just not a kart —
-[why](physics.md#why-it-has-to-be-on-the-client).
+If Steve's kart handles like a plain boat, he does not have OpenBoatUtils. The kart still
+works, it is just not a kart — [why](physics.md#why-it-has-to-be-on-the-client). If he
+can *see* the boat under him, it is CheeseKart that is missing from his client: the
+client-side render mixin is what hides it.
 
 ## 3. Watch the session
 

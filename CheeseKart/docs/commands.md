@@ -67,7 +67,7 @@ is installed.
 |---|---|
 | `Player not found: <name>` | the name does not match an online player — offline players cannot be put in a kart |
 | `Preset not found: <id>` | no such id in `config/cheesekart.json`; check `/cheesekart presets` |
-| `Failed to start kart for <name>` | the force-mount was refused. Almost always the player is already riding something else — see [troubleshooting](troubleshooting.md#a-start-command-reports-failed-to-start-kart) |
+| `Failed to start kart for <name>` | the force-mount was refused. Rare: an existing vehicle is *not* a cause, because a forced mount takes the player off it first — see [troubleshooting](troubleshooting.md#a-start-command-reports-failed-to-start-kart) |
 
 The first two are rejections: nothing happened. The third means a boat was spawned and
 then cleaned up, so no entity is left behind.
@@ -161,19 +161,23 @@ With nothing running you get `No active karts`.
 /cheesekart presets
 ```
 
-Lists configured presets with the four values you most often tune, so you can compare
+Lists configured presets with the three values you most often tune, so you can compare
 them without opening the config file.
 
 ```text
 --- Presets (3) ---
+  parkour — Parkour | slip=0.98 step=2.0 fwd=0.04 [locked]
   rally — Rally | slip=0.98 step=1.25 fwd=0.04 [locked]
   drift — Drift | slip=1.1 step=1.25 fwd=0.06 [locked]
-  parkour — Parkour | slip=0.98 step=2.0 fwd=0.04 [locked]
 ```
 
 `slip` is slipperiness, `step` is step height, `fwd` is forward acceleration. A preset
 with a `species` field shows it too. Every field is documented in
 [configuration](configuration.md).
+
+The order is the one the backing `ConcurrentHashMap` iterates in, not creation order —
+which is why the three stock presets come out as `parkour`, `rally`, `drift`. The same goes
+for `/cheesekart list` and for the order of presets in the saved file.
 
 This reads the live in-memory presets, so a preset created from the dashboard a second
 ago shows up immediately.

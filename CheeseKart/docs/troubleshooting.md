@@ -50,21 +50,25 @@ If it happened at startup instead, look for:
 [CheeseKart] Failed to load config: <reason>
 ```
 
-That means the JSON is malformed. The mod logs it and carries on with whatever it
-parsed — and since a failed parse leaves the map empty, it then seeds the defaults.
-A file whose `presets` entries all lack an `id` loads "successfully" with zero presets,
-which is the one case that produces this message without a parse error.
+That means the JSON is malformed (or a preset has `"id": null`). The mod logs it and
+carries on with whatever it read before the error. Startup can never end with *No presets
+configured*, though: any load that ends with zero presets — an error on the first entry,
+no `presets` array, every entry without an `id` — seeds the three defaults and saves them
+over the file, so the broken file is gone. Keep a copy before editing it by hand.
 
 ---
 
 ## The kart is a visible boat and handles like a boat
 
-**Cause.** OpenBoatUtils is missing **on that player's client**. The server checks
+**Cause.** Two client mods, two halves of the symptom. *Handles like a boat*:
+OpenBoatUtils is missing **on that player's client**. *Visible*: CheeseKart is missing on
+that client — the boat's invisible flag does nothing for boats, and only CheeseKart's
+client render mixin hides it. For the physics half, the server checks
 whether the client registered the channel and skips sending physics entirely if not.
 This is not logged, by design — otherwise every non-OBU player would spam the log on
 every start.
 
-**Fix.** Install OpenBoatUtils client-side. If you cannot control clients, treat kart
+**Fix.** Install OpenBoatUtils — and CheeseKart — client-side. If you cannot control clients, treat kart
 racing as opt-in and tell players what they need.
 
 **How to confirm.** Start a kart for a client you know has OBU. If that one handles
@@ -130,12 +134,16 @@ start. Stop and restart that session.
 
 ## A `start` command reports *Failed to start kart*
 
-**Cause.** The force-mount was refused. The overwhelmingly common reason is that the
-player is already riding something — a horse, a real boat, a minecart. A player already
-in a *kart* is not this case: that session is stopped first and replaced.
+**Cause.** The force-mount was refused. That is rare: `startRiding(boat, true)` skips the
+usual "may this entity ride that one" checks and, if the player is already riding a horse,
+a real boat or a minecart, takes them off it before mounting — so an existing vehicle is
+*not* a cause. A player already in a *kart* is not this case either: that session is
+stopped first and replaced. What is left are vanilla's few hard refusals, which a
+freshly spawned boat practically never triggers.
 
-**Fix.** Get them off the other vehicle and try again. No cleanup is needed: the boat
-that was spawned is discarded before the failure is reported.
+**Fix.** Look for `[CheeseKart] Failed to mount <name> on boat` in the log and try again.
+No cleanup is needed: the boat that was spawned is discarded before the failure is
+reported.
 
 ## A racer is stuck after their kart stopped
 

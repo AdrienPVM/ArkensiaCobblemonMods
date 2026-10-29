@@ -123,11 +123,15 @@ curl -s -X PUT http://localhost:44311/api/v1/items/lantern_of_arkensia \
   }'
 ```
 
-Right-click the lantern you are already holding. No reload, no re-give: `useActions` are
-not stored on the stack, so the change applies to every copy in the world at once.
+Right-click the lantern you are already holding — aimed at the sky, not at a block: a soul
+lantern is a block item, and right-clicking a block places it instead of using it
+(`placeable` is not enforced). No reload, no re-give: `useActions` are not stored on the
+stack, so the change applies to every copy in the world at once.
 
 What you see, in order: the beacon sound, *The lantern answers.* in the actionbar, then
-`Shrine: 3s`, `Shrine: 2s`, `Shrine: 1s`, and then you are at 148 64 -512.
+`Shrine: 2s`, `Shrine: 1s` (usually followed by `Shrine: 0s`), and then you are at
+148 64 -512. The countdown never shows `3s`: it is refreshed on the server's whole-second
+ticks, the first of which comes after the use, and the remaining time is rounded down.
 
 ⚠️ `{player}` is the only placeholder, and the commands run **as the console at
 permission level 4**. Anyone who can right-click this item can run that command. Read
@@ -156,7 +160,7 @@ Three things happen on the server:
 ```text
 [CheeseItems] Resource pack generated: 1 items, 1204 bytes, SHA1=…
 [CheeseItems] Pack changed — pushing to 1 online players
-[CheeseItems] Image uploaded for item: lantern_of_arkensia
+[CheeseItems API] Image uploaded for item: lantern_of_arkensia
 ```
 
 Your client is prompted to download *Custom item icons for Cacademy*. Accept it. The
@@ -212,11 +216,9 @@ the default drain rate it empties and reverts them automatically. Press `H` agai
 that to revert manually.
 
 If `H` says *Transformation: Ditto* but nothing visibly changes, CobbleShift is not
-installed or `cshift` rejected the species. The log has the detail:
-
-```text
-[CheeseItems] cshift command failed: cshift transform Steve ditto (…)
-```
+installed or `cshift` rejected the species. The server log has the detail, as the error
+the dispatcher sent back to the console — `Unknown or incomplete command, see below for
+error` when CobbleShift is missing, CobbleShift's own message when it rejects the species.
 
 See [morphos](morphos.md#wearing-a-morpho) — the mod cannot tell whether the transform
 actually worked.

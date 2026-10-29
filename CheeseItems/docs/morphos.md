@@ -141,11 +141,18 @@ name, then starts the endurance pool. Reverting runs `cshift revert <player>`, t
 ⚠️ This is an observation of how the two mods currently fit together, not a contract.
 [CobbleShift](../../CobbleShift/) is not declared as a dependency and is not called
 through an API — if `cshift` changes its argument order or its name, every morpho stops
-transforming and the only trace is a warning:
+transforming and the only trace is the dispatcher's own error, which the console source
+writes to the server log — for a command that does not exist:
 
 ```text
-[CheeseItems] cshift command failed: cshift transform Steve ditto (…)
+Unknown or incomplete command, see below for error
 ```
+
+followed by the command echoed up to a `<--[HERE]` marker.
+
+`MorphoManager` also has a `[CheeseItems] cshift command failed: …` warning, but it only
+fires if `executeWithPrefix` throws, and the vanilla dispatcher catches syntax and
+execution errors itself and reports them to the command source instead.
 
 A failed `cshift` does not stop the rest: the extra commands still run, the endurance pool
 still drains, and the player is still told *Transformation: Ditto*. The mod has no way to
@@ -178,12 +185,19 @@ human form to refill. The pool ticks every server tick: `drainPerSecond / 20` re
 tick while transformed, `regenPerSecond / 20` added per tick while not.
 
 At zero, the pool stops draining and `forceRevert` runs the full revert path, including
-`commandsOnRevert`. Pressing `H` again before the pool has regenerated is refused with
-*Endurance depleted!* — and note what the code does in that case: the `cshift transform`
-command **has already been executed** by the time the tracker refuses, because the refusal
-happens inside `start()`, after `doTransform` ran the command. The player ends up
-transformed with `draining = false`, so nothing will revert them. This is a real bug; the
-workaround is `/cshift revert <player>`.
+`commandsOnRevert`. Regeneration starts on the very next tick, and `start()` only refuses
+when the pool is at exactly zero — so pressing `H` again a moment later is accepted, and
+the transformation lasts only as long as the few points regenerated so far before it
+reverts itself. There is no lockout until the pool refills.
+
+The refusal, *Endurance depleted!*, can only hit a press handled in the one tick between the
+depletion and the first regeneration step. Note what the code does then: the
+`cshift transform` command **has already been executed** by the time the tracker refuses,
+because the refusal happens inside `start()`, after `doTransform` ran the command, and
+`doTransform` still records the player as transformed and sends *Transformation: …*. The
+player ends up transformed with `draining = false`: nothing reverts them automatically and
+the transformation has no time limit until they press `H` again. This is a real bug; the
+other way out is `/cshift revert <player>`.
 
 Lowering `capacity` while someone is transformed clamps their current value down on the
 next transform, not immediately. Raising it takes effect on their next transform too.
@@ -218,8 +232,8 @@ can still transform them with `cshift` directly.
 
 ### What a sync contains
 
-Sent on join (one tick after the connection event), after every grant, and after every
-`setActive`:
+Sent on join (one tick after the connection event), after every grant, after every
+`setActive`, and to every online player after a catalog entry is deleted:
 
 | Field | Source |
 |---|---|
@@ -234,8 +248,10 @@ rename in the dashboard shows up in every player's GUI without a restart.
 
 CheeseStore is reached with `Class.forName("com.cheesestore.WalletManager")` and friends.
 It is not declared in `fabric.mod.json` at all — not even as a `suggests`, despite the
-hook's own comment claiming it is. When it is missing the balance line is hidden and a
-single line appears in the log:
+hook's own comment claiming it is. When it is missing the balance line is hidden and
+nothing is logged: the hook checks `isModLoaded("cheesestore")` first and returns silently.
+The two log lines it has only show up when CheeseStore *is* loaded — `CheeseStore detected —
+codex balance display enabled` on success, or this one if the reflection fails:
 
 ```text
 [CheeseItems] CheeseStore not available: com.cheesestore.WalletManager

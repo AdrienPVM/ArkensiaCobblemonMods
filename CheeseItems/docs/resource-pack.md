@@ -18,6 +18,7 @@ Nothing is written to disk. The pack exists as a `byte[]` inside
 | `POST /api/v1/items/:id/image` | rebuild, then push to online players if it changed |
 | `DELETE /api/v1/items/:id/image` | same |
 | `DELETE /api/v1/items/:id` | same, after dropping the icon and the `customModelData` entry |
+| `CheeseItemsMod.regenerateAndPushPack()` called by another mod | same — CheeseGuard's PropHunt icons do this, see [entries from other mods](#entries-from-other-mods) |
 
 `/cheeseitem reload` does **not** rebuild the pack. Dropping a PNG into
 `config/cheeseitems_assets/` by hand therefore does nothing until an icon upload or a
@@ -140,17 +141,18 @@ generator.removeExternalEntries(idPrefix);
 External entries are appended to the item entries on every build and are **not**
 persisted — a caller has to re-register them after each restart. They also get no
 `customModelData` allocation from `CheeseItemsConfig`, so the caller is responsible for
-picking numbers that do not collide with the ones in `config/cheeseitems.json`. Nothing in
-this repository currently calls either method; the comment in the source mentions PropHunt
-icons as the intended consumer.
+picking numbers that do not collide with the ones in `config/cheeseitems.json`. The one
+caller in this repository is [CheeseGuard](../../CheeseGuard/)'s `PropHuntIconStorage`,
+which reaches both methods by reflection, registers its icons under the `ph_` prefix with
+numbers starting at 900, then calls `CheeseItemsMod.regenerateAndPushPack()`.
 
 ## Checking what players actually got
 
 The server log tells you the size and hash of each build:
 
 ```text
-[CheeseItems] Resource pack generated: 3 items, 18422 bytes, SHA1=4f1c…
 [CheeseItems] Endurance bar font added to resource pack (11 levels)
+[CheeseItems] Resource pack generated: 3 items, 18422 bytes, SHA1=4f1c…
 [CheeseItems] Pack changed — pushing to 7 online players
 ```
 
@@ -159,7 +161,7 @@ quickest way to confirm a texture made it in:
 
 ```bash
 curl -O http://play.example.net:44311/cheeseitems/api/pack.zip
-unzip -l cheeseitems-pack.zip
+unzip -l pack.zip      # curl -O names the file after the URL, not Content-Disposition
 ```
 
 ---

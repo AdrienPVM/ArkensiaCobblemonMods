@@ -71,7 +71,7 @@ is a startup crash, not a warning.
 
 ## First launch
 
-The mod creates three files under `config/`, all of them empty of content:
+The mod creates two files under `config/`, both empty of content; the third waits:
 
 ```text
 config/cheeseitems.json           {"items":[],"customModelData":{},"resourcePackHost":""}
@@ -89,10 +89,15 @@ No asset folder is created until the first upload.
 ```text
 [CheeseItems] Initializing...
 [CheeseItems] Default config created
-[CheeseItems] MorphoCatalog loaded (0 entries)
 [CheeseItems] Initialized successfully!
+[CheeseItems] Resource pack cleared (no custom icons, no bar images)
 [CheeseItems] Server started — 0 items loaded
 ```
+
+`MorphoCatalog loaded (N entries)` is absent on the very first launch: when the catalog
+file is missing, `MorphoCatalog.load()` writes it and returns before logging. It appears
+from the second launch on, as does `MorphoCodex loaded (N players)` once the codex file
+exists.
 
 On a client, one more line appears:
 

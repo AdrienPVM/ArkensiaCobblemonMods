@@ -19,6 +19,7 @@ Rien n'est écrit sur le disque. Le pack existe comme un `byte[]` dans
 | `POST /api/v1/items/:id/image` | régénération, puis envoi aux joueurs connectés si le pack a changé |
 | `DELETE /api/v1/items/:id/image` | idem |
 | `DELETE /api/v1/items/:id` | idem, après suppression de l'icône et de l'entrée `customModelData` |
+| `CheeseItemsMod.regenerateAndPushPack()` appelé par un autre mod | idem — les icônes PropHunt de CheeseGuard le font, voir [entrées venant d'autres mods](#entrées-venant-dautres-mods) |
 
 `/cheeseitem reload` ne régénère **pas** le pack. Déposer un PNG dans
 `config/cheeseitems_assets/` à la main ne fait donc rien tant qu'un envoi d'icône ou un
@@ -145,16 +146,18 @@ Les entrées externes sont ajoutées aux entrées d'items à chaque génération
 **pas** persistées — l'appelant doit les réenregistrer après chaque redémarrage. Elles ne
 reçoivent pas non plus de `customModelData` depuis `CheeseItemsConfig`, donc l'appelant est
 responsable de choisir des numéros qui n'entrent pas en collision avec ceux de
-`config/cheeseitems.json`. Rien dans ce dépôt n'appelle actuellement ces méthodes ; le
-commentaire du code mentionne les icônes de PropHunt comme consommateur prévu.
+`config/cheeseitems.json`. Le seul appelant de ce dépôt est `PropHuntIconStorage` de
+[CheeseGuard](../../CheeseGuard/), qui atteint les deux méthodes par réflexion, enregistre ses
+icônes sous le préfixe `ph_` avec des numéros à partir de 900, puis appelle
+`CheeseItemsMod.regenerateAndPushPack()`.
 
 ## Vérifier ce que les joueurs ont vraiment reçu
 
 Le log du serveur donne la taille et l'empreinte de chaque génération :
 
 ```text
-[CheeseItems] Resource pack generated: 3 items, 18422 bytes, SHA1=4f1c…
 [CheeseItems] Endurance bar font added to resource pack (11 levels)
+[CheeseItems] Resource pack generated: 3 items, 18422 bytes, SHA1=4f1c…
 [CheeseItems] Pack changed — pushing to 7 online players
 ```
 
@@ -163,7 +166,7 @@ façon la plus rapide de confirmer qu'une texture est bien dedans :
 
 ```bash
 curl -O http://play.example.net:44311/cheeseitems/api/pack.zip
-unzip -l cheeseitems-pack.zip
+unzip -l pack.zip      # curl -O nomme le fichier d'après l'URL, pas d'après Content-Disposition
 ```
 
 ---

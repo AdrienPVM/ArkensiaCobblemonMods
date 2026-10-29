@@ -15,8 +15,8 @@ kart consiste à choisir l'un de ces paquets et à le pousser vers le client d'u
 
 Le fichier est créé au premier démarrage s'il est absent ou s'il ne contient aucun
 preset, semé avec les trois presets fournis décrits [plus bas](#les-trois-presets-fournis).
-Il est réécrit chaque fois qu'un preset est créé, modifié ou supprimé, que ce soit depuis
-le dashboard ou depuis une commande, et il est écrit indenté pour rester lisible après
+Il est réécrit chaque fois qu'un preset est créé, modifié ou supprimé depuis le dashboard
+ou l'API — aucune commande ne modifie les presets — et il est écrit indenté pour rester lisible après
 que le mod y a touché.
 
 > ⚠️ Le fichier est lu **une seule fois**, au démarrage du serveur. L'éditer à la main
@@ -37,8 +37,13 @@ que le mod y a touché.
 }
 ```
 
-Un objet racine avec un unique tableau `presets`. Un preset dont l'`id` est absent ou
-`null` est écarté en silence au chargement, et toute clé inconnue est ignorée — ajouter
+Un objet racine avec un unique tableau `presets`. Un preset dont la clé `id` est absente
+est écarté en silence au chargement. Un `"id": null` explicite est pire : il lève une
+exception, qui interrompt tout le chargement avec `[CheeseKart] Failed to load config: …` et
+ne garde que les presets lus avant lui. Chaque fois qu'un chargement se termine avec zéro
+preset — cette erreur sur la première entrée, un tableau `presets` absent, des entrées
+toutes sans `id` — les trois presets fournis sont semés et **sauvegardés par-dessus ton
+fichier**. Toute clé inconnue est ignorée — ajouter
 ton propre champ de notes à un preset est donc sans danger, mais il sera effacé à la
 prochaine sauvegarde du mod.
 
@@ -92,7 +97,7 @@ drift : le kart pivote vite mais continue d'aller là où il allait déjà.
 
 | Clé | Type | Défaut | Rôle |
 |---|---|---|---|
-| `stepHeight` | float | `1.25` | La hauteur de bloc que le kart franchit sans sauter. `1.25` passe un bloc plus une dalle ; `2.0` — le preset `parkour` — monte des marches de deux blocs |
+| `stepHeight` | float | `1.25` | La hauteur de bloc que le kart franchit sans sauter. `1.25` passe un bloc plein avec un quart de bloc de marge (pas un bloc plus une dalle, qui ferait `1.5`) ; `2.0` — le preset `parkour` — monte des marches de deux blocs |
 | `gravity` | double | `-0.04` | L'accélération vers le bas. **Le négatif descend.** Les bateaux vanilla sont proches de `-0.04` ; `-0.03` donne des sauts plus longs et plus flottants |
 | `jumpForce` | float | `0.0` | L'impulsion vers le haut au saut. À `0.0` le kart ne peut pas sauter du tout, ce qui est le bon réglage pour une course au sol |
 | `airControl` | booléen | `true` | Si la direction répond encore en l'air. Désactivé, un saut engage le pilote sur sa trajectoire |
@@ -139,7 +144,7 @@ non listé ici reste à sa valeur par défaut du tableau ci-dessus.
 }
 ```
 
-La référence. Il accroche, braque à un rythme sain, franchit un bloc et demi.
+La référence. Il accroche, braque à un rythme sain, franchit un bloc.
 
 ### `drift` — lâche et rapide
 
@@ -206,7 +211,7 @@ retire-les avant usage ; ils sont là pour être lus, pas analysés.
       "yawAccel": 2.2,               // braquage vif pour contrer la glisse
       "turnForwardAccel": 0.008,     // ne pas mourir dans les épingles
 
-      "stepHeight": 1.25,            // un bloc plus une dalle
+      "stepHeight": 1.25,            // un bloc plein
       "gravity": -0.04,              // standard
       "jumpForce": 0.0,              // course au sol, pas de saut
       "airControl": true,
@@ -221,8 +226,8 @@ retire-les avant usage ; ils sont là pour être lus, pas analysés.
 ```
 
 Avec le serveur en marche, le même preset se crée depuis le dashboard ou avec une seule
-requête — et cette voie-là valide l'identifiant, refuse un doublon, et applique les
-changements aux sessions en cours. Voir [l'API dashboard](dashboard.fr.md#post-presets).
+requête — et cette voie-là valide l'identifiant et refuse un doublon, tandis qu'un `PUT`
+ultérieur applique les changements aux sessions en cours. Voir [l'API dashboard](dashboard.fr.md#post-presets).
 
 ---
 

@@ -167,9 +167,10 @@ curl -X PUT http://localhost:44311/api/v1/kart/presets/drift \
 | `200` | le preset complet, à jour |
 | `404` | `{"error":"Preset not found: <id>"}` |
 
-La réapplication est planifiée sur le thread serveur : la réponse peut donc revenir un
-cheveu avant que les karts des pilotes ne changent réellement. En pratique, cela fait un
-tick. Le serveur écrit une ligne par lot :
+La réapplication s'exécute sur le thread serveur, et `executeOnServerThread` l'attend
+(jusqu'à cinq secondes) avant d'écrire la réponse — quand tu reçois le `200`, les nouveaux
+paquets de physique sont donc déjà partis ; les karts changent dès que les clients les
+reçoivent. Le serveur écrit une ligne par lot :
 
 ```text
 [CheeseKart] Re-applied preset 'drift' to 3 active session(s)
@@ -248,10 +249,13 @@ curl -X POST http://localhost:44311/api/v1/kart/start \
 | `404` | `{"error":"Player not found: <name>"}` |
 | `404` | `{"error":"Preset not found: <id>"}` |
 
-> ⚠️ `{"started":true}` signifie que le lancement a été **planifié sur le thread
-> serveur**, pas qu'il a réussi. La montée forcée peut encore échouer — si un joueur
-> chevauche déjà autre chose, par exemple — et cet échec apparaît dans le log du serveur,
-> pas dans cette réponse. Confirme avec `GET /active` si cela compte.
+> ⚠️ `{"started":true}` signifie que le lancement **s'est exécuté** sur le thread
+> serveur — `executeOnServerThread` attend la tâche, jusqu'à cinq secondes — pas qu'il a
+> réussi : le `boolean` renvoyé par `startKart` est ignoré. Une montée forcée refusée (rare,
+> voir [dépannage](troubleshooting.fr.md#une-commande-start-répond-failed-to-start-kart))
+> apparaît dans le log du serveur, pas dans cette réponse. Confirme avec `GET /active` si
+> cela compte. Une exception dans la tâche, ou le délai de cinq secondes dépassé, revient en
+> `500`.
 
 ### `POST /stop`
 
@@ -302,8 +306,10 @@ par HTTP :
 | `KART_STOP_ALL` | — | met fin à la session de tous les participants |
 
 `kartSpeciesOverride` joue le même rôle que le troisième argument de la commande : laissé
-vide, chaque pilote prend la `species` du preset lui-même. Un `kartPresetId` absent ou
-inconnu est consigné par CheeseGuard et l'effet ne fait rien :
+vide, chaque pilote prend la `species` du preset lui-même. Dans un bloc de timeline, un
+`kartPresetId` absent retombe sur `rally` (`TimelineExecutor` le lit avec cette valeur par
+défaut) ; ailleurs, un `kartPresetId` absent ou inconnu est consigné par CheeseGuard et
+l'effet ne fait rien :
 
 ```text
 [CG] KART_START_ALL: no presetId specified

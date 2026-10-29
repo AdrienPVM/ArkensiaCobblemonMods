@@ -145,11 +145,19 @@ puis `commandsOnRevert`, puis arrête le drain.
 ⚠️ Ceci est une observation de la façon dont les deux mods s'emboîtent actuellement, pas un
 contrat. [CobbleShift](../../CobbleShift/) n'est pas déclaré comme dépendance et n'est pas
 appelé via une API — si `cshift` change l'ordre de ses arguments ou son nom, toutes les
-morphos cessent de transformer et la seule trace est un avertissement :
+morphos cessent de transformer et la seule trace est l'erreur du dispatcher lui-même, que la
+source console écrit dans le log du serveur — pour une commande qui n'existe pas :
 
 ```text
-[CheeseItems] cshift command failed: cshift transform Steve ditto (…)
+Unknown or incomplete command, see below for error
 ```
+
+suivi de la commande recopiée jusqu'à un repère `<--[HERE]`.
+
+`MorphoManager` a aussi un avertissement `[CheeseItems] cshift command failed: …`, mais il
+ne se déclenche que si `executeWithPrefix` lève une exception, et le dispatcher vanilla
+attrape lui-même les erreurs de syntaxe et d'exécution pour les renvoyer à la source de la
+commande.
 
 Un `cshift` en échec n'arrête pas la suite : les commandes supplémentaires sont lancées, la
 réserve d'endurance se vide quand même, et le joueur reçoit quand même *Transformation :
@@ -184,12 +192,20 @@ secondes sous forme humaine pour se recharger. La réserve avance à chaque tick
 ajouté par tick sinon.
 
 À zéro, la réserve arrête de se vider et `forceRevert` exécute le chemin d'annulation
-complet, `commandsOnRevert` incluses. Presser `H` de nouveau avant que la réserve ne se soit
-rechargée est refusé avec *Endurance épuisée !* — et vois ce que fait le code dans ce cas :
-la commande `cshift transform` **a déjà été exécutée** au moment où le tracker refuse, parce
-que le refus a lieu dans `start()`, après que `doTransform` a lancé la commande. Le joueur
-se retrouve transformé avec `draining = false`, donc rien ne l'annulera. C'est un vrai bug ;
-le contournement est `/cshift revert <player>`.
+complet, `commandsOnRevert` incluses. La régénération commence dès le tick suivant, et
+`start()` ne refuse que lorsque la réserve vaut exactement zéro — donc presser `H` de nouveau
+un instant plus tard est accepté, et la transformation ne dure que le temps des quelques
+points déjà régénérés avant de s'annuler d'elle-même. Il n'y a aucun blocage jusqu'à ce que
+la réserve soit pleine.
+
+Le refus, *Endurance épuisée !*, ne peut toucher qu'une pression traitée pendant l'unique
+tick entre l'épuisement et la première étape de régénération. Vois ce que fait le code dans
+ce cas : la commande `cshift transform` **a déjà été exécutée** au moment où le tracker
+refuse, parce que le refus a lieu dans `start()`, après que `doTransform` a lancé la
+commande, et `doTransform` inscrit quand même le joueur comme transformé et envoie
+*Transformation : …*. Le joueur se retrouve transformé avec `draining = false` : rien ne
+l'annule automatiquement et la transformation n'a plus de limite de temps jusqu'à sa
+prochaine pression sur `H`. C'est un vrai bug ; l'autre issue est `/cshift revert <player>`.
 
 Réduire `capacity` pendant que quelqu'un est transformé ramène sa valeur courante à la
 nouvelle borne à la transformation suivante, pas immédiatement. L'augmenter prend effet à la
@@ -226,8 +242,9 @@ morphos, et un opérateur peut toujours le transformer directement avec `cshift`
 
 ### Ce que contient une synchronisation
 
-Envoyée à la connexion (un tick après l'événement de connexion), après chaque attribution et
-après chaque `setActive` :
+Envoyée à la connexion (un tick après l'événement de connexion), après chaque attribution,
+après chaque `setActive`, et à tous les joueurs connectés après la suppression d'une entrée du
+catalogue :
 
 | Champ | Source |
 |---|---|
@@ -243,7 +260,10 @@ renommage dans le dashboard apparaît dans l'interface de chaque joueur sans red
 CheeseStore est atteint par `Class.forName("com.cheesestore.WalletManager")` et compagnie.
 Il n'est pas déclaré du tout dans `fabric.mod.json` — pas même en `suggests`, malgré le
 commentaire du hook qui affirme le contraire. Quand il manque, la ligne de solde est masquée
-et une seule ligne apparaît dans le log :
+et rien n'est journalisé : le hook vérifie d'abord `isModLoaded("cheesestore")` et sort sans
+bruit. Ses deux lignes de log n'apparaissent que si CheeseStore *est* chargé —
+`CheeseStore detected — codex balance display enabled` en cas de succès, ou celle-ci si la
+réflexion échoue :
 
 ```text
 [CheeseItems] CheeseStore not available: com.cheesestore.WalletManager

@@ -187,7 +187,7 @@ toute autre méthode exige `OPERATOR` ou plus (voir ci-dessus).
 | `PUT` | `/:id` | entrée partielle | `200` entrée fusionnée | `400` · `404` |
 | `DELETE` | `/:id` | — | `200 {"deleted":true}` | `400` · `404` |
 | `POST` | `/:id/image` | `{"imageBase64":"…"}` | `200 {"uploaded":true}` | `400` · `404` |
-| `GET` | `/:id/image` | — | `200` `image/png`, revalidé | `400` |
+| `GET` | `/:id/image` | — | `200` `image/png`, revalidé | `400` · `404` pas d'image |
 | `DELETE` | `/:id/image` | — | `200 {"deleted":true}` | `400` |
 | `POST` | `/reorder` | `{"ids":["a","b",…]}` | `200 {"ok":true}` | `400` ids requis |
 | `POST` | `/grant` | `{"playerUuid"\|"playerName", "morphoId"}` | `200 {"granted":true}` | `400` · `404` · `409` déjà dans le codex · `500` |
@@ -227,7 +227,8 @@ Une entrée ressemble à ceci ; chaque champ et son défaut sont documentés dan
 ```
 
 `POST /` génère un identifiant hexadécimal de 8 caractères, inscrit `createdAt` et place
-l'entrée en fin d'ordre de tri. Le corps passe par le même code de fusion que `PUT`, donc un
+l'entrée en fin d'ordre de tri — sauf si le corps porte un `sortOrder` non nul, que la fusion
+lit bel et bien et qui est alors conservé tel quel. Le corps passe par le même code de fusion que `PUT`, donc un
 doublon créé en postant la copie d'une entrée existante conserve ses commandes et ses
 réglages d'endurance. `id`, `hasImage` et `createdAt` sont **ignorés** dans le corps : la
 fusion ne les lit pas.
@@ -304,8 +305,9 @@ donc pas une modification d'endurance avant son rechargement.
 ## Ce que les vues du dashboard permettent
 
 La vue `items` liste les définitions avec leurs options, ouvre un éditeur pour chaque champ
-décrit dans [items personnalisés](items.fr.md), envoie et recadre une icône, et propose un
-bouton de don qui demande un nom de joueur. La vue `morphos` liste les entrées du catalogue
+décrit dans [items personnalisés](items.fr.md), envoie une icône (telle quelle — il n'y a
+aucun recadrage), duplique une définition, lance un rechargement, et propose un bouton de don
+qui demande un nom de joueur et une quantité. La vue `morphos` liste les entrées du catalogue
 avec leurs miniatures, les modifie, les réordonne par glisser-déposer (ce qui appelle
 `/reorder`), envoie des images, modifie les valeurs d'endurance globales et attribue une
 entrée à un joueur.

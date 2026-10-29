@@ -127,13 +127,17 @@ curl -s -X PUT http://localhost:44311/api/v1/items/lantern_of_arkensia \
   }'
 ```
 
-Fais un clic droit avec la lanterne que tu tiens déjà. Pas de rechargement, pas de nouveau
-`give` : les `useActions` ne sont pas stockées sur la pile, donc la modification s'applique à
-chaque copie du monde d'un coup.
+Fais un clic droit avec la lanterne que tu tiens déjà — en visant le ciel, pas un bloc : une
+lanterne des âmes est un item de bloc, et un clic droit sur un bloc la pose au lieu de
+l'utiliser (`placeable` n'est pas appliqué). Pas de rechargement, pas de nouveau `give` : les
+`useActions` ne sont pas stockées sur la pile, donc la modification s'applique à chaque copie
+du monde d'un coup.
 
 Ce que tu vois, dans l'ordre : le son de balise, *La lanterne répond.* dans la barre
-d'action, puis `Sanctuaire: 3s`, `Sanctuaire: 2s`, `Sanctuaire: 1s`, et tu te retrouves en
-148 64 -512.
+d'action, puis `Sanctuaire: 2s`, `Sanctuaire: 1s` (le plus souvent suivi de `Sanctuaire: 0s`), et tu
+te retrouves en 148 64 -512. Le compte à rebours n'affiche jamais `3s` : il est rafraîchi aux
+ticks de seconde pleine du serveur, dont le premier tombe après l'utilisation, et le temps
+restant est arrondi vers le bas.
 
 ⚠️ `{player}` est le seul motif de substitution, et les commandes tournent **en tant que
 console, au niveau de permission 4**. Quiconque peut cliquer droit sur cet item peut lancer
@@ -163,7 +167,7 @@ Trois choses se produisent sur le serveur :
 ```text
 [CheeseItems] Resource pack generated: 1 items, 1204 bytes, SHA1=…
 [CheeseItems] Pack changed — pushing to 1 online players
-[CheeseItems] Image uploaded for item: lantern_of_arkensia
+[CheeseItems API] Image uploaded for item: lantern_of_arkensia
 ```
 
 Ton client est invité à télécharger *Custom item icons for Cacademy*. Accepte. La lanterne
@@ -220,11 +224,10 @@ Le joueur est un Métamorph, une barre d'endurance apparaît dans la barre d'act
 avant cela pour annuler à la main.
 
 Si `H` affiche *Transformation : Ditto* mais que rien ne change visiblement, CobbleShift
-n'est pas installé ou `cshift` a rejeté l'espèce. Le log a le détail :
-
-```text
-[CheeseItems] cshift command failed: cshift transform Steve ditto (…)
-```
+n'est pas installé ou `cshift` a rejeté l'espèce. Le log du serveur a le détail, sous la
+forme de l'erreur que le dispatcher a renvoyée à la console — `Unknown or incomplete command,
+see below for error` quand CobbleShift manque, le message de CobbleShift lui-même quand il
+rejette l'espèce.
 
 Voir [morphos](morphos.fr.md#porter-une-morpho) — le mod ne peut pas savoir si la
 transformation a réellement fonctionné.

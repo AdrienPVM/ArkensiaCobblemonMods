@@ -51,22 +51,26 @@ Si c'est arrivé au démarrage, cherche plutôt :
 [CheeseKart] Failed to load config: <reason>
 ```
 
-Cela signifie que le JSON est mal formé. Le mod le consigne et continue avec ce qu'il a
-réussi à analyser — et comme un échec d'analyse laisse la table vide, il sème ensuite les
-valeurs par défaut. Un fichier dont toutes les entrées de `presets` sont dépourvues d'`id`
-se charge « avec succès » avec zéro preset : c'est le seul cas qui produit ce message sans
-erreur d'analyse.
+Cela signifie que le JSON est mal formé (ou qu'un preset a `"id": null`). Le mod le
+consigne et continue avec ce qu'il a lu avant l'erreur. Un démarrage ne peut toutefois
+jamais aboutir à *No presets configured* : tout chargement qui se termine avec zéro preset
+— une erreur sur la première entrée, pas de tableau `presets`, des entrées toutes sans `id`
+— sème les trois valeurs par défaut et les sauvegarde par-dessus le fichier, qui est donc
+perdu. Garde une copie avant de l'éditer à la main.
 
 ---
 
 ## Le kart est un bateau visible et se conduit comme un bateau
 
-**Cause.** OpenBoatUtils est absent **sur le client de ce joueur**. Le serveur vérifie si
+**Cause.** Deux mods client, deux moitiés du symptôme. *Se conduit comme un bateau* :
+OpenBoatUtils est absent **sur le client de ce joueur**. *Visible* : CheeseKart est absent
+de ce client — l'attribut invisible n'a aucun effet sur un bateau, et seul le mixin de rendu
+client de CheeseKart le cache. Pour la moitié physique, le serveur vérifie si
 le client a enregistré le canal et s'abstient complètement d'envoyer la physique sinon.
 Ce n'est pas consigné, par choix — sinon chaque joueur sans OBU polluerait le log à chaque
 lancement.
 
-**Correctif.** Installe OpenBoatUtils côté client. Si tu ne maîtrises pas les clients,
+**Correctif.** Installe OpenBoatUtils — et CheeseKart — côté client. Si tu ne maîtrises pas les clients,
 traite la course en kart comme facultative et dis aux joueurs ce qu'il leur faut.
 
 **Comment confirmer.** Lance un kart pour un client dont tu sais qu'il a OBU. Si celui-là
@@ -135,13 +139,17 @@ photographie à son lancement. Arrête cette session et relance-la.
 
 ## Une commande `start` répond *Failed to start kart*
 
-**Cause.** La montée forcée a été refusée. La raison de très loin la plus fréquente est
-que le joueur chevauche déjà quelque chose : un cheval, un vrai bateau, un wagonnet. Un
-joueur déjà dans un *kart* n'entre pas dans ce cas : cette session est arrêtée d'abord,
-puis remplacée.
+**Cause.** La montée forcée a été refusée. C'est rare : `startRiding(boat, true)` saute les
+vérifications habituelles (« cette entité peut-elle monter sur celle-là ? ») et, si le
+joueur chevauche déjà un cheval, un vrai bateau ou un wagonnet, l'en fait descendre avant
+de le monter — un véhicule déjà occupé n'est donc *pas* une cause. Un joueur déjà dans un
+*kart* n'entre pas non plus dans ce cas : cette session est arrêtée d'abord, puis
+remplacée. Restent les quelques refus incontournables de vanilla, qu'un
+bateau tout juste créé ne déclenche pour ainsi dire jamais.
 
-**Correctif.** Fais-le descendre de l'autre véhicule et réessaie. Aucun nettoyage n'est
-nécessaire : le bateau qui avait été créé est jeté avant que l'échec ne soit signalé.
+**Correctif.** Cherche `[CheeseKart] Failed to mount <name> on boat` dans le log et
+réessaie. Aucun nettoyage n'est nécessaire : le bateau qui avait été créé
+est jeté avant que l'échec ne soit signalé.
 
 ## Un pilote est bloqué après l'arrêt de son kart
 

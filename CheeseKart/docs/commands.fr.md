@@ -71,7 +71,7 @@ CobbleShift est installé.
 |---|---|
 | `Player not found: <name>` | le nom ne correspond à aucun joueur connecté — un joueur hors ligne ne peut pas être mis en kart |
 | `Preset not found: <id>` | aucun identifiant de ce nom dans `config/cheesekart.json` ; vérifie avec `/cheesekart presets` |
-| `Failed to start kart for <name>` | la montée forcée a été refusée. Presque toujours parce que le joueur chevauche déjà autre chose — voir [dépannage](troubleshooting.fr.md#une-commande-start-répond-failed-to-start-kart) |
+| `Failed to start kart for <name>` | la montée forcée a été refusée. C'est rare : un véhicule déjà occupé n'en est *pas* la cause, car une montée forcée en fait d'abord descendre le joueur — voir [dépannage](troubleshooting.fr.md#une-commande-start-répond-failed-to-start-kart) |
 
 Les deux premiers sont des refus : rien ne s'est passé. Le troisième signifie qu'un
 bateau a été créé puis nettoyé, donc aucune entité ne traîne derrière.
@@ -167,19 +167,23 @@ Quand rien ne tourne, tu obtiens `No active karts`.
 /cheesekart presets
 ```
 
-Liste les presets configurés avec les quatre valeurs que l'on règle le plus souvent, ce
+Liste les presets configurés avec les trois valeurs que l'on règle le plus souvent, ce
 qui permet de les comparer sans ouvrir le fichier de configuration.
 
 ```text
 --- Presets (3) ---
+  parkour — Parkour | slip=0.98 step=2.0 fwd=0.04 [locked]
   rally — Rally | slip=0.98 step=1.25 fwd=0.04 [locked]
   drift — Drift | slip=1.1 step=1.25 fwd=0.06 [locked]
-  parkour — Parkour | slip=0.98 step=2.0 fwd=0.04 [locked]
 ```
 
 `slip` est la glissance, `step` la hauteur de marche, `fwd` l'accélération avant. Un
 preset qui porte un champ `species` l'affiche aussi. Tous les champs sont documentés
 dans [configuration](configuration.fr.md).
+
+L'ordre est celui dans lequel la `ConcurrentHashMap` sous-jacente itère, pas l'ordre de
+création — d'où l'ordre `parkour`, `rally`, `drift` des trois presets fournis. Il en va de
+même pour `/cheesekart list` et pour l'ordre des presets dans le fichier sauvegardé.
 
 Cette commande lit les presets vivants, en mémoire : un preset créé depuis le dashboard
 il y a une seconde apparaît immédiatement.

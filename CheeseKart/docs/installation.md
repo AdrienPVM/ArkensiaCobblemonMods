@@ -112,7 +112,7 @@ Expect one more line, depending on whether OpenBoatUtils is installed **on the s
 
 Both are normal. [Why there are two paths](physics.md#why-the-payload-is-sent-two-different-ways).
 
-And one about CobbleShift, if it is present:
+And one about CobbleShift, depending on whether it is installed:
 
 ```text
 [CheeseKart] CobbleShift integration active
@@ -127,13 +127,14 @@ Then confirm in game, as an operator:
 
 ```text
 --- Presets (3) ---
+  parkour — Parkour | slip=0.98 step=2.0 fwd=0.04 [locked]
   rally — Rally | slip=0.98 step=1.25 fwd=0.04 [locked]
   drift — Drift | slip=1.1 step=1.25 fwd=0.06 [locked]
-  parkour — Parkour | slip=0.98 step=2.0 fwd=0.04 [locked]
 ```
 
-If the command does not exist, the mod did not load. If it exists but says you lack
-permission, you are below permission level 2.
+If the command does not exist, either the mod did not load or you are below permission
+level 2 — there is no separate permission message: Brigadier hides the whole tree, so
+both cases give *Unknown or incomplete command*. The log tells them apart.
 
 Finally, the dashboard: `kart` should appear in `GET /api/v1/modules`, and the sidebar
 should show a 🏎 entry.
