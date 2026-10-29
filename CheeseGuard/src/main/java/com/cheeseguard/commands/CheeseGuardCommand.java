@@ -144,6 +144,7 @@ public class CheeseGuardCommand {
         }));
 
         root.then(CommandManager.literal("flag")
+            .requires(src -> src.hasPermissionLevel(2))
             .then(CommandManager.argument("region", StringArgumentType.word())
                 .then(CommandManager.argument("flag", StringArgumentType.word())
                     .then(CommandManager.argument("value", StringArgumentType.word())
@@ -164,6 +165,7 @@ public class CheeseGuardCommand {
                         })))));
 
         root.then(CommandManager.literal("addmember")
+            .requires(src -> src.hasPermissionLevel(2))
             .then(CommandManager.argument("region", StringArgumentType.word())
                 .then(CommandManager.argument("player", StringArgumentType.word())
                     .executes(ctx -> {
@@ -181,6 +183,7 @@ public class CheeseGuardCommand {
                     }))));
 
         root.then(CommandManager.literal("removemember")
+            .requires(src -> src.hasPermissionLevel(2))
             .then(CommandManager.argument("region", StringArgumentType.word())
                 .then(CommandManager.argument("player", StringArgumentType.word())
                     .executes(ctx -> {
@@ -199,7 +202,8 @@ public class CheeseGuardCommand {
                     }))));
 
         // /cg group ...
-        LiteralArgumentBuilder<ServerCommandSource> groupNode = CommandManager.literal("group");
+        LiteralArgumentBuilder<ServerCommandSource> groupNode = CommandManager.literal("group")
+            .requires(src -> src.hasPermissionLevel(2));
 
         groupNode.then(CommandManager.literal("create")
             .then(CommandManager.argument("name", StringArgumentType.greedyString())
