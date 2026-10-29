@@ -27,7 +27,7 @@ vide, le mod ne construit jamais de `StripeClient` et le checkout répond
 `503 Stripe not configured`. Rien n'appelle à l'extérieur, et rien n'est prérempli avec
 le compte de quelqu'un d'autre.
 
-Cinq autres fichiers vivent à côté de celui-là. Ce sont des états, pas de la
+Sept autres fichiers, et un dossier, vivent à côté de celui-là. Ce sont des états, pas de la
 configuration, et tu ne les édites que pour réparer quelque chose :
 
 | Fichier | Contenu |
@@ -38,6 +38,7 @@ configuration, et tu ne les édites que pour réparer quelque chose :
 | `cheesestore_cosmetics.json` | le catalogue de cosmétiques web historique |
 | `cheesestore_ownership.json` | qui possède quel cosmétique |
 | `cheesestore_equipped.json` | ce que chaque joueur porte |
+| `cheesestore_oauth_links.json` | quelle session de navigateur est liée à quel compte Minecraft |
 | `cheesestore_assets/` | les PNG envoyés pour les produits, la galerie et les cosmétiques |
 
 ---
@@ -127,7 +128,9 @@ pendant que tu règles les prix.
 Trois choses qu'elle ne coupe **pas**, et c'est important : `/checkout`,
 `/session-status` et `/webhook` continuent tous de fonctionner. Une session de checkout
 créée juste avant que tu ne bascules l'interrupteur se termine quand même et livre
-quand même. C'est presque certainement le bon choix — tu ne veux pas qu'une boutique
+quand même — et une nouvelle peut encore être créée par un `POST /checkout` direct,
+puisque cette route ne lit jamais `storeEnabled`. Les trois routes d'achat en crédits
+(`/cosmetics/buy`, `/morpho/buy`, `/playcosmetics/:id/buy`) l'ignorent aussi. C'est presque certainement le bon choix — tu ne veux pas qu'une boutique
 désactivée avale un paiement déjà en vol — mais cela veut dire que
 `storeEnabled: false` est un interrupteur de catalogue, pas un coupe-circuit. Pour
 arrêter réellement d'encaisser, vide `stripeSecretKey`.
@@ -148,7 +151,7 @@ ici : un nom de monnaie personnalisé n'apparaîtra donc pas dans le chat.
 | `googleClientId` | chaîne | `""` | rien — voir ci-dessous |
 | `googleClientSecret` | chaîne | `""` | rien |
 | `googleRedirectUri` | chaîne | `""` | rien |
-| `oauthJwtSecret` | chaîne | `""` → généré | réservé ; s'autogénère |
+| `oauthJwtSecret` | chaîne | `""` | réservé ; inutilisé |
 
 > ⚠️ **Les trois clés `google*` sont de la configuration morte.** Elles sont chargées,
 > sauvegardées et exposées par des accesseurs, et rien ne les lit. La classe qui les
@@ -180,11 +183,11 @@ en dur, pas une valeur dérivée d'une clé. L'élément d'identification de la 
 donc toujours proposé, ce qui est cohérent avec le fait qu'il n'a besoin d'aucun
 identifiant.
 
-`oauthJwtSecret` se gère lui-même et n'est actuellement utilisé par aucun chemin de
-code qui signerait quoi que ce soit. La première fois que `getOauthJwtSecret()` est
-appelé avec une valeur de moins de 32 caractères, il génère 48 octets depuis
-`SecureRandom`, les encode en base64 URL-safe et sauvegarde le fichier immédiatement.
-Laisse-le vide.
+`oauthJwtSecret` est inutilisé. Appelé avec une valeur de moins de 32 caractères,
+`getOauthJwtSecret()` générerait 48 octets depuis `SecureRandom`, les encoderait en
+base64 URL-safe et sauvegarderait le fichier immédiatement — mais rien dans le mod ne
+l'appelle, donc en pratique la clé garde la valeur que contient le fichier (vide sur une
+installation neuve). Laisse-le vide.
 
 Aucune de ces quatre clés n'est atteignable depuis le dashboard :
 `GET /api/v1/store/config` les omet et `PUT` les ignore. Édite-les dans le fichier,
@@ -235,12 +238,13 @@ le pseudo Minecraft de l'acheteur, via `executeWithPrefix` avec la source de com
 du serveur — tous les droits, pas besoin du préfixe `/`. Elles sont résolues et
 stockées à la création de la commande d'achat, donc modifier un produit ne change pas
 une commande déjà en file. Teste chaque commande à la main avant d'activer le produit :
-une commande qui lève une exception marque la commande d'achat `FAILED`, et une
-commande qui ne fait rien en silence la marque `DELIVERED`.
+une commande qui échoue — même une commande inconnue — est attrapée par le gestionnaire
+de commandes de Minecraft, et la commande d'achat est quand même marquée `DELIVERED`
+([détails](payments.fr.md#léchec-qui-te-coûte-réellement-de-largent)).
 
-Une entrée de galerie porte `id`, `title`, `description`, `isNew`, `sortOrder`,
-`hasImage` et `createdAt`. Il n'y a ni prix ni checkout — c'est une vitrine de
-récompenses à obtenir ailleurs. `isNew: true` fait remonter une entrée en haut, les
+Une entrée de galerie porte `id`, `title`, `description`, `priceCredits`, `isNew`,
+`sortOrder`, `hasImage` et `createdAt`. `priceCredits` n'est qu'un chiffre affiché ; il
+n'y a aucun checkout — c'est une vitrine de récompenses à obtenir ailleurs. `isNew: true` fait remonter une entrée en haut, les
 plus récentes d'abord.
 
 ---
@@ -308,9 +312,10 @@ doivent disparaître avant que tu enregistres le fichier.
 Notes de lecture sur cet exemple. `pack500` règle `credits` et la commande
 `premium give` correspondante — la paire qui doit s'accorder. `rankvip` est livré avec
 `enabled: false`, ce qui est la façon de préparer un produit : l'écrire, tester ses
-commandes par une livraison manuelle, puis l'activer. Les quatre clés de session web
-sont laissées vides : trois sont mortes et la quatrième se remplit toute seule au
-premier usage.
+commandes en les exécutant à la main depuis la console, puis l'activer. (Une livraison
+manuelle ne permet pas ce test : elle exige une commande d'achat existante, et le
+checkout refuse un produit désactivé.) Les quatre clés de session web sont laissées
+vides : aucune des quatre n'est utilisée.
 
 ---
 
@@ -320,7 +325,7 @@ premier usage.
 |---|---|
 | clés Stripe, nom/sous-titre/URL de base, `storeEnabled`, `currencyName` | `PUT /api/v1/store/config` s'applique à chaud ; une édition du fichier exige un redémarrage |
 | produits, galerie | à chaud par le dashboard ; une édition du fichier exige un redémarrage |
-| les quatre clés de session web | redémarrage, toujours — et trois d'entre elles ne changent rien |
+| les quatre clés de session web | redémarrage, toujours — et aucune ne change quoi que ce soit |
 | portefeuilles, possession, équipement | à chaud, chaque écriture est immédiate |
 | catalogue de cosmétiques jouables | à chaud par le dashboard ; une édition du fichier exige un redémarrage |
 

@@ -85,7 +85,7 @@ Colle les deux dans le panneau de configuration de CheeseStore et enregistre. La
 est `{"ok":true}` et `refreshStripeClient()` reconstruit le client Stripe — sans
 redémarrage.
 
-Réouvre le panneau et la clé secrète affiche maintenant `sk_test_5***1a2b`. C'est le
+Réouvre le panneau et la clé secrète affiche maintenant `sk_test_***1a2b` (les 8 premiers caractères, `***`, les 4 derniers). C'est le
 masque ; ce n'est pas ce qui a été enregistré. Une valeur contenant `***` est refusée à
 l'écriture précisément pour que le masque ne puisse pas écraser la vraie clé.
 
@@ -115,10 +115,12 @@ Ne saute pas ce champ. S'il est vide, `POST /store/api/webhook` répond `503` et
 de traiter quoi que ce soit, délibérément — et
 [sans la vérification de signature, n'importe qui peut forger une commande payée](payments.fr.md#pourquoi-la-vérification-de-signature-nest-pas-optionnelle).
 
-Le bouton *Send test webhook* de Stripe est un contrôle de bon sens rapide. Une
-configuration correcte ne journalise rien (le type d'événement est ignoré) et renvoie
-`200`. Un `400 Invalid signature` veut dire que tu as copié le mauvais secret ; un
-`503` veut dire que le champ est encore vide.
+Envoyer un événement de test depuis Stripe est un contrôle de bon sens rapide. Un
+`checkout.session.completed` de test ne porte aucune des métadonnées du mod : une
+configuration correcte journalise donc `[CheeseStore] Missing metadata in session <id>`,
+ne crée rien et renvoie `200` ; tout autre type d'événement est ignoré en silence avec
+le même `200`. Un `400 Invalid signature` veut dire que tu as copié le mauvais secret ;
+un `503` veut dire que le champ est encore vide.
 
 ## Étape 6 — créer un produit
 
@@ -171,7 +173,10 @@ Exécute la commande de livraison à la main, comme la console l'exécutera :
 ```
 
 Si cela échoue, chaque achat de ce produit échouera aussi — et il échouera *après* que
-l'argent a été prélevé, sous forme d'une commande `FAILED`. Corrige maintenant.
+l'argent a été prélevé, en silence : la commande d'achat est quand même enregistrée
+`DELIVERED`, parce que le gestionnaire de commandes de Minecraft avale l'erreur
+([détails](payments.fr.md#léchec-qui-te-coûte-réellement-de-largent)). Corrige
+maintenant.
 
 Puis remets-toi à zéro pour que le vrai test soit sans ambiguïté :
 
@@ -205,10 +210,13 @@ en jeu :
 Session boutique liée à <tonpseudo>. Tu peux désormais voir ton solde et acheter des morphos depuis le site.
 ```
 
-Le site sait maintenant quel compte Minecraft possède cette session de navigateur, ce
-qu'exigent les routes qui dépensent des crédits. Le checkout par carte de l'étape
-suivante n'en a **pas** besoin — il prend l'UUID dans le corps de la requête — mais la
-liaison permet à la page d'afficher ton solde, et il t'en faudra une pour l'étape 11.
+Le site sait maintenant quel compte Minecraft possède cette session, ce qu'exigent les
+routes qui dépensent des crédits. Note que la session liée ici est celle que `curl` a
+stockée dans `cookies.txt`, pas celle de ton navigateur : chaque client reçoit son
+propre cookie `store_session`. Pour voir ton solde sur la page, demande un code via le
+bouton d'identification de la boutique elle-même et valide-le aussi. Le checkout par
+carte de l'étape suivante n'a **pas** besoin de liaison — il prend l'UUID dans le corps
+de la requête — mais l'étape 11 utilise la session de `cookies.txt`.
 
 ## Étape 9 — acheter ton propre produit avec une carte de test
 
@@ -224,9 +232,10 @@ Paie avec la carte de test de Stripe :
 
 Stripe te redirige vers `<storeBaseUrl>/store/?session_id=cs_test_…`.
 
-Si le checkout renvoie `503` à la place, l'une de trois choses est fausse :
-`storeBaseUrl` est vide ou contient `localhost`, `stripeSecretKey` est vide, ou le
-produit est désactivé. Le corps de la réponse dit laquelle.
+Si le checkout renvoie `503` à la place, l'une de deux choses est fausse :
+`storeBaseUrl` est vide ou contient `localhost`, ou `stripeSecretKey` est vide. Le corps
+de la réponse dit laquelle. Un produit désactivé ou inconnu répond
+`404 Product not found or disabled`.
 
 ## Étape 10 — observer la livraison
 
@@ -289,22 +298,28 @@ L'autre moitié de la boutique. Choisis un cosmétique dans le catalogue semé :
 curl http://localhost:44311/store/api/playcosmetics | head -c 300
 ```
 
-`trail_flame` coûte 400. Achète-le depuis la page cosmétiques de la boutique, ou
+`trail_heart` coûte 350. Achète-le depuis la page cosmétiques de la boutique, ou
 directement avec le cookie de session de l'étape 8 :
 
 ```bash
 curl -b cookies.txt -X POST \
   -H "Origin: http://localhost:44311" \
-  http://localhost:44311/store/api/playcosmetics/trail_flame/buy
+  http://localhost:44311/store/api/playcosmetics/trail_heart/buy
 ```
 
 ```json
-{"success":true,"newBalance":100,"cosmeticId":"trail_flame"}
+{"success":true,"newBalance":150,"cosmeticId":"trail_heart"}
 ```
+
+Évite `trail_flame` pour ce test : à cause d'un bug de cache dans `TrailManager`, une
+traînée dont la particule est `minecraft:flame` s'affiche une fois, puis plus rien
+jusqu'au redémarrage suivant (voir
+[le dépannage](troubleshooting.fr.md#une-traînée-ou-un-effet-de-kill-ne-fait-rien)).
 
 L'en-tête `Origin` compte : la route rejette un POST d'origine différente avec
 `403 forbidden_origin`, parce qu'elle dépense de l'argent. `401 not_authenticated` veut
-dire qu'il n'y a pas de cookie, `403 not_linked` que l'étape 8 n'a pas abouti.
+dire soit qu'il n'y a pas de cookie, soit que sa session n'a jamais été liée — l'étape 8
+n'a pas abouti.
 
 Puis, en jeu :
 
@@ -313,17 +328,17 @@ Puis, en jeu :
 ```
 
 Le bouton *Traînées* affiche maintenant `Possédés : 1 / 10`. Clique dessus, clique
-*Sillage de Flammes*, et marche. Des particules de flamme te suivent.
+*Cœurs Flottants*, et des cœurs tournent en spirale autour de toi.
 
 ```mcfunction
 /premium
 ```
 
 ```text
-🧀 Crédits : 100
+🧀 Crédits : 150
 ```
 
-500 entrés, 400 sortis. La boucle est fermée : un paiement par carte est devenu des
+500 entrés, 350 sortis. La boucle est fermée : un paiement par carte est devenu des
 crédits, les crédits sont devenus un cosmétique, et le cosmétique est sur un joueur.
 
 ---
@@ -333,8 +348,8 @@ crédits, les crédits sont devenus un cosmétique, et le cosmétique est sur un
 Que la boucle de test fonctionne est nécessaire, pas suffisant. Passe par cette liste,
 dans l'ordre :
 
-1. **Passe en revue le catalogue semé.** 63 cosmétiques sont activés et tarifés en ce
-   moment, avec des titres en français, y compris 8 capes invisibles sans le mod client
+1. **Passe en revue le catalogue semé.** 99 cosmétiques sont activés et tarifés en ce
+   moment, avec des titres en français, y compris 32 capes invisibles sans le mod client
    `factionwarhud`. Désactive ou réécris ce que tu ne vends pas réellement.
 2. **Sers la boutique en HTTPS** derrière un reverse proxy. Stripe ne livre pas de
    webhooks vers du HTTP clair sur un compte de production, et le cookie de session n'a
@@ -348,8 +363,10 @@ dans l'ordre :
    lecture seule — mais aucune route d'ici ne peut exiger davantage, donc `OPERATOR`
    suffit pour fixer des soldes de portefeuille et écraser tes clés Stripe.
    [Pourquoi](dashboard.fr.md#ce-que-le-cœur-applique-réellement).
-6. **Décide comment tu remarqueras une commande `FAILED`.** Rien ne t'alerte. Le
-   compteur est dans `GET /api/v1/store/stats`, et c'est tout le mécanisme.
+6. **Décide comment tu remarqueras une commande d'achat non livrée.** Rien ne t'alerte,
+   et le compteur `failedOrders` de `GET /api/v1/store/stats` rate le cas courant — une
+   commande qui échoue dans la console est quand même enregistrée `DELIVERED`. Lis la
+   console après chaque vente tant que tu n'as pas confiance dans tes commandes.
 7. **Échange les clés de test contre les clés de production, et crée un nouvel endpoint
    de webhook.** Le secret de signature est propre à chaque endpoint : un endpoint de
    production a un `whsec_…` différent de celui de test, et coller l'ancien signifie que

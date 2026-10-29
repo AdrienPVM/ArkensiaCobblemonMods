@@ -96,14 +96,14 @@ Sous `config/` :
 | Chemin | Contenu |
 |---|---|
 | `cheesestore.json` | toutes les clés à leur défaut, clés Stripe vides, `products` et `gallery` vides |
-| `cheesestore_playcosmetics.json` | **63 cosmétiques semés**, titres et descriptions en français |
+| `cheesestore_playcosmetics.json` | **99 cosmétiques semés**, titres et descriptions en français |
 | `cheesestore_wallets.json` | pas créé avant le premier changement de solde |
 | `cheesestore_deliveries.json` | pas créé avant la première commande d'achat |
 | `cheesestore_ownership.json`, `cheesestore_equipped.json` | créés au premier octroi / équipement |
 | `cheesestore_assets/` | créé au premier envoi d'image |
 
 Le catalogue de cosmétiques semé est la seule surprise : tu obtiens d'emblée un
-catalogue complet, activé et tarifé, en français, y compris 8 entrées de cape qui
+catalogue complet, activé et tarifé, en français, y compris 32 entrées de cape qui
 nécessitent le mod client pour être visibles. Passe-le en revue avant d'ouvrir la
 boutique. Détails dans
 [cosmétiques et portefeuilles](cosmetics.fr.md#le-catalogue-par-défaut).
@@ -115,11 +115,18 @@ Les lignes de log à chercher, dans l'ordre :
 ```text
 [CheeseStore] Initializing...
 [CheeseStore] No wallets file found, starting fresh
-[CheeseStore] No cosmetic catalogue found — writing default catalogue
-[CheeseStore] Default cosmetic catalogue written (63 entries)
+[CheeseStore] No cosmetics file found, starting fresh
 [CheeseStore] Initialising cosmetics module...
+[CheeseStore] No cosmetic catalogue found — writing default catalogue
+[CheeseStore] Default cosmetic catalogue written (99 entries)
+[CheeseStore] No cosmetic ownership file found, starting fresh
+[CheeseStore] No equipped-cosmetics file found, starting fresh
 [CheeseStore] TrailManager initialised (render every 2 ticks)
+[CheeseStore] NameTagManager initialised (NAME_COLOR + CHAT_TAG via scoreboard teams)
+[CheeseStore] PetManager initialised
 [CheeseStore] MountManager initialised (combat recall via AFTER_DAMAGE + hurtTime poll)
+[CheeseStore] CombatEffectsManager ready (KILL/DEATH effects, AFTER_DEATH fallback)
+[CheeseStore] Cape networking initialised (cheesestore:capes)
 [CheeseStore] CosmeticsCommands registered (/cosmetics)
 [CheeseStore] MountCommand registered (/mount, /monture)
 [CheeseStore] Cosmetics module initialised
@@ -130,7 +137,8 @@ Les lignes de log à chercher, dans l'ordre :
 
 Aux démarrages suivants, le premier bloc affiche à la place
 `Config loaded (N products, N gallery items)`, `Loaded N wallet(s)` et
-`Loaded N deliveries`.
+`Loaded N deliveries` (et les fichiers de cosmétiques annoncent `Loaded N …` au lieu de
+`No … file found`).
 
 Cet avertissement sur `storeBaseUrl` est **attendu sur une installation neuve** et c'est
 la seule ligne sur laquelle tu dois agir avant d'encaisser un paiement. Ce n'est pas du
@@ -220,17 +228,21 @@ clé qui a atterri dans une sauvegarde reste vivante jusqu'à ce que tu la fasse
 
 Trois choses dans le monde ne sont pas nettoyées par la désinstallation, parce que les
 gestionnaires qui les retireraient ne sont plus là : les familiers et montures invoqués,
-étiquetés `cos_pet` et `cos_mount`, et tout nom d'affichage issu d'un tag de chat ou
-d'une couleur de pseudo appliqué au dernier arrêt du serveur. Nettoie les entités
-porteuses des étiquettes avant de retirer le mod :
+étiquetés `cos_pet` et `cos_mount`, et toute équipe de scoreboard de tag de chat ou de
+couleur de pseudo encore présente. Nettoie les entités porteuses des étiquettes avant de
+retirer le mod :
 
 ```mcfunction
 /kill @e[tag=cos_pet]
 /kill @e[tag=cos_mount]
 ```
 
-Les noms d'affichage se réinitialisent de toute façon à la connexion suivante, puisqu'ils
-ne sont pas persistés dans le fichier du joueur.
+Les tags de chat et les couleurs de pseudo sont des équipes de scoreboard par joueur,
+nommées `cos_` suivi des 12 premiers chiffres hexadécimaux de l'UUID. Elles vivent dans
+les données de scoreboard du monde, pas dans le fichier du joueur, et sont supprimées à
+la déconnexion du joueur — un arrêt propre n'en laisse donc aucune, mais un crash peut
+en laisser. Liste-les avec `/team list` et supprime toute équipe `cos_…` avec
+`/team remove <nom>`.
 
 ---
 

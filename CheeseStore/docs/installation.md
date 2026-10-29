@@ -94,14 +94,14 @@ Under `config/`:
 | Path | Contents |
 |---|---|
 | `cheesestore.json` | all keys at their defaults, empty Stripe keys, empty `products` and `gallery` |
-| `cheesestore_playcosmetics.json` | **63 seeded cosmetics**, titles and descriptions in French |
+| `cheesestore_playcosmetics.json` | **99 seeded cosmetics**, titles and descriptions in French |
 | `cheesestore_wallets.json` | not created until the first balance change |
 | `cheesestore_deliveries.json` | not created until the first order |
 | `cheesestore_ownership.json`, `cheesestore_equipped.json` | created on first grant / equip |
 | `cheesestore_assets/` | created on the first image upload |
 
 The seeded cosmetic catalogue is the one surprise: you get a full, enabled, priced
-catalogue out of the box, in French, including 8 cape entries that need the client
+catalogue out of the box, in French, including 32 cape entries that need the client
 mod to be visible. Review it before opening the store. Details in
 [cosmetics and wallets](cosmetics.md#the-default-catalogue).
 
@@ -112,11 +112,18 @@ The log lines to look for, in order:
 ```text
 [CheeseStore] Initializing...
 [CheeseStore] No wallets file found, starting fresh
-[CheeseStore] No cosmetic catalogue found — writing default catalogue
-[CheeseStore] Default cosmetic catalogue written (63 entries)
+[CheeseStore] No cosmetics file found, starting fresh
 [CheeseStore] Initialising cosmetics module...
+[CheeseStore] No cosmetic catalogue found — writing default catalogue
+[CheeseStore] Default cosmetic catalogue written (99 entries)
+[CheeseStore] No cosmetic ownership file found, starting fresh
+[CheeseStore] No equipped-cosmetics file found, starting fresh
 [CheeseStore] TrailManager initialised (render every 2 ticks)
+[CheeseStore] NameTagManager initialised (NAME_COLOR + CHAT_TAG via scoreboard teams)
+[CheeseStore] PetManager initialised
 [CheeseStore] MountManager initialised (combat recall via AFTER_DAMAGE + hurtTime poll)
+[CheeseStore] CombatEffectsManager ready (KILL/DEATH effects, AFTER_DEATH fallback)
+[CheeseStore] Cape networking initialised (cheesestore:capes)
 [CheeseStore] CosmeticsCommands registered (/cosmetics)
 [CheeseStore] MountCommand registered (/mount, /monture)
 [CheeseStore] Cosmetics module initialised
@@ -126,7 +133,8 @@ The log lines to look for, in order:
 ```
 
 On later starts the first block reads `Config loaded (N products, N gallery items)`,
-`Loaded N wallet(s)` and `Loaded N deliveries` instead.
+`Loaded N wallet(s)` and `Loaded N deliveries` instead (and the cosmetic files report
+`Loaded N …` rather than `No … file found`).
 
 That `storeBaseUrl` warning is **expected on a fresh install** and is the one line you
 must act on before taking a payment. It is not noise: with no base URL, checkout is
@@ -214,16 +222,19 @@ that reached a backup is still live until you rotate it.
 
 Three things in the world are not cleaned up by uninstalling, because the managers
 that would despawn them are gone: summoned pets and mounts tagged `cos_pet` and
-`cos_mount`, and any chat-tag or name-colour display name that was applied when the
-server last shut down. Clear the entities with the tags before you remove the mod:
+`cos_mount`, and any chat-tag or name-colour scoreboard team still present. Clear the
+entities with the tags before you remove the mod:
 
 ```mcfunction
 /kill @e[tag=cos_pet]
 /kill @e[tag=cos_mount]
 ```
 
-Display names reset on the next login regardless, since they are not persisted to the
-player file.
+Chat tags and name colours are per-player scoreboard teams named `cos_` plus the first
+12 hex digits of the UUID. They live in the world's scoreboard data, not the player
+file, and are deleted when the player disconnects — so a clean shutdown leaves none,
+but a crash can. List them with `/team list` and remove any `cos_…` team with
+`/team remove <name>`.
 
 ---
 

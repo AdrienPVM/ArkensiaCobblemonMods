@@ -37,8 +37,14 @@ A `PendingDelivery` has three states, declared in `PendingDelivery.Status`:
 | Status | Meaning |
 |---|---|
 | `PENDING` | paid, commands resolved, not yet executed |
-| `DELIVERED` | every command ran without throwing |
-| `FAILED` | a command threw; `failReason` holds the exception message |
+| `DELIVERED` | every command was handed to the console without the call throwing |
+| `FAILED` | the call that runs a command threw; `failReason` holds the exception message |
+
+`FAILED` is close to unreachable in practice. Minecraft's command manager catches
+parse errors and exceptions raised by the command itself, reports them to the
+console, and returns normally — so an unknown command, a typo or a command that
+crashes still leaves the order `DELIVERED`. See
+[the failure that actually costs you money](#the-failure-that-actually-costs-you-money).
 
 ---
 
@@ -77,6 +83,12 @@ Five gates run before Stripe is contacted, in this order, in
 5. **`storeBaseUrl` sane?** Empty, or containing `localhost`, blocks checkout with a
    `503` naming the key. The mod also logs that condition as a warning at startup, so
    a misconfigured store is visible before anyone tries to buy.
+
+`storeEnabled` is **not** one of the gates: with the store switched off, the catalogue
+routes answer `503`, but a direct `POST /store/api/checkout` for an enabled product
+still creates a Stripe session. Disable the products themselves, or clear
+`stripeSecretKey`, if you need checkout to stop. Nor is `playerUUID` checked for format
+at this stage (see [step 7](#7-delivery)).
 
 Only then does `StripeClient.createCheckoutSession` POST to
 `https://api.stripe.com/v1/checkout/sessions`, as a form-encoded body, authenticated
@@ -127,8 +139,10 @@ page is still open. It is **not** the authoritative path. A buyer who closes the
 mid-redirect never triggers it.
 
 **Failures here:** no `session_id` → `400`; Stripe unreachable or the retrieve threw
-→ `502 {"error":"Failed to retrieve session"}`; Stripe not configured → `503`. None
-of these lose the payment, because the webhook still arrives.
+→ `502 {"error":"Failed to retrieve session"}`; Stripe not configured → `503`. A
+session id Stripe does not know is not an error on this side: Stripe's error body has
+no `status`, so the route answers `200 {"status":""}`. None of these lose the payment,
+because the webhook still arrives. The route has no rate limit.
 
 ### 5. The webhook — the authoritative path
 
@@ -162,11 +176,20 @@ needs to stop retrying.
 - metadata missing a field → logged as an error, nothing created
 - `product_id` no longer in the config → logged as an error, nothing created
 
+In both cases the webhook still answers `200 {"received":true}`, so Stripe does not
+retry: the payment is taken and no order exists in the mod. **Do not delete a product
+while payments for it may still be in flight.** The session's `payment_status` is not
+read either — any `checkout.session.completed` event, or a retrieved session whose
+`status` is `"complete"`, creates the order.
+
 Then `DeliveryManager.createDelivery` runs. **This is the idempotency boundary.** The
 Stripe session id is the order id, and `createDelivery` returns `false` if a delivery
 with that id already exists, logging `Duplicate delivery attempt for orderId=...`.
 That is what keeps the verify path (step 4) and the webhook (step 5) from delivering
 the same purchase twice — whichever arrives first wins, the second is a no-op.
+The check-then-append is not atomic, though (`createDelivery` is not synchronized and
+CheeseDash serves HTTP on a four-thread pool), so a verify call and a webhook landing
+in the same instant could in principle both pass the check and create two orders.
 
 A created delivery stores the **resolved** commands: `{player}` is substituted at
 creation time, from the name in the Stripe metadata. Renaming the product's commands
@@ -185,9 +208,14 @@ is, from the console, with full permissions.
 
 | Outcome | What is recorded |
 |---|---|
-| all commands ran | `DELIVERED`, `deliveredAt` stamped |
-| a command threw | `FAILED`, `failReason` = the exception message |
+| all commands were submitted | `DELIVERED`, `deliveredAt` stamped — even if a command errored in the console |
+| the submitting call threw | `FAILED`, `failReason` = the exception message (rare, see above) |
 | player offline | nothing; the delivery stays `PENDING` |
+
+The file is only rewritten when at least one delivery in the batch succeeded, so a
+`FAILED` status set on its own lives in memory and reverts to `PENDING` at the next
+restart. A `playerUUID` that is not a valid UUID makes `deliverPending` throw before any
+command runs; that order stays `PENDING` forever and only manual delivery can clear it.
 
 A `PENDING` delivery is retried on every subsequent login: `CheeseStoreMod` hooks
 `ServerPlayConnectionEvents.JOIN` and calls `deliverPending` for the joining player.
@@ -197,8 +225,12 @@ and the server logs `Delivered N pending purchase(s) to <name>`.
 **`FAILED` is never retried automatically.** It sits in the orders list until an
 admin presses the delivery button, which calls
 `POST /api/v1/store/orders/<orderId>/deliver` and re-runs the stored commands
-([manual delivery](dashboard.md#post-ordersiddeliver)). That endpoint refuses an
-order already `DELIVERED`, so a double-click cannot double-grant.
+([manual delivery](dashboard.md#post-ordersiddeliver)). The same button works on a
+`PENDING` order, and it does **not** check that the buyer is online: the commands run
+immediately whatever their effect on an offline player. That endpoint refuses an order
+already `DELIVERED`, so a double-click cannot double-grant — and an order recorded
+`DELIVERED` whose commands did nothing cannot be re-delivered from the dashboard; run
+the command by hand.
 
 ---
 
@@ -207,23 +239,27 @@ order already `DELIVERED`, so a double-click cannot double-grant.
 A paid order whose commands fail is the only state where the buyer is out of pocket
 and has nothing. It happens for ordinary reasons: a typo in a product's command, a
 mod that owned that command no longer being installed, a rank plugin that was
-removed. The record is kept, with the exception message, precisely so you can fix the
-command and re-deliver rather than refund.
+removed.
 
-Watch for it two ways:
+**The mod does not detect it.** The commands go through
+`executeWithPrefix`, and Minecraft's command manager swallows both syntax errors
+("Unknown or incomplete command") and exceptions thrown by the command, reporting them
+to the console source instead of to the caller. The order is therefore recorded
+`DELIVERED`, with no `failReason`, and `failedOrders` in `GET /api/v1/store/stats`
+stays at `0`. The only trace is the command manager's own error in the server
+console/log, next to `[CheeseStore] Delivered orderId=<id> to player=<name>`.
 
-- `GET /api/v1/store/stats` reports `failedOrders`. A non-zero value means someone
-  paid and received nothing.
-- The server log carries `[CheeseStore] Failed to deliver orderId=<id>: <message>`.
+There is no alerting. What to do instead:
 
-There is no alerting. If you take payments while you are not watching, check
-`failedOrders` as part of your routine.
+- Before enabling a product, run each of its commands by hand from the server console,
+  with a real player name in place of `{player}`, and check the result in game.
+- After a sale, read the console lines around `Delivered orderId=` for a command error.
+- A non-zero `failedOrders` still means something went wrong, but a zero does not mean
+  everything went right.
 
-A second, quieter failure: the delivery commands run from the console, so a command
-that *silently* does nothing (wrong player name capitalisation, a plugin that rejects
-without throwing) is recorded as `DELIVERED`. The mod only knows whether the command
-threw, not whether it worked. Test every product's commands with
-`/store deliver`-equivalent dry runs before enabling it.
+Since a `DELIVERED` order cannot be re-delivered from the dashboard, fix the command on
+the product (for future buyers) and run the corrected command by hand for the buyer who
+was missed.
 
 ---
 

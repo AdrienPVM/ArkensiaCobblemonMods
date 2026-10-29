@@ -28,11 +28,11 @@ com.cheesestore
 ├── auth
 │   ├── AccountLinker         codes d'appariement, liaisons session → UUID Minecraft
 │   └── GoogleOAuth           le cookie store_session et les routes /oauth/*
-├── cosmetic                  le système de cosmétiques jouables (16 fichiers, ~2 800 lignes)
+├── cosmetic                  le système de cosmétiques jouables (14 fichiers, ~3 600 lignes)
 │   ├── CosmeticsModule       un init() unique qui câble tout le sous-système
 │   ├── CosmeticEntry         le modèle partagé : catégorie + une table de params
 │   ├── CosmeticManager       catalogue, semé depuis DefaultCatalog au premier lancement
-│   ├── DefaultCatalog        les 63 entrées semées
+│   ├── DefaultCatalog        les 99 entrées semées
 │   ├── OwnershipManager      uuid → identifiants possédés
 │   ├── EquipManager          uuid → catégorie → l'unique identifiant équipé
 │   ├── TrailManager          traînées de particules, tous les 2 ticks
@@ -72,8 +72,8 @@ fichier.
 | `WalletManager` | `cheesestore_wallets.json` | tout changement de solde | **un thread du pool `CompletableFuture`** |
 | `CosmeticManager` (historique) | `cheesestore_cosmetics.json` | changement de catalogue | le thread appelant |
 | `cosmetic.CosmeticManager` | `cheesestore_playcosmetics.json` | changement de catalogue | le thread appelant |
-| `OwnershipManager` | `cheesestore_ownership.json` | octroi ou révocation | le thread appelant |
-| `EquipManager` | `cheesestore_equipped.json` | équipement ou retrait | le thread appelant |
+| `OwnershipManager` | `cheesestore_ownership.json` | octroi ou révocation | **un thread du pool `CompletableFuture`** |
+| `EquipManager` | `cheesestore_equipped.json` | équipement ou retrait | **un thread du pool `CompletableFuture`** |
 | `AccountLinker` | `cheesestore_oauth_links.json` | liaison achevée ou supprimée | le thread appelant |
 
 Les écritures sont des réécritures du fichier entier via `Files.writeString`, pas des
@@ -103,8 +103,9 @@ regarder quand quelque chose se comporte bizarrement.
 **Le thread serveur** exécute les commandes, les écouteurs d'événements Fabric, et tout
 le travail par tick des gestionnaires de cosmétiques. `TrailManager`, `PetManager` et
 `MountManager` tournent tous sur `END_SERVER_TICK` ; la traînée est limitée à un tick
-sur 2 et la réévaluation équipement/orphelin des montures à un tick sur N, tandis que
-le sondage de combat de la monture tourne à chaque tick.
+sur 2, tandis que les contrôles par joueur de la monture (mort, changement de monde,
+sondage de combat, descente) tournent à chaque tick, et les balayages d'orphelins des
+familiers et des montures tous les 20 ticks (`RESYNC_INTERVAL`).
 
 **Les threads HTTP de CheeseDash** exécutent `StoreApi.handle` et
 `StoreApi.handlePublic`. Ils lisent la configuration, les catalogues et les
@@ -135,11 +136,12 @@ Note l'asymétrie dans la façon dont `processPayment` dispatche : il utilise
 `200` rapide et réessaiera s'il ne l'obtient pas — mais cela veut dire que la réponse
 HTTP ne dit rien de savoir si la livraison a fonctionné.
 
-**Un thread du pool commun `CompletableFuture`** écrit
-`cheesestore_wallets.json`. `WalletManager.saveAsync()` est la seule persistance
-asynchrone du mod. L'avantage est qu'un changement de solde ne bloque jamais un tick ;
-l'inconvénient est une fenêtre de quelques millisecondes où un crédit accordé est en
-mémoire mais pas sur le disque.
+**Un thread du pool commun `CompletableFuture`** écrit `cheesestore_wallets.json`,
+`cheesestore_ownership.json` et `cheesestore_equipped.json` : `WalletManager`,
+`OwnershipManager` et `EquipManager` persistent chacun par leur propre `saveAsync()`.
+L'avantage est qu'un changement de solde, de possession ou d'équipement ne bloque
+jamais un tick ; l'inconvénient est une fenêtre de quelques millisecondes où un crédit
+ou un cosmétique accordé est en mémoire mais pas sur le disque.
 
 Rien ici ne tient un verrou à travers une frontière de thread, et rien ne rappelle
 depuis le thread serveur vers un thread HTTP : il n'existe donc aucun chemin
@@ -160,8 +162,10 @@ getPublicPrefix() = "store"  →  /store/api/*      → handlePublicRequest → 
 
 CheeseDash authentifie avant d'appeler `handleRequest` et n'authentifie pas avant
 `handlePublicRequest`. Cette seule différence constitue toute la frontière de sécurité
-de ce mod. Les deux gestionnaires répondent `503 CheeseStore not ready` si le module
-n'a pas encore de référence au serveur, ce que tu obtiens pendant le démarrage.
+de ce mod. Le gestionnaire d'administration répond `503 CheeseStore not ready` tant
+que le module n'a pas de référence au serveur (avant `SERVER_STARTED`, ou après
+`SERVER_STOPPING`) ; le gestionnaire public vérifie seulement que
+`CheeseStoreMod.INSTANCE` existe, et répond donc dès que le mod est initialisé.
 
 À l'intérieur des deux gestionnaires, le dispatch est une chaîne plate de
 `if (subRoute.equals(...) && method.equals(...))` avec un `404` en bas et un seul
@@ -272,9 +276,12 @@ l'extension. Ajoute une constante à `CosmeticEntry.Category`, un gestionnaire a
 `init()` statique idempotent qui enregistre ses propres événements Fabric, une ligne
 dans `CosmeticsModule.init()`, une branche dans
 `CosmeticsCommands.applyVisuals` s'il a besoin d'un rafraîchissement à l'équipement, et
-des entrées dans `prettyCategory` et `categoryIcon` pour l'interface. Puis ajoute la
-catégorie au tableau `categories` de `StoreApi.buildEnumsJson()` pour que le dashboard
-la propose. Six points de contact, tous petits, aucun caché.
+des entrées dans `prettyCategory` et `categoryIcon` pour l'interface, plus la catégorie
+dans le tableau `CATEGORIES` de `CosmeticsCommands` (le menu et `/cosmetics list` le
+parcourent) — et un emplacement libre dans le tableau `slots` du menu, qui en compte
+exactement huit aujourd'hui. Puis ajoute la catégorie au tableau `categories` de
+`StoreApi.buildEnumsJson()` pour que le dashboard la propose. Huit points de contact,
+tous petits, aucun caché.
 
 **Une nouvelle route publique** va dans `StoreApi.handlePublic`. Si elle dépense quoi
 que ce soit, recopie la chaîne de gardes de `handlePlayCosmeticBuy` à l'identique —
@@ -333,12 +340,17 @@ vrais paiements, le registre de référence est celui de Stripe, et ce fichier d
 être traité comme un cache de commodité plutôt que comme de la comptabilité.
 
 **Les commandes `FAILED` sont invisibles si tu ne les cherches pas.** Aucun événement
-WebSocket, aucun crochet Discord, aucun réessai. Une commande payée dont les commandes
-ont échoué attend dans `GET /orders` que quelqu'un la remarque. Le compteur est dans
-`GET /stats`, sous `failedOrders`.
+WebSocket, aucun crochet Discord, aucun réessai. Une commande `FAILED` attend dans
+`GET /orders` que quelqu'un la remarque ; le compteur est dans `GET /stats`, sous
+`failedOrders`.
 
-**Le succès d'une livraison veut dire « la commande n'a pas levé d'exception ».** Une
-commande qui ne fait rien en silence est enregistrée `DELIVERED`.
+**Le succès d'une livraison veut dire « l'appel a rendu la main », ce qu'il fait
+toujours.** Les commandes passent par `executeWithPrefix`, et le gestionnaire de
+commandes de Minecraft attrape lui-même les erreurs de syntaxe et les exceptions des
+commandes : une faute de frappe ou une commande qui plante est donc enregistrée
+`DELIVERED`, sans `failReason`. `FAILED` n'est atteint que si cet appel lève une
+exception, ce qui en pratique n'arrive pas. La détection d'échec autour de laquelle le
+modèle de commande d'achat a été bâti est donc inopérante.
 
 **Deux systèmes de cosmétiques dont les classes ont le même nom simple.**
 `CosmeticItem` / `CosmeticManager` dans le package racine, `CosmeticEntry` /
@@ -352,15 +364,15 @@ C'est une dette de nommage, pas un bug, et les fusionner casserait la boutique.
 `cheesestore_playcosmetics.json`. Fais confiance au code.
 
 **Configuration morte.** `googleClientId`, `googleClientSecret` et
-`googleRedirectUri` sont chargées, sauvegardées, et lues par rien. `oauthJwtSecret`
-s'autogénère et ne signe rien. `GET /store/api/config` rapporte `oauthEnabled: true`
+`googleRedirectUri` sont chargées, sauvegardées, et lues par rien. `oauthJwtSecret` a
+un accesseur qui s'autogénère mais que rien n'appelle, et ne signe rien. `GET /store/api/config` rapporte `oauthEnabled: true`
 comme un littéral codé en dur.
 
 **Français codé en dur dans le sous-système cosmétique.** `CosmeticsCommands`,
 `MountCommand`, `MountManager` et tout `DefaultCatalog` utilisent `Text.literal` avec
 des chaînes françaises plutôt que des clés de traduction, alors que le reste du mod
 utilise `Text.translatable` avec de vrais fichiers `en_us` et `fr_fr`. Un serveur
-anglophone reçoit des messages cosmétiques en français et 63 titres de catalogue en
+anglophone reçoit des messages cosmétiques en français et 99 titres de catalogue en
 français.
 
 **`GET /store/api/players` est un déversement de registre non authentifié.** Tous les

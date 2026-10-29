@@ -283,8 +283,9 @@ rediffuse la carte des capes à tous les clients. `TRAIL`, `KILL_EFFECT` et
 
 Vide l'emplacement de cette catégorie et rafraîchit le gestionnaire visuel
 correspondant. Un nom de catégorie invalide est rejeté par
-`CosmeticEntry.Category.isValid` ; un emplacement vide répond
-`Rien d'équipé dans <category>.` et renvoie `0`.
+`CosmeticEntry.Category.isValid` avec `Catégorie inconnue : <CATÉGORIE>` ; un
+emplacement vide répond `Rien d'équipé dans <libellé>.` — le libellé d'affichage
+français, par exemple `Rien d'équipé dans Traînées.` pour `TRAIL` — et renvoie `0`.
 
 ### `/cosmetics grant <player> <id>` — niveau 2
 

@@ -29,7 +29,7 @@ were offline when they paid.
 
 Alongside the card path there is a second economy that costs you nothing to run: a
 credit balance per player, topped up by a product's delivery command, spent on a
-catalogue of 63 playable cosmetics — particle trails, kill and death effects, chat
+catalogue of 99 playable cosmetics — particle trails, kill and death effects, chat
 tags, name colours, pets, rideable mounts and capes. Players browse and equip them
 from a chest menu with `/cosmetics`; one slot per category, and a summoned mount is
 recalled automatically when a fight starts.
@@ -47,11 +47,11 @@ wallet balances and the Stripe keys all live in the CheeseDash panel.
 |---|---|
 | **Required** | [CheeseDash](../CheeseDash/) · [CheeseItems](../CheeseItems/) · Fabric Loader ≥ 0.16.0 · Fabric API · Java 21 |
 | **Required for capes** | `factionwarhud`, on the client — not in this repository |
-| **Related** | `factionwar` drives kill and death effects reflectively — not in this repository |
+| **Related** | `factionwar` drives kill effects reflectively (death effects work without it) — not in this repository |
 | **Bundled** | `sgui` by Patbox, Jar-in-Jar; no separate install |
 
 Server-side. Players need no mod to buy, spend or equip — with the single exception
-of capes, which are rendered by that client companion mod. Without it the eight
+of capes, which are rendered by that client companion mod. Without it the 32
 seeded cape cosmetics sell, equip, and remain invisible. Disable the category if you
 are not shipping it.
 
@@ -68,10 +68,10 @@ cd ../CheeseStore && ./gradlew build
 
 Drop `build/libs/cheesestore-1.0.0+1.21.1.jar` and both sibling jars in the server's
 `mods/`. On first start the mod writes `config/cheesestore.json` with empty Stripe
-keys, seeds a 63-entry cosmetic catalogue, and logs the one warning you must act on:
+keys, seeds a 99-entry cosmetic catalogue, and logs the one warning you must act on:
 
 ```text
-[CheeseStore] Default cosmetic catalogue written (63 entries)
+[CheeseStore] Default cosmetic catalogue written (99 entries)
 [CheeseStore] ⚠ storeBaseUrl is not configured! Checkout will be blocked.
 [CheeseStore] Initialized successfully!
 ```
@@ -145,14 +145,17 @@ Registers under the `store` prefix, with two separate surfaces:
 - **Tested in test mode, by its author, on one server.** The payment loop works; the
   edge cases around refunds, disputes and chargebacks are not handled at all, because
   the mod records what it delivered and nothing reconciles against Stripe.
-- **A `FAILED` delivery is silent.** No alert, no retry. The counter is
-  `failedOrders` in `GET /api/v1/store/stats`, and that is the whole mechanism.
+- **A failed delivery is silent — and usually not even recorded as failed.** No
+  alert, no retry. Minecraft's command manager swallows a command's error, so an order
+  whose command failed still reads `DELIVERED`; `failedOrders` in
+  `GET /api/v1/store/stats` almost never moves.
+  [Details](docs/payments.md#the-failure-that-actually-costs-you-money).
 - **A paying buyer's UUID is taken on trust** from the checkout request body. Credit
   purchases are different — those resolve the account from a linked session.
 - **Order history caps at 5 000 entries**, oldest dropped. Stripe's records are the
   authoritative ones.
-- **Three config keys are dead** (`googleClientId`, `googleClientSecret`,
-  `googleRedirectUri`) and the cosmetic subsystem's player-facing messages are
+- **Four config keys are dead** (`googleClientId`, `googleClientSecret`,
+  `googleRedirectUri`, `oauthJwtSecret`) and the cosmetic subsystem's player-facing messages are
   hard-coded French. Both are listed in
   [architecture](docs/architecture.md#known-weaknesses), along with everything else I
   know is wrong with it.

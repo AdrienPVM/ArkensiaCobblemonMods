@@ -27,11 +27,11 @@ com.cheesestore
 ├── auth
 │   ├── AccountLinker         pairing codes, session → Minecraft UUID links
 │   └── GoogleOAuth           the store_session cookie and /oauth/* routes
-├── cosmetic                  the playable cosmetic system (16 files, ~2 800 lines)
+├── cosmetic                  the playable cosmetic system (14 files, ~3 600 lines)
 │   ├── CosmeticsModule       single init() that wires the whole subsystem
 │   ├── CosmeticEntry         the shared model: category + a params string map
 │   ├── CosmeticManager       catalogue, seeded from DefaultCatalog on first run
-│   ├── DefaultCatalog        the 63 seeded entries
+│   ├── DefaultCatalog        the 99 seeded entries
 │   ├── OwnershipManager      uuid → owned ids
 │   ├── EquipManager          uuid → category → the one equipped id
 │   ├── TrailManager          particle trails, every 2 ticks
@@ -69,8 +69,8 @@ transaction: a write touches one file.
 | `WalletManager` | `cheesestore_wallets.json` | any balance change | **a `CompletableFuture` pool thread** |
 | `CosmeticManager` (legacy) | `cheesestore_cosmetics.json` | catalogue change | the calling thread |
 | `cosmetic.CosmeticManager` | `cheesestore_playcosmetics.json` | catalogue change | the calling thread |
-| `OwnershipManager` | `cheesestore_ownership.json` | grant or revoke | the calling thread |
-| `EquipManager` | `cheesestore_equipped.json` | equip or unequip | the calling thread |
+| `OwnershipManager` | `cheesestore_ownership.json` | grant or revoke | **a `CompletableFuture` pool thread** |
+| `EquipManager` | `cheesestore_equipped.json` | equip or unequip | **a `CompletableFuture` pool thread** |
 | `AccountLinker` | `cheesestore_oauth_links.json` | link completed or dropped | the calling thread |
 
 Writes are whole-file rewrites through `Files.writeString`, not appends and not
@@ -97,9 +97,9 @@ when something behaves strangely.
 
 **The server thread** runs the commands, the Fabric event listeners, and every
 cosmetic manager's tick work. `TrailManager`, `PetManager` and `MountManager` all run
-on `END_SERVER_TICK`; the trail is throttled to every 2 ticks and mount
-equip/orphan re-evaluation to every N ticks, while the mount's combat poll runs every
-tick.
+on `END_SERVER_TICK`; the trail is throttled to every 2 ticks, while the mount's
+per-player checks (death, world change, combat poll, dismount) run every tick and the
+pet and mount orphan sweeps every 20 ticks (`RESYNC_INTERVAL`).
 
 **CheeseDash HTTP threads** run `StoreApi.handle` and `StoreApi.handlePublic`. These
 read the config, the catalogues and the wallets directly — all `ConcurrentHashMap` or
@@ -128,10 +128,12 @@ which queues and returns, rather than `executeOnServerThread`, which waits. That
 right for a webhook — Stripe wants a fast `200` and will retry if it does not get
 one — but it means the HTTP response says nothing about whether delivery worked.
 
-**A `CompletableFuture` common-pool thread** writes `cheesestore_wallets.json`.
-`WalletManager.saveAsync()` is the only asynchronous persistence in the mod. The
-upside is that a balance change never blocks a tick; the downside is a window of a
-few milliseconds in which a granted credit is in memory but not on disk.
+**A `CompletableFuture` common-pool thread** writes `cheesestore_wallets.json`,
+`cheesestore_ownership.json` and `cheesestore_equipped.json`: `WalletManager`,
+`OwnershipManager` and `EquipManager` each persist through their own `saveAsync()`.
+The upside is that a balance, ownership or equip change never blocks a tick; the
+downside is a window of a few milliseconds in which a granted credit or cosmetic is in
+memory but not on disk.
 
 Nothing here holds a lock across a thread boundary, and nothing calls back from the
 server thread into an HTTP thread, so there is no deadlock path that I can find.
@@ -151,8 +153,10 @@ getPublicPrefix() = "store"  →  /store/api/*      → handlePublicRequest → 
 
 CheeseDash authenticates before `handleRequest` is called and does not authenticate
 before `handlePublicRequest`. That single difference is the whole security boundary
-of this mod. Both handlers answer `503 CheeseStore not ready` if the module has no
-server reference yet, which is what you get during startup.
+of this mod. The admin handler answers `503 CheeseStore not ready` while the module has
+no server reference yet (before `SERVER_STARTED`, or after `SERVER_STOPPING`); the
+public handler only checks that `CheeseStoreMod.INSTANCE` exists, so it answers as soon
+as the mod has initialised.
 
 Inside both handlers, dispatch is a flat chain of `if (subRoute.equals(...) &&
 method.equals(...))` with a `404` at the bottom and one `try`/`catch (Exception)`
@@ -253,9 +257,11 @@ so anything you can express as a command is already sellable.
 constant to `CosmeticEntry.Category`, a manager with a static idempotent `init()` that
 registers its own Fabric events, a line in `CosmeticsModule.init()`, a branch in
 `CosmeticsCommands.applyVisuals` if it needs refreshing on equip, and entries in
-`prettyCategory` and `categoryIcon` for the GUI. Then add the category to the
-`categories` array in `StoreApi.buildEnumsJson()` so the dashboard offers it. Six
-touch points, all small, none hidden.
+`prettyCategory` and `categoryIcon` for the GUI, plus the category in the
+`CATEGORIES` array of `CosmeticsCommands` (the menu and `/cosmetics list` iterate it)
+— and a free slot in the menu's `slots` array, which holds exactly eight today. Then
+add the category to the `categories` array in `StoreApi.buildEnumsJson()` so the
+dashboard offers it. Eight touch points, all small, none hidden.
 
 **A new public route** goes in `StoreApi.handlePublic`. If it spends anything, copy
 the guard chain from `handlePlayCosmeticBuy` verbatim — same-origin, rate limit,
@@ -307,11 +313,15 @@ store that has taken real money, the authoritative record is Stripe's, and this 
 should be treated as a convenience cache rather than accounting.
 
 **`FAILED` orders are invisible unless you look.** No WebSocket event, no Discord
-hook, no retry. A paid order whose commands failed sits in `GET /orders` until
-someone notices. The counter is in `GET /stats` as `failedOrders`.
+hook, no retry. A `FAILED` order sits in `GET /orders` until someone notices; the
+counter is in `GET /stats` as `failedOrders`.
 
-**Delivery success is "the command did not throw".** A command that silently does
-nothing is recorded `DELIVERED`.
+**Delivery success means "the call returned", which it always does.** Commands go
+through `executeWithPrefix`, and Minecraft's command manager catches syntax errors and
+command exceptions itself, so a typo or a crashing command is recorded `DELIVERED`
+with no `failReason`. `FAILED` is reached only if that call throws, which in practice
+it does not. The failure detection the order model was built around is therefore
+inert.
 
 **Two cosmetic systems with the same class simple name.** `CosmeticItem` /
 `CosmeticManager` in the root package, `CosmeticEntry` /
@@ -325,15 +335,15 @@ them would be a storefront-breaking change.
 `cheesestore_playcosmetics.json`. Trust the code.
 
 **Dead configuration.** `googleClientId`, `googleClientSecret` and
-`googleRedirectUri` are loaded, saved, and read by nothing. `oauthJwtSecret`
-generates itself and signs nothing. `GET /store/api/config` reports
+`googleRedirectUri` are loaded, saved, and read by nothing. `oauthJwtSecret` has a
+self-generating getter that nothing calls, and signs nothing. `GET /store/api/config` reports
 `oauthEnabled: true` as a hard-coded literal.
 
 **Hard-coded French in the cosmetic subsystem.** `CosmeticsCommands`, `MountCommand`,
 `MountManager` and the whole of `DefaultCatalog` use `Text.literal` with French
 strings rather than translation keys, while the rest of the mod uses
 `Text.translatable` with proper `en_us` and `fr_fr` files. An English server gets
-French cosmetic messages and 63 French catalogue titles.
+French cosmetic messages and 99 French catalogue titles.
 
 **`GET /store/api/players` is an unauthenticated roster dump.** Every name and UUID
 from `usercache.json` plus the online list, unpaginated. The storefront's player

@@ -10,7 +10,7 @@ cost money.
 
 ## A buyer paid and received nothing
 
-**Cause.** One of three, and they are distinguishable. Find the order in the
+**Cause.** One of four, and they are distinguishable. Find the order in the
 dashboard's orders view, or:
 
 ```bash
@@ -19,9 +19,15 @@ curl -H "Authorization: Bearer <session>" http://localhost:44311/api/v1/store/or
 
 | What you see | What happened |
 |---|---|
-| the order, `status: "FAILED"`, with a `failReason` | the payment landed, a delivery command threw |
-| the order, `status: "PENDING"` | the payment landed, the buyer is offline |
-| **no order at all** | the payment never reached the mod |
+| the order, `status: "DELIVERED"` | the most common case: a delivery command failed in the console (typo, missing mod) — Minecraft swallows the error, so the order still reads `DELIVERED` |
+| the order, `status: "FAILED"`, with a `failReason` | rare: the call that runs a command threw |
+| the order, `status: "PENDING"` | the payment landed, the buyer is offline (or `playerUUID` is not a valid UUID) |
+| **no order at all** | the payment never reached the mod, or the product was deleted / metadata was missing |
+
+**Fix, for `DELIVERED` with nothing received.** Search the server log around
+`Delivered orderId=<id>` for the command manager's error, fix the product's
+`commands`, and run the corrected command by hand for this buyer: the dashboard
+refuses to re-deliver a `DELIVERED` order.
 
 **Fix, for `FAILED`.** Read `failReason` — it is the exception message from the
 command. Usually a typo, or a command belonging to a mod that is no longer installed.
@@ -98,15 +104,17 @@ Stripe's message is about your product data.
 
 ## Everything was delivered twice
 
-**Cause.** This should not happen. `DeliveryManager.createDelivery` refuses a second
-order with the same Stripe session id, and logs it:
+**Cause.** This should almost never happen. `DeliveryManager.createDelivery` refuses
+a second order with the same Stripe session id, and logs it:
 
 ```text
 [CheeseStore] Duplicate delivery attempt for orderId=cs_live_...
 ```
 
 Seeing that line is the system working — it is the redirect path and the webhook
-racing, which is normal and expected.
+racing, which is normal and expected. The check is not atomic, though: if the two
+arrive at the same instant on two HTTP threads, both can pass it and two orders with
+the **same** `orderId` appear. That is a code bug, not a buyer paying twice.
 
 **If goods really arrived twice**, the two orders have different ids, which means two
 real checkout sessions. Check the orders view: if there are two distinct `orderId`s
@@ -192,7 +200,7 @@ startup block.
 |---|---|
 | Stripe keys, store name, base URL, `storeEnabled`, `currencyName` | live through `PUT /api/v1/store/config` |
 | the same keys edited **in the file while running** | overwritten by the next dashboard save |
-| the four web-session keys | restart required, and three of them do nothing at all |
+| the four web-session keys | restart required, and none of them does anything |
 
 **Fix.** Edit through the dashboard, or stop the server before editing the file.
 `CheeseStoreConfig` reads the file once at `onInitialize` and treats its in-memory
@@ -232,7 +240,7 @@ list being short does not mean the name will be rejected.
 
 **Cause.** The cosmetic subsystem — `CosmeticsCommands`, `MountCommand`,
 `MountManager` — sends its feedback through `Text.literal` with hard-coded French
-strings instead of translation keys. The 63 seeded catalogue titles in
+strings instead of translation keys. The 99 seeded catalogue titles in
 `DefaultCatalog` are French literals too. The rest of the mod uses
 `Text.translatable` with proper `en_us.json` and `fr_fr.json`.
 
@@ -247,7 +255,7 @@ weakness in [architecture](architecture.md#known-weaknesses).
 `uuid → capeId` map on the `cheesestore:capes` payload; the texture is expected at
 `factionwarhud:textures/entity/cape/<capeId>.png`.
 
-**Fix.** Ship that client mod, or disable the cape category. The eight seeded cape
+**Fix.** Ship that client mod, or disable the cape category. The 32 seeded cape
 entries are enabled and priced out of the box, so on a vanilla-client server you are
 selling something invisible until you turn them off.
 
@@ -274,20 +282,27 @@ an entity that is not rideable.
 
 **Cause.** Different causes for the two.
 
-A **trail** renders on `END_SERVER_TICK`, every 2 ticks. If nothing appears, the
-`particle` param is probably an id that does not resolve — the manager caches the
-failure so it will not retry, and logs a warning once.
+A **trail** renders on `END_SERVER_TICK`, every 2 ticks. If it appears once and then
+never again, its `particle` is `minecraft:flame`, missing, unknown or parameterised:
+`TrailManager` caches the failure sentinel as `FLAME` itself, so a flame trail and a
+failed lookup look identical in the cache and both stop rendering after the first
+frame (the seeded `trail_flame` is affected; a warning is logged once for a bad id).
 
-A **kill or death effect** is not hooked by this mod at all.
-`CombatEffectsManager` is driven by `CosmeticCombatBridge`, which a separate mod
-(`factionwar`) looks up **by class name** and invokes reflectively. Without that mod
-installed, kill and death effects never fire. If the class were renamed, they would
-stop firing silently — the reflective lookup just fails.
+A **kill effect** is not hooked by this mod at all. It is driven by
+`CosmeticCombatBridge`, which a separate mod (`factionwar`) looks up **by class name**
+and invokes reflectively. Without that mod installed, kill effects never fire. If the
+class were renamed, they would stop firing silently — the reflective lookup just
+fails. A **death effect** does not depend on it: `CombatEffectsManager` also listens
+to `AFTER_DEATH`, so if a death effect does nothing, check that it is equipped and
+enabled and that its `effect` is one of the six known kinds.
 
-**Fix.** For a trail: check the `particle` param against the `particles` list from
-`GET /api/v1/store/playcosmetics/enums`. For combat effects: confirm `factionwar` is
-installed. This is an observation about how the two mods are wired, read from this
-mod's comments; I have not verified it against `factionwar` itself.
+**Fix.** For a trail: set the `particle` param to another simple particle from the
+`particles` list of `GET /api/v1/store/playcosmetics/enums` — not `minecraft:flame`
+(and not parameterised ones such as `minecraft:dust` or `minecraft:falling_dust`) —
+then restart to clear the cache. For combat effects: confirm `factionwar` is
+installed (for kill effects). This is an observation about how the two mods are
+wired, read from this mod's comments; I have not verified it against `factionwar`
+itself.
 
 ## A credit purchase on the website fails
 
@@ -295,8 +310,8 @@ mod's comments; I have not verified it against `factionwar` itself.
 
 | Status | Body | Cause |
 |---|---|---|
-| `401` | `not_authenticated` | no `store_session` cookie |
-| `403` | `not_linked` | the browser session has no `/store link` behind it |
+| `401` | `not_authenticated` | no `store_session` cookie, **or** the browser session has no `/store link` behind it |
+| `403` | `not_linked` | practically unreachable: the link was removed during the request |
 | `403` | `forbidden_origin` | `Origin`/`Referer` did not match `Host` |
 | `429` | `too_many_requests` | 10 purchases per 60 s per IP, shared across all three buy routes |
 | `402` | `insufficient_credits` | the body carries `currentBalance` and `required` |

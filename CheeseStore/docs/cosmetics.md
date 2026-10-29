@@ -148,11 +148,13 @@ On first launch, with no `cheesestore_playcosmetics.json` present,
 
 ```text
 [CheeseStore] No cosmetic catalogue found — writing default catalogue
-[CheeseStore] Default cosmetic catalogue written (63 entries)
+[CheeseStore] Default cosmetic catalogue written (99 entries)
 ```
 
-The composition, per the class comment: 10 trails, 8 kill effects, 8 death effects,
-16 name colours (one per chat colour), 6 chat tags, 8 pets, 7 mounts, 8 capes. Every
+The composition, as `build()` actually writes it: 10 trails, 8 kill effects, 8 death
+effects, 16 name colours (one per chat colour), 6 chat tags, 8 pets, 11 mounts, and
+32 capes (8 themed ones plus a 24-cape "collection" block). The class comment still
+says "~63 entries", 7 mounts and 8 capes; it is out of date. Every
 title and description in it is **in French** — these are literal strings in
 `DefaultCatalog.java`, not translation keys, so an English-speaking server has to
 rewrite them through the dashboard or edit the file.
@@ -174,15 +176,25 @@ tick loop would be a far worse bug than a cosmetic that silently stops working.
 
 `TrailManager` renders on `END_SERVER_TICK`, but only every **2 ticks** — the
 `TICK_INTERVAL` constant. Particle counts are bounded and positions cached per player.
-A particle id that fails to resolve is remembered as a sentinel so the manager does
-not retry the lookup every tick.
+Resolved particles are cached by id, and an id that fails to resolve is meant to be
+remembered as a sentinel so the manager does not retry the lookup every tick.
+
+> ⚠️ **That sentinel is broken.** It is `ParticleTypes.FLAME` itself, and an unknown or
+> parameterised id also falls back to `FLAME`, so the cache cannot tell a genuine flame
+> from a failure. The first render of such a trail draws flames; every later render
+> reads the cached value as "unresolved" and draws nothing, until the next restart. In
+> practice: **any trail whose `particle` is `minecraft:flame`, missing, unknown or
+> parameterised (`minecraft:dust`…) shows once and then stops** — the seeded
+> `trail_flame` included. Pick another particle for those entries.
 
 ### Kill and death effects
 
 `CombatEffectsManager` exposes `handleKill(killer, victim)` and `handleDeath(victim)`.
-It does not hook combat itself. Instead `CosmeticCombatBridge` is a deliberately
-stable façade that a third-party mod, `factionwar`, looks up **by name and invokes
-reflectively**:
+For deaths it hooks one event itself: `ServerLivingEntityEvents.AFTER_DEATH`, so a
+player's `DEATH_EFFECT` plays on any death, with a 500 ms de-dupe so a death reported
+twice plays once. Kills it does not hook at all. Those come only through
+`CosmeticCombatBridge`, a deliberately stable façade that a third-party mod,
+`factionwar`, looks up **by name and invokes reflectively**:
 
 ```java
 com.cheesestore.cosmetic.CosmeticCombatBridge
@@ -194,14 +206,17 @@ Rename that class or change either signature and kill effects stop firing, with 
 error anywhere — the caller is on the other side of a reflective lookup that will
 simply fail. This is an observation about how the two mods are wired, not a
 specification of `factionwar`, which is not part of this repository and which I have
-not read. Without that mod installed, kill and death effects never fire at all unless
-something else calls the bridge.
+not read. Without that mod installed, kill effects never fire unless something else
+calls the bridge; death effects still fire through `AFTER_DEATH`.
 
 ### Chat tags and name colours
 
-`NameTagManager.refresh(player)` rebuilds the player's display name from the equipped
-`CHAT_TAG` prefix and `NAME_COLOR`. It is called on equip, on unequip, and after bulk
-grants. `cleanup(player)` reverses it.
+`NameTagManager.refresh(player)` puts the player in a per-player scoreboard team whose
+colour comes from the equipped `NAME_COLOR` and whose prefix is the equipped
+`CHAT_TAG`; with neither equipped, the team is removed. It is called on join, on
+equip and unequip, and when `revoke` removes an equipped one. `cleanup(player)`
+removes the team, and runs on disconnect. `/cosmetics grantall` does **not** refresh
+it — granting is not equipping.
 
 ### Pets
 
@@ -225,9 +240,11 @@ belt-and-braces fallback. After a combat recall the owner cannot re-summon for
 `COOLDOWN_TICKS` = **200 ticks, about 10 seconds**, and an attempt during that window
 answers with the remaining seconds.
 
-Mounts are also despawned on death, disconnect, world change and unequip. The
-equip/orphan re-evaluation is throttled to run every N ticks; only the combat poll
-runs every tick.
+Mounts are also despawned on death, disconnect, world change and unequip — and as
+soon as the owner stops riding it (dismounting with Shift dismisses it; no cooldown).
+Those checks, and the combat poll, run every tick for each player with a live mount;
+the sweep of mounts left behind by offline owners runs every 20 ticks
+(`RESYNC_INTERVAL`).
 
 ### Capes need a client mod
 
@@ -237,7 +254,7 @@ changes. The texture itself is expected at
 `factionwarhud:textures/entity/cape/<capeId>.png`, in the 64×32 vanilla cape format,
 inside a companion client mod called `factionwarhud`.
 
-So: **capes do nothing on a vanilla client.** The eight seeded cape entries will sell,
+So: **capes do nothing on a vanilla client.** The 32 seeded cape entries will sell,
 equip, and show as equipped in the menu, and no one will see them. If you are not
 shipping that companion mod, disable the cape category before opening the store.
 `factionwarhud` is not in this repository, and its texture path is read from this
@@ -289,7 +306,8 @@ undoing it is one `revoke` per id.
 No expiry: ownership is permanent once granted. No trading or gifting between players.
 No per-cosmetic purchase history — once granted, nothing records when or for how much,
 so the only trace of a credit purchase is the dashboard WebSocket event, which is not
-persisted anywhere. If you need an audit trail of credit spending, you will have to
+persisted anywhere (and which `/morpho/buy` does not even send; a morpho purchase
+leaves only its CheeseItems codex entry, timestamped). If you need an audit trail of credit spending, you will have to
 add one.
 
 ---

@@ -44,8 +44,11 @@ Les routes publiques n'envoient aucun en-tête Authorization. Les trois routes q
 dépensent des crédits utilisent un mécanisme entièrement différent : un cookie de
 session émis par le flux de liaison de compte du site, résolu par
 `GoogleOAuth.currentSession`, puis rapproché d'un UUID Minecraft par
-`AccountLinker`. Pas de cookie → `401 not_authenticated`. Cookie mais aucun
-`/store link` achevé → `403 not_linked`.
+`AccountLinker`. `currentSession` ne renvoie déjà rien pour un cookie sans liaison
+derrière lui, donc « pas de cookie » **et** « cookie mais aucun `/store link` achevé »
+répondent tous deux `401 not_authenticated`. La branche `403 not_linked` qui suit n'est
+atteignable que si la liaison disparaît entre ces deux recherches (une déconnexion qui
+croise l'achat).
 
 ---
 
@@ -181,8 +184,10 @@ Chaque création et chaque mise à jour réussies diffusent `store_update` sur l
 ### Galerie
 
 Une vitrine de récompenses en lecture seule : les entrées apparaissent sur la boutique
-mais ne peuvent pas être achetées. Mêmes formes que les produits, gérées par
-`GalleryItem`.
+mais ne peuvent pas être achetées. Elles sont gérées par `GalleryItem`, qui a sa propre
+forme — `id`, `title`, `description`, `priceCredits`, `hasImage`, `isNew`, `sortOrder`,
+`createdAt` — servie telle quelle sur la route publique. `PUT` ne fusionne que `title`,
+`description`, `priceCredits`, `isNew` et `sortOrder`.
 
 | Méthode | Chemin | Corps | Réponse |
 |---|---|---|---|
@@ -222,9 +227,15 @@ Checkout.
 
 Ce seul message couvre trois situations différentes, ce qui est gênant quand on
 débogue : l'identifiant de commande n'existe pas, la commande est déjà `DELIVERED`, ou
-une commande a levé une exception. Consulte le log serveur pour les distinguer — une
-exception est journalisée par `DeliveryManager` et renseigne le `failReason` de la
-commande, que `GET /orders` affiche ensuite.
+l'appel qui exécute une commande a levé une exception. Ce dernier cas est rare — le
+gestionnaire de commandes de Minecraft attrape lui-même une commande en échec, donc une
+faute de frappe répond quand même `200 {"delivered":true}` (voir
+[paiements](payments.fr.md#léchec-qui-te-coûte-réellement-de-largent)). Quand il se
+produit, `manualDeliver` ne journalise rien ; il passe la commande en `FAILED` et
+renseigne son `failReason`, que `GET /orders` affiche ensuite.
+
+La route fonctionne aussi bien sur une commande `PENDING` que `FAILED`, et ne vérifie
+pas que l'acheteur est connecté.
 
 Un `500` avec le message d'exception signifie que le passage au thread serveur
 lui-même a échoué, et non les commandes.
@@ -240,12 +251,12 @@ Un objet commande d'achat :
   "commands": ["premium give Steve 500"],
   "status": "PENDING",
   "createdAt": 1730000000000,
-  "deliveredAt": 0,
-  "failReason": null
+  "deliveredAt": 0
 }
 ```
 
-`status` vaut `PENDING`, `DELIVERED` ou `FAILED`. Les `commands` sont déjà résolues —
+`failReason` n'est présent que sur une commande qui en a un ; sinon il est omis, et non
+`null`. `status` vaut `PENDING`, `DELIVERED` ou `FAILED`. Les `commands` sont déjà résolues —
 `{player}` a été remplacé à la création de la commande d'achat, donc une relivraison
 exécute les commandes telles qu'elles étaient tarifées, et non telles que le produit se
 lit aujourd'hui.
@@ -295,8 +306,10 @@ indiscernable dans le chat d'un ajustement par commande.
 
 `totalRevenueCents` ne somme que les commandes `DELIVERED`, donc c'est le chiffre
 d'affaires que tu as effectivement honoré, et non celui que Stripe a encaissé. Il ne
-soustrait pas les remboursements — rien ici n'en a connaissance. `failedOrders` est le
-nombre à surveiller ; voir
+soustrait pas les remboursements — rien ici n'en a connaissance. `failedOrders` ne
+compte que les commandes dont l'appel de livraison a levé une exception, ce qui
+n'arrive presque jamais : une commande qui échoue dans la console est comptée dans
+`deliveredOrders`. Un zéro ne prouve pas que chaque acheteur a reçu son achat ; voir
 [l'échec qui coûte de l'argent](payments.fr.md#léchec-qui-te-coûte-réellement-de-largent).
 
 ### Configuration
@@ -455,8 +468,8 @@ sources appellent cela la fenêtre TOCTOU et ils ont raison.
 |---|---|---|
 | `403` | `forbidden_origin` | `Origin`/`Referer` ne correspondait pas à `Host` |
 | `429` | `too_many_requests` | le seau par IP est plein |
-| `401` | `not_authenticated` | aucun cookie de session OAuth |
-| `403` | `not_linked` | identifié sur le web, mais aucun `/store link` achevé |
+| `401` | `not_authenticated` | aucun cookie de session, **ou** un cookie sans `/store link` achevé |
+| `403` | `not_linked` | pratiquement inatteignable : la liaison a disparu en cours de requête |
 | `400` | `cosmeticId required` / `morphoId required` | identifiant manquant ou dangereux pour un chemin |
 | `404` | `cosmetic_not_found` / `morpho_not_found` | inconnu, ou désactivé, ou non marqué pour le site |
 | `409` | `already_owned` | morphos et cosmétiques jouables uniquement ; **aucun débit n'a eu lieu** |
@@ -469,8 +482,9 @@ des achats répétables, et en acheter un deux fois débite deux fois et exécut
 `applyCommands` deux fois. Si un cosmétique doit être unique par joueur, il faut
 l'imposer dans ses commandes.
 
-Le succès est `200 {"success":true,"newBalance":N,"<type>Id":"..."}`, et chaque type
-diffuse en plus son propre événement d'achat vers le dashboard.
+Le succès est `200 {"success":true,"newBalance":N,"<type>Id":"..."}`. `/cosmetics/buy`
+et `/playcosmetics/:id/buy` diffusent en plus un événement d'achat vers le dashboard ;
+`/morpho/buy` ne diffuse rien.
 
 ### Sessions web et liaison de compte
 
@@ -513,11 +527,11 @@ Deux manques à connaître. `store_purchase` ne part que si `createDelivery` a r
 vérification avait déjà créée est silencieux — comportement correct, mais cela veut dire
 que le flux est une suite de commandes d'achat distinctes, et non d'événements Stripe.
 Et **rien ne diffuse en cas d'échec de livraison** : une commande `FAILED` apparaît dans
-`GET /orders` et dans le log, mais aucun message WebSocket ne l'annonce. Un dashboard
-qui ne regarde que ce canal ne la verra pas.
+`GET /orders`, mais aucun message WebSocket ne l'annonce. Un dashboard qui ne regarde
+que ce canal ne la verra pas.
 
 Les changements de portefeuille ne diffusent rien non plus, par quelque chemin que ce
-soit.
+soit, pas plus qu'un achat de morpho ou un `/playcosmetics/grant`.
 
 ---
 

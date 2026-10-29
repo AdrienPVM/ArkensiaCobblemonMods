@@ -273,8 +273,10 @@ Equipping a `MOUNT` selects it; it does not summon it. Use `/mount`.
 ```
 
 Clears that category's slot and refreshes the matching visual manager. An invalid
-category name is rejected against `CosmeticEntry.Category.isValid`; an empty slot
-answers `Rien d'équipé dans <category>.` and returns `0`.
+category name is rejected against `CosmeticEntry.Category.isValid` with
+`Catégorie inconnue : <CATEGORY>`; an empty slot answers `Rien d'équipé dans <label>.`
+— the French display label, e.g. `Rien d'équipé dans Traînées.` for `TRAIL` — and
+returns `0`.
 
 ### `/cosmetics grant <player> <id>` — level 2
 

@@ -155,12 +155,14 @@ Au premier démarrage, sans `cheesestore_playcosmetics.json` présent,
 
 ```text
 [CheeseStore] No cosmetic catalogue found — writing default catalogue
-[CheeseStore] Default cosmetic catalogue written (63 entries)
+[CheeseStore] Default cosmetic catalogue written (99 entries)
 ```
 
-La composition, d'après le commentaire de classe : 10 traînées, 8 effets de kill, 8
-effets de mort, 16 couleurs de pseudo (une par couleur de chat), 6 tags de chat, 8
-familiers, 7 montures, 8 capes. Tous les titres et descriptions y sont **en français** —
+La composition, telle que `build()` l'écrit réellement : 10 traînées, 8 effets de kill,
+8 effets de mort, 16 couleurs de pseudo (une par couleur de chat), 6 tags de chat, 8
+familiers, 11 montures et 32 capes (8 capes thématiques plus un bloc « collection » de
+24). Le commentaire de classe annonce encore « ~63 entrées », 7 montures et 8 capes ; il
+n'est plus à jour. Tous les titres et descriptions y sont **en français** —
 ce sont des chaînes littérales dans `DefaultCatalog.java`, et non des clés de
 traduction, donc un serveur anglophone doit les réécrire via le dashboard ou éditer le
 fichier.
@@ -184,14 +186,27 @@ de fonctionner.
 
 `TrailManager` rend sur `END_SERVER_TICK`, mais seulement tous les **2 ticks** — la
 constante `TICK_INTERVAL`. Les quantités de particules sont bornées et les positions
-mises en cache par joueur. Un identifiant de particule qui ne résout pas est mémorisé
-comme sentinelle pour que le gestionnaire ne retente pas la recherche à chaque tick.
+mises en cache par joueur. Les particules résolues sont mises en cache par identifiant,
+et un identifiant qui ne résout pas est censé être mémorisé comme sentinelle pour que le
+gestionnaire ne retente pas la recherche à chaque tick.
+
+> ⚠️ **Cette sentinelle est cassée.** C'est `ParticleTypes.FLAME` lui-même, et un
+> identifiant inconnu ou paramétré retombe aussi sur `FLAME` : le cache ne distingue
+> donc pas une vraie flamme d'un échec. Le premier rendu d'une telle traînée dessine des
+> flammes ; chaque rendu suivant lit la valeur en cache comme « non résolue » et ne
+> dessine rien, jusqu'au redémarrage suivant. En pratique : **toute traînée dont la
+> `particle` est `minecraft:flame`, absente, inconnue ou paramétrée (`minecraft:dust`…)
+> s'affiche une fois puis s'arrête** — `trail_flame` du catalogue par défaut compris.
+> Choisis une autre particule pour ces entrées.
 
 ### Les effets de kill et de mort
 
 `CombatEffectsManager` expose `handleKill(killer, victim)` et
-`handleDeath(victim)`. Il ne branche pas le combat lui-même. À la place,
-`CosmeticCombatBridge` est une façade délibérément stable qu'un mod tiers,
+`handleDeath(victim)`. Pour les morts, il branche lui-même un événement :
+`ServerLivingEntityEvents.AFTER_DEATH`, de sorte que le `DEATH_EFFECT` d'un joueur se joue
+à n'importe quelle mort, avec un dédoublonnage de 500 ms pour qu'une mort signalée deux
+fois ne se joue qu'une fois. Les kills, il ne les branche pas du tout. Ils n'arrivent
+que par `CosmeticCombatBridge`, une façade délibérément stable qu'un mod tiers,
 `factionwar`, recherche **par son nom et invoque par réflexion** :
 
 ```java
@@ -204,14 +219,18 @@ Renomme cette classe ou change l'une des deux signatures et les effets de kill
 s'arrêtent, sans aucune erreur nulle part — l'appelant est de l'autre côté d'une
 recherche par réflexion qui échouera simplement. C'est une observation sur la façon
 dont les deux mods sont câblés, pas une spécification de `factionwar`, qui ne fait pas
-partie de ce dépôt et que je n'ai pas lu. Sans ce mod installé, les effets de kill et
-de mort ne se déclenchent jamais, à moins qu'autre chose n'appelle la façade.
+partie de ce dépôt et que je n'ai pas lu. Sans ce mod installé, les effets de kill ne
+se déclenchent jamais, à moins qu'autre chose n'appelle la façade ; les effets de mort,
+eux, se déclenchent quand même via `AFTER_DEATH`.
 
 ### Les tags de chat et les couleurs de pseudo
 
-`NameTagManager.refresh(player)` reconstruit le nom affiché du joueur depuis le préfixe
-`CHAT_TAG` et la `NAME_COLOR` équipés. Il est appelé à l'équipement, au retrait, et
-après des octrois en masse. `cleanup(player)` fait l'inverse.
+`NameTagManager.refresh(player)` place le joueur dans une équipe de scoreboard qui lui
+est propre, dont la couleur vient de la `NAME_COLOR` équipée et le préfixe du `CHAT_TAG`
+équipé ; sans aucun des deux, l'équipe est supprimée. Il est appelé à la connexion, à
+l'équipement et au retrait, et quand `revoke` retire un cosmétique équipé.
+`cleanup(player)` supprime l'équipe, et s'exécute à la déconnexion.
+`/cosmetics grantall` ne le rafraîchit **pas** — accorder n'est pas équiper.
 
 ### Les familiers
 
@@ -238,8 +257,11 @@ environ 10 secondes**, et une tentative dans cette fenêtre répond avec les sec
 restantes.
 
 Les montures sont aussi retirées à la mort, à la déconnexion, au changement de monde et
-au retrait du cosmétique. La réévaluation équipement/orphelin est limitée à un tick sur
-N ; seul le sondage de combat tourne à chaque tick.
+au retrait du cosmétique — et dès que le propriétaire cesse de la chevaucher (descendre
+avec Maj la renvoie ; sans délai de recharge). Ces contrôles, et le sondage de combat,
+tournent à chaque tick pour chaque joueur qui a une monture active ; le balayage des
+montures laissées par des propriétaires hors ligne tourne tous les 20 ticks
+(`RESYNC_INTERVAL`).
 
 ### Les capes exigent un mod client
 
@@ -249,7 +271,7 @@ diffuser la carte complète `uuid → capeId` sur un payload personnalisé
 `factionwarhud:textures/entity/cape/<capeId>.png`, au format de cape vanilla 64×32, à
 l'intérieur d'un mod client compagnon nommé `factionwarhud`.
 
-Donc : **les capes ne font rien sur un client vanilla.** Les huit entrées de cape du
+Donc : **les capes ne font rien sur un client vanilla.** Les 32 entrées de cape du
 catalogue par défaut se vendront, s'équiperont, s'afficheront comme équipées dans le
 menu, et personne ne les verra. Si tu ne distribues pas ce mod compagnon, désactive la
 catégorie cape avant d'ouvrir la boutique. `factionwarhud` n'est pas dans ce dépôt, et
@@ -305,7 +327,9 @@ de plus strict.
 Aucune expiration : la possession est permanente une fois accordée. Aucun échange ni
 cadeau entre joueurs. Aucun historique d'achat par cosmétique — une fois accordé, rien
 n'enregistre quand ni à quel prix, donc la seule trace d'un achat en crédits est
-l'événement WebSocket du dashboard, qui n'est persisté nulle part. S'il te faut une
+l'événement WebSocket du dashboard, qui n'est persisté nulle part (et que `/morpho/buy`
+n'envoie même pas ; un achat de morpho ne laisse que son entrée de codex CheeseItems,
+horodatée). S'il te faut une
 piste d'audit des dépenses en crédits, tu devras l'ajouter.
 
 ---

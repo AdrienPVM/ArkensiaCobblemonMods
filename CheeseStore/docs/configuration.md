@@ -24,7 +24,7 @@ the empty string in `CheeseStoreConfig`, the only other place a key appears is
 a `StripeClient` at all and checkout answers `503 Stripe not configured`. Nothing
 phones home, and nothing is pre-filled with somebody else's account.
 
-Five more files sit beside this one. They are state, not configuration, and you edit
+Seven more files, and one folder, sit beside this one. They are state, not configuration, and you edit
 them only to repair something:
 
 | File | Holds |
@@ -35,6 +35,7 @@ them only to repair something:
 | `cheesestore_cosmetics.json` | the legacy website cosmetic catalogue |
 | `cheesestore_ownership.json` | who owns which cosmetic |
 | `cheesestore_equipped.json` | what each player is wearing |
+| `cheesestore_oauth_links.json` | which browser session is linked to which Minecraft account |
 | `cheesestore_assets/` | uploaded product, gallery and cosmetic PNGs |
 
 ---
@@ -119,7 +120,10 @@ you are setting prices.
 
 Three things it does **not** switch off, and this matters: `/checkout`,
 `/session-status` and `/webhook` all keep working. A checkout session created just
-before you flipped the switch still completes and still delivers. That is almost
+before you flipped the switch still completes and still delivers — and a new one can still be
+created by a direct `POST /checkout`, since that route never reads `storeEnabled`. The
+three credit-purchase routes (`/cosmetics/buy`, `/morpho/buy`,
+`/playcosmetics/:id/buy`) ignore it as well. That is almost
 certainly the right call — you do not want a disabled store to swallow a payment
 already in flight — but it means `storeEnabled: false` is a catalogue switch, not a
 kill switch. To actually stop taking money, clear `stripeSecretKey`.
@@ -140,7 +144,7 @@ custom currency name will not appear in chat.
 | `googleClientId` | string | `""` | nothing — see below |
 | `googleClientSecret` | string | `""` | nothing |
 | `googleRedirectUri` | string | `""` | nothing |
-| `oauthJwtSecret` | string | `""` → generated | reserved; self-generating |
+| `oauthJwtSecret` | string | `""` | reserved; unused |
 
 > ⚠️ **The three `google*` keys are dead configuration.** They are loaded, saved and
 > exposed by getters, and nothing reads them. The class that would use them,
@@ -168,10 +172,10 @@ cookie will travel over plain HTTP if anything ever reaches the site that way.
 literal, not derived from any key. The storefront's sign-in affordance is therefore
 always offered, which is consistent with the fact that it needs no credentials.
 
-`oauthJwtSecret` manages itself and is currently unused by any code path that signs
-anything. The first time `getOauthJwtSecret()` is called with a value shorter than 32
-characters, it generates 48 bytes from `SecureRandom`, encodes them URL-safe base64
-and saves the file immediately. Leave it empty.
+`oauthJwtSecret` is unused. `getOauthJwtSecret()` would, when called with a value
+shorter than 32 characters, generate 48 bytes from `SecureRandom`, encode them URL-safe
+base64 and save the file immediately — but nothing in the mod calls it, so in practice
+the key keeps whatever value the file holds (empty on a fresh install). Leave it empty.
 
 None of these four is reachable from the dashboard: `GET /api/v1/store/config` omits
 them and `PUT` ignores them. Edit them in the file, then restart.
@@ -219,12 +223,13 @@ delivers none, or delivers credits with no badge. Nothing cross-checks them.
 Minecraft name, through `executeWithPrefix` with the server command source — full
 permissions, no `/` prefix needed. They are resolved and stored at order creation, so
 editing a product does not change an order already queued. Test every command by hand
-before enabling the product: a command that throws marks the order `FAILED`, and a
-command that silently does nothing marks it `DELIVERED`.
+before enabling the product: a command that fails — even an unknown command — is
+caught by Minecraft's command manager and the order is still marked `DELIVERED`
+([details](payments.md#the-failure-that-actually-costs-you-money)).
 
-A gallery item carries `id`, `title`, `description`, `isNew`, `sortOrder`, `hasImage`
-and `createdAt`. There is no price and no checkout — it is a showcase of rewards
-obtainable elsewhere. `isNew: true` floats an item to the top, newest first.
+A gallery item carries `id`, `title`, `description`, `priceCredits`, `isNew`,
+`sortOrder`, `hasImage` and `createdAt`. `priceCredits` is a displayed figure only;
+there is no checkout — it is a showcase of rewards obtainable elsewhere. `isNew: true` floats an item to the top, newest first.
 
 ---
 
@@ -290,9 +295,10 @@ you save the file.
 
 Reading notes on that example. `pack500` sets `credits` and the matching
 `premium give` command — the pair that has to agree. `rankvip` ships
-`enabled: false`, which is how to stage a product: author it, test its commands with
-a manual delivery, then enable it. The four web-session keys are left empty: three
-are dead and the fourth fills itself on first use.
+`enabled: false`, which is how to stage a product: author it, test its commands by
+running them by hand from the console, then enable it. (A manual delivery cannot test
+it: that needs an existing order, and checkout refuses a disabled product.) The four
+web-session keys are left empty: all four are unused.
 
 ---
 
@@ -302,7 +308,7 @@ are dead and the fourth fills itself on first use.
 |---|---|
 | Stripe keys, store name/subtitle/base URL, `storeEnabled`, `currencyName` | `PUT /api/v1/store/config` applies live; editing the file needs a restart |
 | Products, gallery | live through the dashboard; editing the file needs a restart |
-| the four web-session keys | restart, always — and three of them change nothing |
+| the four web-session keys | restart, always — and none of them changes anything |
 | Wallets, ownership, equipped | live, every write is immediate |
 | Playable cosmetic catalogue | live through the dashboard; editing the file needs a restart |
 

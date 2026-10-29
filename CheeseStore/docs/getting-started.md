@@ -83,7 +83,7 @@ keys* and copy:
 Paste both into the CheeseStore configuration panel and save. The response is
 `{"ok":true}` and `refreshStripeClient()` rebuilds the Stripe client — no restart.
 
-Reopen the panel and the secret key now reads `sk_test_5***1a2b`. That is the mask; it
+Reopen the panel and the secret key now reads `sk_test_***1a2b` (the first 8 characters, `***`, the last 4). That is the mask; it
 is not what was saved. A value containing `***` is refused on write precisely so the
 mask cannot overwrite the real key.
 
@@ -112,9 +112,12 @@ Do not skip this field. With it empty, `POST /store/api/webhook` answers `503` a
 refuses to process anything, deliberately — and
 [without the signature check, anyone can forge a paid order](payments.md#why-the-signature-check-is-not-optional).
 
-Stripe's *Send test webhook* button is a quick sanity check. A correct setup logs
-nothing (the event type is ignored) and returns `200`. A `400 Invalid signature` means
-you copied the wrong secret; a `503` means the field is still empty.
+Sending a test event from Stripe is a quick sanity check. A test
+`checkout.session.completed` carries none of the mod's metadata, so a correct setup
+logs `[CheeseStore] Missing metadata in session <id>`, creates nothing, and returns
+`200`; any other event type is ignored silently with the same `200`. A
+`400 Invalid signature` means you copied the wrong secret; a `503` means the field is
+still empty.
 
 ## Step 6 — create a product
 
@@ -165,7 +168,9 @@ Run the delivery command by hand, as the console will run it:
 ```
 
 If that fails, so will every purchase of this product — and it will fail *after* the
-money has been taken, as a `FAILED` order. Fix it now.
+money has been taken, silently: the order is still recorded `DELIVERED`, because
+Minecraft's command manager swallows the error
+([details](payments.md#the-failure-that-actually-costs-you-money)). Fix it now.
 
 Then put yourself back to zero so the real test is unambiguous:
 
@@ -199,10 +204,13 @@ in game:
 Store session linked to <yourname>. You can now see your balance and buy morphos from the website.
 ```
 
-The site now knows which Minecraft account that browser session owns, which is what
-the credit-spending routes require. The card checkout in the next step does **not**
-need it — it takes the UUID from the request body — but linking lets the page show
-your balance, and you need it for step 11.
+The site now knows which Minecraft account that session owns, which is what the
+credit-spending routes require. The session linked here, though, is the one `curl`
+stored in `cookies.txt`, not your browser's: each client gets its own `store_session`
+cookie. To see your balance on the page, request a code through the storefront's own
+sign-in button and redeem that one too. The card checkout in the next step does
+**not** need a link — it takes the UUID from the request body — but step 11 uses the
+`cookies.txt` session.
 
 ## Step 9 — buy your own product with a test card
 
@@ -218,9 +226,9 @@ Pay with Stripe's test card:
 
 Stripe redirects you back to `<storeBaseUrl>/store/?session_id=cs_test_…`.
 
-If checkout returns `503` instead, one of three things is wrong: `storeBaseUrl` is
-empty or contains `localhost`, `stripeSecretKey` is empty, or the product is
-disabled. The error body says which.
+If checkout returns `503` instead, one of two things is wrong: `storeBaseUrl` is
+empty or contains `localhost`, or `stripeSecretKey` is empty. The error body says
+which. A disabled or unknown product answers `404 Product not found or disabled`.
 
 ## Step 10 — watch it deliver
 
@@ -279,22 +287,26 @@ The other half of the store. Pick a cosmetic from the seeded catalogue:
 curl http://localhost:44311/store/api/playcosmetics | head -c 300
 ```
 
-`trail_flame` costs 400. Buy it through the storefront's cosmetics page, or directly
+`trail_heart` costs 350. Buy it through the storefront's cosmetics page, or directly
 with the session cookie from step 8:
 
 ```bash
 curl -b cookies.txt -X POST \
   -H "Origin: http://localhost:44311" \
-  http://localhost:44311/store/api/playcosmetics/trail_flame/buy
+  http://localhost:44311/store/api/playcosmetics/trail_heart/buy
 ```
 
 ```json
-{"success":true,"newBalance":100,"cosmeticId":"trail_flame"}
+{"success":true,"newBalance":150,"cosmeticId":"trail_heart"}
 ```
 
+Avoid `trail_flame` for this test: because of a caching bug in `TrailManager`, a trail
+whose particle is `minecraft:flame` draws once and then nothing until the next restart
+(see [troubleshooting](troubleshooting.md#a-trail-or-kill-effect-does-nothing)).
+
 The `Origin` header matters: the route rejects a cross-origin POST with
-`403 forbidden_origin`, because it spends money. `401 not_authenticated` means no
-cookie, `403 not_linked` means step 8 did not complete.
+`403 forbidden_origin`, because it spends money. `401 not_authenticated` means either
+no cookie or a cookie whose session was never linked — step 8 did not complete.
 
 Then, in game:
 
@@ -302,18 +314,18 @@ Then, in game:
 /cosmetics
 ```
 
-The *Traînées* button now reads `Possédés : 1 / 10`. Click it, click *Sillage de
-Flammes*, and walk. Flame particles trail behind you.
+The *Traînées* button now reads `Possédés : 1 / 10`. Click it, click *Cœurs
+Flottants*, and hearts spiral around you.
 
 ```mcfunction
 /premium
 ```
 
 ```text
-🧀 Credits: 100
+🧀 Credits: 150
 ```
 
-500 in, 400 out. The loop is closed: a card payment became credits, credits became a
+500 in, 350 out. The loop is closed: a card payment became credits, credits became a
 cosmetic, and the cosmetic is on a player.
 
 ---
@@ -322,8 +334,8 @@ cosmetic, and the cosmetic is on a player.
 
 The test loop working is necessary, not sufficient. Go through this, in order:
 
-1. **Review the seeded catalogue.** 63 cosmetics are enabled and priced right now,
-   with French titles, including 8 capes that are invisible without the
+1. **Review the seeded catalogue.** 99 cosmetics are enabled and priced right now,
+   with French titles, including 32 capes that are invisible without the
    `factionwarhud` client mod. Disable or rewrite what you are not actually selling.
 2. **Serve the store over HTTPS** through a reverse proxy. Stripe will not deliver
    webhooks to plain HTTP on a live account, and the session cookie has no `Secure`
@@ -337,8 +349,10 @@ The test loop working is necessary, not sufficient. Go through this, in order:
    require more than that, so `OPERATOR` is enough to set wallet balances and
    overwrite your Stripe keys.
    [Why](dashboard.md#what-the-core-actually-enforces).
-6. **Decide how you will notice a `FAILED` order.** Nothing alerts you. The counter
-   is in `GET /api/v1/store/stats`, and that is the whole mechanism.
+6. **Decide how you will notice an order that did not deliver.** Nothing alerts you,
+   and the `failedOrders` counter in `GET /api/v1/store/stats` misses the common case
+   — a command that errors in the console is still recorded `DELIVERED`. Read the
+   console after each sale until you trust your commands.
 7. **Swap test keys for live keys, and create a new webhook endpoint.** The signing
    secret is per-endpoint: a live endpoint has a different `whsec_…` than your test
    one, and pasting the old one means every live payment fails signature verification

@@ -10,7 +10,7 @@ que ce sont ceux qui coûtent de l'argent.
 
 ## Un acheteur a payé et n'a rien reçu
 
-**Cause.** L'une de trois, et elles se distinguent. Trouve la commande dans la vue
+**Cause.** L'une de quatre, et elles se distinguent. Trouve la commande dans la vue
 commandes du dashboard, ou :
 
 ```bash
@@ -19,9 +19,15 @@ curl -H "Authorization: Bearer <session>" http://localhost:44311/api/v1/store/or
 
 | Ce que tu vois | Ce qui s'est passé |
 |---|---|
-| la commande, `status: "FAILED"`, avec un `failReason` | le paiement est arrivé, une commande de livraison a levé une exception |
-| la commande, `status: "PENDING"` | le paiement est arrivé, l'acheteur est hors ligne |
-| **aucune commande du tout** | le paiement n'a jamais atteint le mod |
+| la commande, `status: "DELIVERED"` | le cas le plus courant : une commande de livraison a échoué dans la console (faute de frappe, mod absent) — Minecraft avale l'erreur, donc la commande d'achat affiche quand même `DELIVERED` |
+| la commande, `status: "FAILED"`, avec un `failReason` | rare : l'appel qui exécute une commande a levé une exception |
+| la commande, `status: "PENDING"` | le paiement est arrivé, l'acheteur est hors ligne (ou `playerUUID` n'est pas un UUID valide) |
+| **aucune commande du tout** | le paiement n'a jamais atteint le mod, ou le produit a été supprimé / les métadonnées manquaient |
+
+**Remède, pour `DELIVERED` sans rien reçu.** Cherche dans le log serveur, autour de
+`Delivered orderId=<id>`, l'erreur du gestionnaire de commandes, corrige les `commands`
+du produit, et exécute la commande corrigée à la main pour cet acheteur : le dashboard
+refuse de relivrer une commande `DELIVERED`.
 
 **Remède, pour `FAILED`.** Lis `failReason` — c'est le message d'exception de la
 commande. Généralement une faute de frappe, ou une commande appartenant à un mod qui
@@ -102,7 +108,7 @@ tels quels, donc le message de Stripe parle de tes données produit.
 
 ## Tout a été livré deux fois
 
-**Cause.** Cela ne devrait pas arriver.
+**Cause.** Cela ne devrait presque jamais arriver.
 `DeliveryManager.createDelivery` refuse une seconde commande avec le même identifiant
 de session Stripe, et le journalise :
 
@@ -111,7 +117,10 @@ de session Stripe, et le journalise :
 ```
 
 Voir cette ligne, c'est le système qui fonctionne — c'est le chemin de redirection et le
-webhook qui se font la course, ce qui est normal et attendu.
+webhook qui se font la course, ce qui est normal et attendu. Le contrôle n'est pas
+atomique pour autant : si les deux arrivent au même instant sur deux threads HTTP, tous
+deux peuvent le passer, et deux commandes d'achat avec le **même** `orderId`
+apparaissent. C'est un bug de code, pas un acheteur qui a payé deux fois.
 
 **Si les biens sont réellement arrivés deux fois**, les deux commandes ont des
 identifiants différents, ce qui veut dire deux vraies sessions de checkout. Vérifie la
@@ -203,7 +212,7 @@ bloc de démarrage de CheeseDash.
 |---|---|
 | clés Stripe, nom de boutique, URL de base, `storeEnabled`, `currencyName` | à chaud par `PUT /api/v1/store/config` |
 | les mêmes clés éditées **dans le fichier pendant que ça tourne** | écrasées par la prochaine sauvegarde du dashboard |
-| les quatre clés de session web | redémarrage requis, et trois d'entre elles ne font rien du tout |
+| les quatre clés de session web | redémarrage requis, et aucune ne fait quoi que ce soit |
 
 **Remède.** Édite par le dashboard, ou arrête le serveur avant d'éditer le fichier.
 `CheeseStoreConfig` lit le fichier une fois à `onInitialize` et traite sa copie en
@@ -246,7 +255,7 @@ pseudo sera refusé.
 
 **Cause.** Le sous-système cosmétique — `CosmeticsCommands`, `MountCommand`,
 `MountManager` — envoie ses retours via `Text.literal` avec des chaînes françaises codées
-en dur au lieu de clés de traduction. Les 63 titres de catalogue semés dans
+en dur au lieu de clés de traduction. Les 99 titres de catalogue semés dans
 `DefaultCatalog` sont des littéraux français aussi. Le reste du mod utilise
 `Text.translatable` avec de vrais fichiers `en_us.json` et `fr_fr.json`.
 
@@ -262,7 +271,7 @@ compagnon, `factionwarhud`, qui n'est pas dans ce dépôt. Le serveur ne fait qu
 la carte `uuid → capeId` sur le payload `cheesestore:capes` ; la texture est attendue à
 `factionwarhud:textures/entity/cape/<capeId>.png`.
 
-**Remède.** Distribue ce mod client, ou désactive la catégorie cape. Les huit entrées de
+**Remède.** Distribue ce mod client, ou désactive la catégorie cape. Les 32 entrées de
 cape semées sont activées et tarifées d'emblée, donc sur un serveur à clients vanilla, tu
 vends quelque chose d'invisible jusqu'à ce que tu les désactives.
 
@@ -291,20 +300,28 @@ des identifiants chevauchables — `horse`, `donkey`, `mule`, `camel`,
 
 **Cause.** Deux causes différentes pour les deux.
 
-Une **traînée** rend sur `END_SERVER_TICK`, tous les 2 ticks. Si rien n'apparaît, le
-param `particle` est probablement un identifiant qui ne résout pas — le gestionnaire met
-l'échec en cache pour ne pas retenter, et journalise un avertissement une fois.
+Une **traînée** rend sur `END_SERVER_TICK`, tous les 2 ticks. Si elle apparaît une fois
+puis plus jamais, sa `particle` est `minecraft:flame`, absente, inconnue ou paramétrée :
+`TrailManager` met en cache la sentinelle d'échec sous la forme de `FLAME` lui-même, donc
+une traînée de flammes et une recherche ratée sont identiques dans le cache, et toutes
+deux cessent de s'afficher après la première image (`trail_flame` du catalogue par
+défaut est concerné ; un avertissement est journalisé une fois pour un mauvais
+identifiant).
 
-Un **effet de kill ou de mort** n'est pas branché par ce mod du tout.
-`CombatEffectsManager` est piloté par `CosmeticCombatBridge`, qu'un mod séparé
-(`factionwar`) recherche **par le nom de la classe** et invoque par réflexion. Sans ce
-mod installé, les effets de kill et de mort ne se déclenchent jamais. Si la classe était
-renommée, ils cesseraient de se déclencher en silence — la recherche par réflexion
-échouerait, tout simplement.
+Un **effet de kill** n'est pas branché par ce mod du tout. Il est piloté par
+`CosmeticCombatBridge`, qu'un mod séparé (`factionwar`) recherche **par le nom de la
+classe** et invoque par réflexion. Sans ce mod installé, les effets de kill ne se
+déclenchent jamais. Si la classe était renommée, ils cesseraient de se déclencher en
+silence — la recherche par réflexion échouerait, tout simplement. Un **effet de mort**
+n'en dépend pas : `CombatEffectsManager` écoute aussi `AFTER_DEATH`, donc si un effet de
+mort ne fait rien, vérifie qu'il est équipé et activé, et que son `effect` fait partie
+des six types connus.
 
-**Remède.** Pour une traînée : vérifie le param `particle` contre la liste `particles`
-renvoyée par `GET /api/v1/store/playcosmetics/enums`. Pour les effets de combat :
-confirme que `factionwar` est installé. C'est une observation sur la façon dont les deux
+**Remède.** Pour une traînée : règle le param `particle` sur une autre particule simple
+de la liste `particles` renvoyée par `GET /api/v1/store/playcosmetics/enums` — pas
+`minecraft:flame` (ni une particule paramétrée comme `minecraft:dust` ou
+`minecraft:falling_dust`) — puis redémarre pour vider le cache. Pour les effets de combat :
+confirme que `factionwar` est installé (pour les effets de kill). C'est une observation sur la façon dont les deux
 mods sont câblés, lue dans les commentaires de ce mod-ci ; je ne l'ai pas vérifiée contre
 `factionwar` lui-même.
 
@@ -314,8 +331,8 @@ mods sont câblés, lue dans les commentaires de ce mod-ci ; je ne l'ai pas vér
 
 | Statut | Corps | Cause |
 |---|---|---|
-| `401` | `not_authenticated` | aucun cookie `store_session` |
-| `403` | `not_linked` | la session de navigateur n'a aucun `/store link` derrière elle |
+| `401` | `not_authenticated` | aucun cookie `store_session`, **ou** la session de navigateur n'a aucun `/store link` derrière elle |
+| `403` | `not_linked` | pratiquement inatteignable : la liaison a été retirée pendant la requête |
 | `403` | `forbidden_origin` | `Origin`/`Referer` ne correspondait pas à `Host` |
 | `429` | `too_many_requests` | 10 achats par 60 s par IP, partagés entre les trois routes d'achat |
 | `402` | `insufficient_credits` | le corps porte `currentBalance` et `required` |

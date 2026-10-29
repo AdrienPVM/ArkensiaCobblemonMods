@@ -31,7 +31,7 @@ connexion de l'acheteur s'il était hors ligne au moment du paiement.
 
 À côté du parcours carte bancaire, il existe une seconde économie qui ne te coûte rien
 à exploiter : un solde de crédits par joueur, rechargé par la commande de livraison
-d'un produit, dépensé dans un catalogue de 63 cosmétiques jouables — traînées de
+d'un produit, dépensé dans un catalogue de 99 cosmétiques jouables — traînées de
 particules, effets de kill et de mort, tags de chat, couleurs de pseudo, familiers,
 montures chevauchables et capes. Les joueurs les parcourent et les équipent depuis un
 menu coffre avec `/cosmetics` ; un emplacement par catégorie, et une monture invoquée
@@ -51,12 +51,12 @@ CheeseDash.
 |---|---|
 | **Requis** | [CheeseDash](../CheeseDash/) · [CheeseItems](../CheeseItems/) · Fabric Loader ≥ 0.16.0 · Fabric API · Java 21 |
 | **Requis pour les capes** | `factionwarhud`, côté client — absent de ce dépôt |
-| **Lié** | `factionwar` déclenche les effets de kill et de mort par réflexion — absent de ce dépôt |
+| **Lié** | `factionwar` déclenche les effets de kill par réflexion (les effets de mort fonctionnent sans lui) — absent de ce dépôt |
 | **Embarqué** | `sgui` de Patbox, en Jar-in-Jar ; aucune installation séparée |
 
 Côté serveur. Les joueurs n'ont besoin d'aucun mod pour acheter, dépenser ou équiper —
 à une seule exception près, les capes, rendues par ce mod client compagnon. Sans lui,
-les huit capes du catalogue par défaut se vendent, s'équipent et restent invisibles.
+les 32 capes du catalogue par défaut se vendent, s'équipent et restent invisibles.
 Désactive la catégorie si tu ne distribues pas ce mod.
 
 Plus un compte Stripe à toi. Reste sur les clés de test jusqu'à ce qu'un achat de test
@@ -72,11 +72,11 @@ cd ../CheeseStore && ./gradlew build
 
 Dépose `build/libs/cheesestore-1.0.0+1.21.1.jar` et les deux jars frères dans le
 `mods/` du serveur. Au premier démarrage, le mod écrit `config/cheesestore.json` avec
-des clés Stripe vides, sème un catalogue de 63 cosmétiques, et journalise le seul
+des clés Stripe vides, sème un catalogue de 99 cosmétiques, et journalise le seul
 avertissement sur lequel tu dois agir :
 
 ```text
-[CheeseStore] Default cosmetic catalogue written (63 entries)
+[CheeseStore] Default cosmetic catalogue written (99 entries)
 [CheeseStore] ⚠ storeBaseUrl is not configured! Checkout will be blocked.
 [CheeseStore] Initialized successfully!
 ```
@@ -155,15 +155,18 @@ S'enregistre sous le préfixe `store`, avec deux surfaces distinctes :
   fonctionne ; les cas limites autour des remboursements, litiges et rétrofacturations
   ne sont pas traités du tout, parce que le mod enregistre ce qu'il a livré et que rien
   ne réconcilie cela avec Stripe.
-- **Une livraison `FAILED` est silencieuse.** Aucune alerte, aucun réessai. Le compteur
-  est `failedOrders` dans `GET /api/v1/store/stats`, et c'est tout le mécanisme.
+- **Une livraison ratée est silencieuse — et le plus souvent même pas enregistrée comme
+  ratée.** Aucune alerte, aucun réessai. Le gestionnaire de commandes de Minecraft avale
+  l'erreur d'une commande, donc une commande d'achat dont la commande a échoué affiche
+  quand même `DELIVERED` ; `failedOrders` dans `GET /api/v1/store/stats` ne bouge
+  presque jamais. [Détails](docs/payments.fr.md#léchec-qui-te-coûte-réellement-de-largent).
 - **L'UUID d'un acheteur par carte est pris sur confiance**, depuis le corps de la
   requête de checkout. Les achats en crédits sont différents : ceux-là résolvent le
   compte depuis une session liée.
 - **L'historique des commandes plafonne à 5 000 entrées**, les plus anciennes sont
   jetées. Les registres de Stripe sont les registres de référence.
-- **Trois clés de configuration sont mortes** (`googleClientId`,
-  `googleClientSecret`, `googleRedirectUri`) et les messages destinés aux joueurs du
+- **Quatre clés de configuration sont mortes** (`googleClientId`,
+  `googleClientSecret`, `googleRedirectUri`, `oauthJwtSecret`) et les messages destinés aux joueurs du
   sous-système cosmétique sont du français codé en dur. Les deux figurent dans
   [architecture](docs/architecture.fr.md#faiblesses-connues), avec tout le reste de ce
   que je sais être cassé.

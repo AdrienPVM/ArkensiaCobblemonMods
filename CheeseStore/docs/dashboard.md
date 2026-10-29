@@ -41,8 +41,11 @@ master token returns a session token, which every later request sends as
 Public routes send no Authorization header at all. The three credit-spending routes
 use a different mechanism entirely: a session cookie issued by the website's
 account-link flow, resolved through `GoogleOAuth.currentSession`, then matched to a
-Minecraft UUID through `AccountLinker`. No cookie → `401 not_authenticated`. Cookie
-but no completed `/store link` → `403 not_linked`.
+Minecraft UUID through `AccountLinker`. `currentSession` already returns nothing for a
+cookie that has no link behind it, so **both** "no cookie" and "cookie but no completed
+`/store link`" answer `401 not_authenticated`. The `403 not_linked` branch that follows
+is only reachable if the link disappears between those two lookups (a logout racing the
+purchase).
 
 ---
 
@@ -173,7 +176,10 @@ Every successful create and update broadcasts `store_update` on the `store` chan
 ### Gallery
 
 A read-only reward showcase: entries appear on the storefront but cannot be bought.
-Same shapes as products, managed by `GalleryItem`.
+Managed by `GalleryItem`, whose shape is its own — `id`, `title`, `description`,
+`priceCredits`, `hasImage`, `isNew`, `sortOrder`, `createdAt` — and is served
+unchanged on the public route. `PUT` merges `title`, `description`, `priceCredits`,
+`isNew` and `sortOrder` only.
 
 | Method | Path | Body | Response |
 |---|---|---|---|
@@ -209,9 +215,15 @@ Re-runs a delivery's stored commands on the server thread, through
 ```
 
 That one message covers three different situations, which is awkward when you are
-debugging: the order id does not exist, the order is already `DELIVERED`, or a
-command threw. Check the server log to tell them apart — a throw is logged by
-`DeliveryManager` and sets the order's `failReason`, which `GET /orders` then shows.
+debugging: the order id does not exist, the order is already `DELIVERED`, or the
+call that runs a command threw. The last one is rare — Minecraft's command manager
+catches a failing command itself, so a typo still answers `200 {"delivered":true}`
+(see [payments](payments.md#the-failure-that-actually-costs-you-money)). When it does
+happen, `manualDeliver` logs nothing; it sets the order's `FAILED` status and
+`failReason`, which `GET /orders` then shows.
+
+The route works on `PENDING` and `FAILED` orders alike and does not check that the
+buyer is online.
 
 A `500` with the exception message means the server-thread hand-off itself failed,
 not the commands.
@@ -227,12 +239,12 @@ An order object:
   "commands": ["premium give Steve 500"],
   "status": "PENDING",
   "createdAt": 1730000000000,
-  "deliveredAt": 0,
-  "failReason": null
+  "deliveredAt": 0
 }
 ```
 
-`status` is one of `PENDING`, `DELIVERED`, `FAILED`. `commands` are already resolved
+`failReason` is present only on an order that has one; it is omitted, not `null`,
+otherwise. `status` is one of `PENDING`, `DELIVERED`, `FAILED`. `commands` are already resolved
 — `{player}` was substituted when the order was created, so re-delivery runs the
 commands as they were priced, not as the product reads today.
 
@@ -279,7 +291,9 @@ from a command one.
 
 `totalRevenueCents` sums only `DELIVERED` orders, so it is revenue you actually
 honoured, not revenue Stripe collected. It does not subtract refunds — nothing here
-knows about them. `failedOrders` is the number to watch; see
+knows about them. `failedOrders` only counts orders whose delivery call threw, which
+almost never happens: a command that fails in the console is counted in
+`deliveredOrders`. A zero there is not proof that every buyer received their goods; see
 [the failure that costs money](payments.md#the-failure-that-actually-costs-you-money).
 
 ### Configuration
@@ -432,8 +446,8 @@ the comments in the source call it the TOCTOU window and they are right to.
 |---|---|---|
 | `403` | `forbidden_origin` | `Origin`/`Referer` did not match `Host` |
 | `429` | `too_many_requests` | the per-IP bucket is full |
-| `401` | `not_authenticated` | no OAuth session cookie |
-| `403` | `not_linked` | signed in on the web, but no `/store link` completed |
+| `401` | `not_authenticated` | no session cookie, **or** a cookie with no completed `/store link` |
+| `403` | `not_linked` | practically unreachable: the link vanished mid-request |
 | `400` | `cosmeticId required` / `morphoId required` | missing or path-unsafe id |
 | `404` | `cosmetic_not_found` / `morpho_not_found` | unknown, or disabled, or not flagged for the website |
 | `409` | `already_owned` | morphos and playable cosmetics only; **no debit happened** |
@@ -445,8 +459,9 @@ the comments in the source call it the TOCTOU window and they are right to.
 purchases, and buying one twice debits twice and runs `applyCommands` twice. If a
 cosmetic should be one-per-player, that has to be enforced inside its commands.
 
-Success is `200 {"success":true,"newBalance":N,"<kind>Id":"..."}`, and each kind also
-broadcasts its own purchase event to the dashboard.
+Success is `200 {"success":true,"newBalance":N,"<kind>Id":"..."}`. `/cosmetics/buy` and
+`/playcosmetics/:id/buy` also broadcast a purchase event to the dashboard;
+`/morpho/buy` broadcasts nothing.
 
 ### Web sessions and account linking
 
@@ -488,10 +503,11 @@ Two gaps to be aware of. `store_purchase` fires only when `createDelivery` retur
 `true`, so the webhook arriving second for an order the verify path already created
 is silent — correct behaviour, but it means the feed is a stream of distinct orders,
 not of Stripe events. And **nothing broadcasts on a delivery failure**: a `FAILED`
-order appears in `GET /orders` and in the log, but no WebSocket message announces it.
-A dashboard watching only this channel will not notice.
+order appears in `GET /orders`, but no WebSocket message announces it. A dashboard
+watching only this channel will not notice.
 
-Wallet changes do not broadcast either, from any path.
+Wallet changes do not broadcast either, from any path, and neither do a morpho
+purchase nor a `/playcosmetics/grant`.
 
 ---
 

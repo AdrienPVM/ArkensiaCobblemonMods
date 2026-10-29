@@ -39,8 +39,15 @@ Un `PendingDelivery` a trois états, déclarés dans `PendingDelivery.Status` :
 | Statut | Signification |
 |---|---|
 | `PENDING` | payé, commandes résolues, pas encore exécutées |
-| `DELIVERED` | toutes les commandes se sont exécutées sans lever d'exception |
-| `FAILED` | une commande a levé une exception ; `failReason` contient son message |
+| `DELIVERED` | toutes les commandes ont été transmises à la console sans que l'appel lève d'exception |
+| `FAILED` | l'appel qui exécute une commande a levé une exception ; `failReason` contient son message |
+
+En pratique, `FAILED` est presque inatteignable. Le gestionnaire de commandes de
+Minecraft attrape les erreurs d'analyse et les exceptions levées par la commande
+elle-même, les signale à la console et rend la main normalement — une commande
+inconnue, une faute de frappe ou une commande qui plante laisse donc la commande
+d'achat en `DELIVERED`. Vois
+[l'échec qui te coûte réellement de l'argent](#léchec-qui-te-coûte-réellement-de-largent).
 
 ---
 
@@ -82,6 +89,12 @@ Cinq verrous s'exécutent avant tout contact avec Stripe, dans cet ordre, dans
    avec un `503` qui nomme la clé. Le mod journalise aussi cette condition en
    avertissement au démarrage, pour qu'une boutique mal configurée se voie avant que
    quiconque essaie d'acheter.
+
+`storeEnabled` ne fait **pas** partie des verrous : boutique coupée, les routes de
+catalogue répondent `503`, mais un `POST /store/api/checkout` direct pour un produit
+activé crée quand même une session Stripe. Désactive les produits eux-mêmes, ou vide
+`stripeSecretKey`, si le checkout doit s'arrêter. Le format de `playerUUID` n'est pas
+vérifié non plus à ce stade (vois [l'étape 7](#7-la-livraison)).
 
 Alors seulement `StripeClient.createCheckoutSession` fait un POST vers
 `https://api.stripe.com/v1/checkout/sessions`, avec un corps en form-encoded,
@@ -137,7 +150,10 @@ ferme l'onglet en pleine redirection ne le déclenche jamais.
 
 **Échecs ici :** pas de `session_id` → `400` ; Stripe injoignable ou récupération en
 échec → `502 {"error":"Failed to retrieve session"}` ; Stripe non configuré → `503`.
-Aucun de ces cas ne perd le paiement, parce que le webhook arrive quand même.
+Un identifiant de session inconnu de Stripe n'est pas une erreur de ce côté : le corps
+d'erreur de Stripe n'a pas de `status`, donc la route répond `200 {"status":""}`. Aucun
+de ces cas ne perd le paiement, parce que le webhook arrive quand même. La route n'a
+aucune limitation de débit.
 
 ### 5. Le webhook — le chemin de référence
 
@@ -172,12 +188,23 @@ dont Stripe a besoin pour arrêter de réessayer.
 - un champ de métadonnées manquant → journalisé en erreur, rien n'est créé
 - `product_id` absent de la configuration → journalisé en erreur, rien n'est créé
 
+Dans les deux cas, le webhook répond quand même `200 {"received":true}`, donc Stripe
+ne réessaie pas : le paiement est encaissé et aucune commande n'existe dans le mod.
+**Ne supprime pas un produit tant que des paiements pour lui peuvent être en cours.**
+Le `payment_status` de la session n'est pas lu non plus — tout événement
+`checkout.session.completed`, ou toute session récupérée dont le `status` vaut
+`"complete"`, crée la commande.
+
 Puis `DeliveryManager.createDelivery` s'exécute. **C'est la frontière
 d'idempotence.** L'identifiant de session Stripe est l'identifiant de commande, et
 `createDelivery` renvoie `false` si une livraison avec cet identifiant existe déjà, en
 journalisant `Duplicate delivery attempt for orderId=...`. C'est ce qui empêche le
 chemin de vérification (étape 4) et le webhook (étape 5) de livrer deux fois le même
-achat — le premier arrivé gagne, le second ne fait rien.
+achat — le premier arrivé gagne, le second ne fait rien. La vérification puis l'ajout
+ne sont pas atomiques pour autant (`createDelivery` n'est pas synchronisée et CheeseDash
+sert le HTTP sur un pool de quatre threads) : un appel de vérification et un webhook
+arrivant au même instant pourraient en théorie passer tous deux le contrôle et créer
+deux commandes d'achat.
 
 Une livraison créée stocke les commandes **résolues** : `{player}` est remplacé au
 moment de la création, depuis le pseudo présent dans les métadonnées Stripe. Modifier
@@ -196,9 +223,15 @@ c'est-à-dire depuis la console, avec tous les droits.
 
 | Résultat | Ce qui est enregistré |
 |---|---|
-| toutes les commandes ont tourné | `DELIVERED`, `deliveredAt` horodaté |
-| une commande a levé une exception | `FAILED`, `failReason` = le message de l'exception |
+| toutes les commandes ont été transmises | `DELIVERED`, `deliveredAt` horodaté — même si une commande a échoué dans la console |
+| l'appel de transmission a levé une exception | `FAILED`, `failReason` = le message de l'exception (rare, voir plus haut) |
 | joueur hors ligne | rien ; la livraison reste `PENDING` |
+
+Le fichier n'est réécrit que si au moins une livraison du lot a réussi : un statut
+`FAILED` posé seul ne vit qu'en mémoire et redevient `PENDING` au redémarrage suivant.
+Un `playerUUID` qui n'est pas un UUID valide fait lever une exception à
+`deliverPending` avant toute commande ; cette commande d'achat reste `PENDING` pour
+toujours et seule la livraison manuelle peut la débloquer.
 
 Une livraison `PENDING` est retentée à chaque connexion suivante :
 `CheeseStoreMod` branche `ServerPlayConnectionEvents.JOIN` et appelle `deliverPending`
@@ -209,8 +242,13 @@ prochaine connexion, et le serveur journalise
 **`FAILED` n'est jamais retenté automatiquement.** La commande reste dans la liste
 jusqu'à ce qu'un administrateur appuie sur le bouton de livraison, ce qui appelle
 `POST /api/v1/store/orders/<orderId>/deliver` et réexécute les commandes stockées
-([livraison manuelle](dashboard.fr.md#post-ordersiddeliver)). Cet endpoint refuse une
-commande déjà `DELIVERED` : un double clic ne peut donc pas octroyer deux fois.
+([livraison manuelle](dashboard.fr.md#post-ordersiddeliver)). Le même bouton
+fonctionne sur une commande `PENDING`, et il ne vérifie **pas** que l'acheteur est
+connecté : les commandes s'exécutent immédiatement, quel que soit leur effet sur un
+joueur hors ligne. Cet endpoint refuse une commande déjà `DELIVERED` : un double clic ne
+peut donc pas octroyer deux fois — et une commande enregistrée `DELIVERED` dont les
+commandes n'ont rien fait ne peut pas être relivrée depuis le dashboard ; exécute la
+commande à la main.
 
 ---
 
@@ -219,24 +257,30 @@ commande déjà `DELIVERED` : un double clic ne peut donc pas octroyer deux fois
 Une commande payée dont les commandes échouent est le seul état où l'acheteur a payé et
 n'a rien. Cela arrive pour des raisons ordinaires : une faute de frappe dans la
 commande d'un produit, un mod qui possédait cette commande et qui n'est plus installé,
-un plugin de rangs retiré. L'enregistrement est conservé, avec le message d'exception,
-précisément pour que tu puisses corriger la commande et relivrer plutôt que rembourser.
+un plugin de rangs retiré.
 
-Surveille cela de deux façons :
+**Le mod ne le détecte pas.** Les commandes passent par `executeWithPrefix`, et le
+gestionnaire de commandes de Minecraft avale aussi bien les erreurs de syntaxe
+(« Unknown or incomplete command ») que les exceptions levées par la commande, en les
+signalant à la source console plutôt qu'à l'appelant. La commande d'achat est donc
+enregistrée `DELIVERED`, sans `failReason`, et `failedOrders` dans
+`GET /api/v1/store/stats` reste à `0`. La seule trace est l'erreur du gestionnaire de
+commandes dans la console/le log serveur, à côté de
+`[CheeseStore] Delivered orderId=<id> to player=<name>`.
 
-- `GET /api/v1/store/stats` rapporte `failedOrders`. Une valeur non nulle signifie que
-  quelqu'un a payé et n'a rien reçu.
-- Le log serveur porte
-  `[CheeseStore] Failed to deliver orderId=<id>: <message>`.
+Il n'y a aucune alerte. À faire à la place :
 
-Il n'y a aucune alerte. Si tu encaisses des paiements sans surveiller, vérifie
-`failedOrders` dans ta routine.
+- Avant d'activer un produit, exécute chacune de ses commandes à la main depuis la
+  console serveur, avec un vrai pseudo à la place de `{player}`, et vérifie le résultat
+  en jeu.
+- Après une vente, lis les lignes de console autour de `Delivered orderId=` pour
+  repérer une erreur de commande.
+- Un `failedOrders` non nul signifie toujours qu'un problème est survenu, mais un zéro
+  ne signifie pas que tout s'est bien passé.
 
-Un second échec, plus discret : les commandes de livraison tournent depuis la console,
-donc une commande qui *silencieusement* ne fait rien (mauvaise casse du pseudo, plugin
-qui refuse sans lever d'exception) est enregistrée comme `DELIVERED`. Le mod sait
-seulement si la commande a levé une exception, pas si elle a fonctionné. Teste les
-commandes de chaque produit à blanc avant de l'activer.
+Comme une commande `DELIVERED` ne peut pas être relivrée depuis le dashboard, corrige la
+commande sur le produit (pour les acheteurs suivants) et exécute la commande corrigée à
+la main pour l'acheteur oublié.
 
 ---
 
