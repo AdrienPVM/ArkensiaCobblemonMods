@@ -233,9 +233,9 @@ Tout ce qui précède est accessible sans commande, et le dashboard est la voie 
 - **Dashboard** — le module `market`. CRUD boutiques, sets et items, l'éditeur de mise en
   page, les assets, les templates, les transactions et les statistiques. Voir
   [l'API dashboard](dashboard.fr.md).
-- **Le canal d'actions** — `cheesemarket:shop_action` porte à la fois les actions joueur et
-  un jeu complet d'actions d'administration, sans contrôle de permission propre. C'est
-  ainsi qu'un NPC ouvre une boutique pour un joueur, et c'est aussi un trou : voir
+- **Le canal d'actions** — `cheesemarket:shop_action` porte les actions de l'écran joueur
+  et de l'écran d'administration. C'est ainsi qu'un NPC ouvre une boutique pour un joueur.
+  ⚠️ Dans cette version, il ne vérifie pas les permissions de l'expéditeur : voir
   [l'architecture](architecture.fr.md#le-canal-dactions-nest-pas-authentifié).
 
 ---

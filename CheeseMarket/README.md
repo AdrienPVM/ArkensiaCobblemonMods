@@ -108,13 +108,7 @@ successful purchase, and CheeseDash forwards it to Discord if a webhook is confi
 
 ## Honest warnings
 
-⚠️ **The action channel has no permission check.** Every client action — including
-`shop_create`, `shop_delete` and `item_save` — reaches the handler with no verification
-that the sender is an operator, and `shop_buy` is accepted for any shop id without
-checking that the shop was ever opened for that player. If your server has untrusted
-players with modified clients, read
-[the architecture note](docs/architecture.md#the-action-channel-is-unauthenticated)
-before deploying this.
+⚠️ Do not run this version on a public server: the client action channel does not check the sender's permissions, so a modified client can carry out admin actions. A fix is on the way; follow the repo.
 
 ⚠️ **Payment is not atomic with delivery.** Costs are taken before outputs are handed
 over. An output whose item id is not in the registry is skipped with a log line while

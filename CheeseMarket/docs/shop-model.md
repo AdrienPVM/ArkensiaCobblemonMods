@@ -66,8 +66,7 @@ only custom button action the client understands is `close`.
 
 **So in the player interface, only the first currently-active set is reachable.** Design
 your shops accordingly: one active set at a time, with rotation deciding which one that
-is. The second active set is loaded, validated, purchasable through a crafted payload,
-and invisible.
+is. The second active set is loaded and validated, but invisible.
 
 `morphoCatalog` is a different beast and is described in
 [purchases](purchases.md#the-morpho-catalog-path).

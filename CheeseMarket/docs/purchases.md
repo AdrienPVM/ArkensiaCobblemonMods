@@ -31,10 +31,7 @@ The quantity is parsed server-side and clamped: `Math.max(1, Math.min(64, …))`
 missing fourth segment means 1, and an unparseable one also means 1 (`parseInt` returns
 1 on failure). So a crafted packet cannot ask for 10 000 of something.
 
-⚠️ There is **no permission check and no proximity check** on this payload. Any client
-that can send `cheesemarket:shop_action` can buy from any shop id it knows, without
-ever having been shown the shop. The same receiver also accepts the admin actions —
-see [the architecture page](architecture.md#the-action-channel-is-unauthenticated).
+⚠️ The purchase does not check the player's proximity to the shop.
 
 ---
 
@@ -68,15 +65,10 @@ the enum name, and stops. Nothing has been touched.
 
 ### Quantity is not part of the stock check
 
-`canPurchase` takes no quantity argument. A `GLOBAL` item with 1 unit left accepts a
-buy of 64: the check sees `remaining > 0` and passes, and `recordPurchase` then does
-`Math.max(0, remaining - quantity)`, clamping the counter to zero. The player gets 64
-units for 64 times the price. The same applies to per-player limits: a limit of 1 does
-not stop a single purchase of 64.
-
-If that matters on your server, give those items a cost the player cannot pay 64 times,
-or treat the limit as a per-transaction limit rather than a hard cap. It is a real gap,
-not a subtlety of reading.
+`canPurchase` takes no quantity argument: the stock check ignores the requested
+quantity, so a single purchase can go past the remaining global stock or a per-player
+limit, and the counter is then clamped to zero. Treat those limits as approximate until
+this is fixed. It is a real gap, not a subtlety of reading.
 
 ---
 

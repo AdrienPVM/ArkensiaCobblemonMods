@@ -111,13 +111,7 @@ réussi, et CheeseDash le relaie vers Discord si un webhook est configuré.
 
 ## Avertissements honnêtes
 
-⚠️ **Le canal d'actions n'a aucun contrôle de permission.** Toute action client — y compris
-`shop_create`, `shop_delete` et `item_save` — atteint le handler sans la moindre
-vérification que l'expéditeur est opérateur, et `shop_buy` est accepté pour n'importe quel
-identifiant de boutique sans vérifier que la boutique a un jour été ouverte pour ce joueur.
-Si ton serveur accueille des joueurs non fiables avec des clients modifiés, lis
-[la note d'architecture](docs/architecture.fr.md#le-canal-dactions-nest-pas-authentifié)
-avant de déployer ceci.
+⚠️ Ne fais pas tourner cette version sur un serveur public : le canal d'actions client ne vérifie pas les permissions de l'expéditeur, si bien qu'un client modifié peut effectuer des actions d'administration. Un correctif arrive ; suis le dépôt.
 
 ⚠️ **Le paiement n'est pas atomique avec la livraison.** Les coûts sont prélevés avant la
 remise des sorties. Une sortie dont l'identifiant d'item est absent du registre est sautée

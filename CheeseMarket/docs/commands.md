@@ -229,9 +229,9 @@ route:
 - **Dashboard** — the `market` module. Shop, set and item CRUD, the layout editor,
   assets, templates, transactions and statistics. See
   [the dashboard API](dashboard.md).
-- **The action channel** — `cheesemarket:shop_action` carries both the player actions
-  and a full set of admin actions, with no permission check of its own. That is how an
-  NPC opens a shop for a player, and also a hole: see
+- **The action channel** — `cheesemarket:shop_action` carries the actions of the player
+  screen and of the admin screen. That is how an NPC opens a shop for a player. ⚠️ In
+  this version it does not check the sender's permissions: see
   [architecture](architecture.md#the-action-channel-is-unauthenticated).
 
 ---

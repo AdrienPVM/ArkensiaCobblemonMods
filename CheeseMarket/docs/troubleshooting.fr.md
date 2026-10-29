@@ -288,19 +288,14 @@ les données de ventes. Les rôles par route sont dans
 
 ## Un joueur a acheté quelque chose sans pouvoir ouvrir la boutique
 
-**Cause.** ⚠️ Le receiver `cheesemarket:shop_action` n'a aucun contrôle de permission et
-aucun contrôle de distance. Un client modifié peut envoyer
-`shop_buy:<shopId>:<setId>:<itemId>:<qty>` pour n'importe quelle boutique dont il connaît
-les identifiants, et ces identifiants sont visibles dans le payload de toute boutique qu'on
-lui a un jour montrée. Le même canal accepte aussi les actions d'administration : un paquet
-forgé peut donc créer, modifier ou supprimer des boutiques.
+**Cause.** ⚠️ Le canal d'actions client ne vérifie ni les permissions de l'expéditeur ni
+sa distance à la boutique : un client modifié peut donc acheter dans une boutique qu'on ne
+lui a jamais montrée.
 
-**Remède.** Il n'existe aucun interrupteur de configuration pour cela. L'atténuation
-disponible aujourd'hui consiste à ne pas traiter les identifiants de boutiques comme des
-secrets et à surveiller le journal des transactions pour y repérer des ventes depuis des
-boutiques qu'un joueur n'aurait pas dû atteindre. Le changement de code — un garde
-`hasPermissionLevel(2)` sur chaque action d'administration et un relevé par joueur de la
-dernière boutique ouverte — est décrit dans
+**Remède.** Il n'existe aucun interrupteur de configuration pour cela. Ne fais pas
+tourner cette version sur un serveur public, et surveille le journal des transactions pour
+y repérer des ventes depuis des boutiques qu'un joueur n'aurait pas dû atteindre. Un
+correctif arrive : voir
 [l'architecture](architecture.fr.md#le-canal-dactions-nest-pas-authentifié).
 
 ---

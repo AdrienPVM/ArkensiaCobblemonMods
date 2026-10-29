@@ -275,16 +275,12 @@ data. Per-route roles are in [the dashboard page](dashboard.md#required-roles).
 
 ## A player bought something without being able to open the shop
 
-**Cause.** ⚠️ The `cheesemarket:shop_action` receiver has no permission check and no
-proximity check. A modified client can send `shop_buy:<shopId>:<setId>:<itemId>:<qty>`
-for any shop it knows the ids of, and the ids are visible in the payload of any shop they
-have ever been shown. The same channel also accepts the admin actions, so a crafted
-packet can create, edit or delete shops.
+**Cause.** ⚠️ The client action channel checks neither the sender's permissions nor
+their proximity to the shop, so a modified client can buy from a shop it was never shown.
 
-**Fix.** There is no configuration switch for this. The mitigation available today is to
-not treat shop ids as secret and to watch the transaction log for sales from shops a
-player should not have reached. The code change — a `hasPermissionLevel(2)` gate on
-every admin action and a per-player record of the last shop opened — is described in
+**Fix.** There is no configuration switch for this. Do not run this version on a public
+server, and watch the transaction log for sales from shops a player should not have
+reached. A fix is on the way: see
 [architecture](architecture.md#the-action-channel-is-unauthenticated).
 
 ---

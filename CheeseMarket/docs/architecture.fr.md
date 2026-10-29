@@ -141,9 +141,9 @@ Il n'a pas le choix : une vue de boutique embarque des PNG en base64 pour le fon
 chaque icône d'item personnalisé, plus une infobulle vanilla sérialisée par identifiant
 d'item, et cela dépasse largement la limite par défaut.
 
-Le protocole est un protocole à découpage de chaînes. Les actions ressemblent à
-`item_save:<shopId>:<setId>:<itemId>|<json>`, découpées sur `:` avec une limite et sur `|`
-pour la charge. Deux séparateurs sont en usage parce que les identifiants d'items
+Le protocole est un protocole à découpage de chaînes. Un achat, par exemple, s'écrit
+`shop_buy:<shopId>:<setId>:<itemId>:<quantity>` : les actions sont découpées sur `:` avec
+une limite, et sur `|` pour les actions qui portent une charge. Deux séparateurs sont en usage parce que les identifiants d'items
 contiennent des deux-points : les actions de sortie et de coût utilisent `|` partout
 exactement pour cette raison. Ça marche, et c'est la partie du mod qu'un mainteneur a le
 plus de chances de casser en ajoutant un champ.
@@ -212,25 +212,9 @@ Tout a été supprimé. Si un ancien jar `cheesemarket` traîne encore dans un d
 
 ### Le canal d'actions n'est pas authentifié
 
-`CheeseMarket.onInitialize` enregistre un unique receiver global pour
-`cheesemarket:shop_action` et confie chaque payload à `ShopGuiHandler.handle` sans aucun
-contrôle de permission. `ShopGuiHandler` dispatche ensuite sur la chaîne d'action, et cet
-espace de chaînes inclut les actions d'administration : `shop_create`, `shop_delete`,
-`set_delete`, `item_save`, `item_delete`, `item_toggle` et les autres.
+⚠️ Ne fais pas tourner cette version sur un serveur public : le canal d'actions client ne vérifie pas les permissions de l'expéditeur, si bien qu'un client modifié peut effectuer des actions d'administration. Un correctif arrive ; suis le dépôt.
 
-Un client modifié peut donc supprimer une boutique, réécrire le prix d'un item ou activer
-un set, sans avoir jamais été opérateur. Le contrôle de permission de `/cmadmin` protège la
-*commande* qui ouvre l'écran d'administration, pas les actions que cet écran envoie.
-
-La même chose vaut pour `shop_buy` : n'importe quel client peut acheter dans n'importe
-quelle boutique dont il connaît l'identifiant, sans vérification que la boutique lui a été
-ouverte un jour et sans test de distance.
-
-C'est le problème le plus grave du mod. Il n'est pas corrigé ici parce que le corriger
-suppose de décider ce qu'une action d'administration a le droit d'être — le correctif
-évident est un garde `player.hasPermissionLevel(2)` sur toute action qui n'est pas
-`shop_buy`, `shop_tab` ou `open_shop_player`, plus un relevé par joueur de la dernière
-boutique ouverte pour valider `shop_buy`.
+Le correctif ajoutera un contrôle de permission sur les actions d'administration.
 
 ### Le paiement et la livraison ne sont pas atomiques
 

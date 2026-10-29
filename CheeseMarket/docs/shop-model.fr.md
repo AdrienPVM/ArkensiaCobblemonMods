@@ -66,8 +66,8 @@ non plus — la seule action de bouton personnalisé que le client comprend est 
 
 **Donc, dans l'interface joueur, seul le premier set actuellement actif est
 atteignable.** Conçois tes boutiques en conséquence : un set actif à la fois, la rotation
-décidant lequel. Le deuxième set actif est chargé, validé, achetable par un payload forgé,
-et invisible.
+décidant lequel. Le deuxième set actif est chargé et validé, mais
+invisible.
 
 `morphoCatalog` est une autre bête, décrite dans
 [les achats](purchases.fr.md#le-parcours-du-catalogue-morpho).

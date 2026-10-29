@@ -25,18 +25,14 @@ cheesemarket:shop_action   →   "shop_buy:<shopId>:<setId>:<itemId>:<quantity>"
 ```
 
 Le receiver enregistré dans `CheeseMarket.onInitialize` enveloppe le traitement dans
-`context.server().execute(...)` : l'achot complet tourne donc sur le thread serveur et ne
+`context.server().execute(...)` : l'achat complet tourne donc sur le thread serveur et ne
 court jamais contre un tick.
 
 La quantité est analysée côté serveur puis bornée : `Math.max(1, Math.min(64, …))`. Un
 quatrième segment absent vaut 1, et un segment illisible vaut aussi 1 (`parseInt` renvoie
 1 en cas d'échec). Un paquet forgé ne peut donc pas réclamer 10 000 unités.
 
-⚠️ Il n'y a **aucun contrôle de permission et aucun contrôle de distance** sur ce
-payload. Tout client capable d'envoyer `cheesemarket:shop_action` peut acheter dans
-n'importe quelle boutique dont il connaît l'identifiant, sans qu'on lui ait jamais
-montré cette boutique. Le même receiver accepte aussi les actions d'administration —
-voir [l'architecture](architecture.fr.md#le-canal-dactions-nest-pas-authentifié).
+⚠️ L'achat ne vérifie pas la distance entre le joueur et la boutique.
 
 ---
 
@@ -70,15 +66,10 @@ Tout résultat autre que `OK` envoie une ligne rouge en chat plus un payload
 
 ### La quantité ne fait pas partie du contrôle de stock
 
-`canPurchase` ne prend aucun argument de quantité. Un item en mode `GLOBAL` avec une
-seule unité restante accepte un achat de 64 : le contrôle voit `remaining > 0` et passe,
-puis `recordPurchase` applique `Math.max(0, remaining - quantity)` et borne le compteur à
-zéro. Le joueur obtient 64 unités pour 64 fois le prix. C'est pareil pour les limites par
-joueur : une limite de 1 n'empêche pas un achat unique de 64.
-
-Si cela compte sur ton serveur, donne à ces items un coût que le joueur ne peut pas payer
-64 fois, ou considère la limite comme une limite par transaction plutôt que comme un
-plafond dur. C'est un vrai manque, pas une subtilité de lecture.
+`canPurchase` ne prend aucun argument de quantité : le contrôle de stock ignore la
+quantité demandée, si bien qu'un seul achat peut dépasser le stock global restant ou une
+limite par joueur, et le compteur est alors borné à zéro. Considère ces limites comme
+approximatives jusqu'à correction. C'est un vrai manque, pas une subtilité de lecture.
 
 ---
 

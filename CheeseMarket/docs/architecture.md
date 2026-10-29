@@ -135,9 +135,9 @@ It has to: a shop view embeds base64 PNGs for the background and for every custo
 icon, plus a serialised vanilla tooltip per item id, and that comfortably exceeds the
 default cap.
 
-The protocol is a string-splitting one. Actions look like
-`item_save:<shopId>:<setId>:<itemId>|<json>`, split on `:` with a limit and on `|` for
-the payload. Two separators are in use because item ids contain colons: the
+The protocol is a string-splitting one. A purchase, for instance, is
+`shop_buy:<shopId>:<setId>:<itemId>:<quantity>`: actions are split on `:` with a limit,
+and on `|` for the actions that carry a payload. Two separators are in use because item ids contain colons: the
 output and cost actions use `|` throughout for exactly that reason. It works, and it is
 the part of the mod a maintainer is most likely to break by adding a field.
 
@@ -203,24 +203,9 @@ replace it.
 
 ### The action channel is unauthenticated
 
-`CheeseMarket.onInitialize` registers one global receiver for
-`cheesemarket:shop_action` and hands every payload to `ShopGuiHandler.handle` with no
-permission check anywhere. `ShopGuiHandler` then dispatches on the action string, and
-that string space includes the admin actions: `shop_create`, `shop_delete`,
-`set_delete`, `item_save`, `item_delete`, `item_toggle` and the rest.
+⚠️ Do not run this version on a public server: the client action channel does not check the sender's permissions, so a modified client can carry out admin actions. A fix is on the way; follow the repo.
 
-A modified client can therefore delete a shop, rewrite an item's price or switch a set
-on, without ever being an operator. The `/cmadmin` permission check guards the *command*
-that opens the admin screen, not the actions the screen sends.
-
-The same applies to `shop_buy`: any client can buy from any shop id it knows, with no
-check that the shop was ever opened for them and no proximity test.
-
-This is the most serious issue in the mod. It is not fixed here because fixing it means
-deciding what an admin action is allowed to be — the obvious patch is a
-`player.hasPermissionLevel(2)` gate on every action that is not `shop_buy`,
-`shop_tab` or `open_shop_player`, plus a per-player record of which shop was last opened
-to validate `shop_buy` against.
+The fix will add a permission check on admin actions.
 
 ### Payment and delivery are not atomic
 
