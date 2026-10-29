@@ -22,17 +22,17 @@ public class KartApi {
             if (path.equals("/presets") && method.equals("GET")) {
                 handleListPresets(exchange);
             } else if (path.equals("/presets") && method.equals("POST")) {
-                WebDashboard.requireWrite(exchange);
+                if (!WebDashboard.requireWrite(exchange)) return;
                 handleCreatePreset(exchange);
             } else if (path.startsWith("/presets/") && method.equals("GET")) {
                 String id = path.substring("/presets/".length());
                 handleGetPreset(exchange, id);
             } else if (path.startsWith("/presets/") && method.equals("PUT")) {
-                WebDashboard.requireWrite(exchange);
+                if (!WebDashboard.requireWrite(exchange)) return;
                 String id = path.substring("/presets/".length());
                 handleUpdatePreset(exchange, id, server);
             } else if (path.startsWith("/presets/") && method.equals("DELETE")) {
-                WebDashboard.requireWrite(exchange);
+                if (!WebDashboard.requireWrite(exchange)) return;
                 String id = path.substring("/presets/".length());
                 handleDeletePreset(exchange, id);
             }
@@ -40,13 +40,13 @@ public class KartApi {
             else if (path.equals("/active") && method.equals("GET")) {
                 handleListActive(exchange);
             } else if (path.equals("/start") && method.equals("POST")) {
-                WebDashboard.requireWrite(exchange);
+                if (!WebDashboard.requireWrite(exchange)) return;
                 handleStart(exchange, server);
             } else if (path.equals("/stop") && method.equals("POST")) {
-                WebDashboard.requireWrite(exchange);
+                if (!WebDashboard.requireWrite(exchange)) return;
                 handleStop(exchange, server);
             } else if (path.equals("/stopall") && method.equals("POST")) {
-                WebDashboard.requireWrite(exchange);
+                if (!WebDashboard.requireWrite(exchange)) return;
                 handleStopAll(exchange);
             } else {
                 WebDashboard.respond(exchange, 404, "{\"error\":\"Unknown kart route: " + path + "\"}");

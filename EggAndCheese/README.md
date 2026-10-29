@@ -1,155 +1,149 @@
 # EggAndCheese
 
-> A collectible egg hunt where every egg is procedurally generated from an immutable
-> DNA record.
+> 🇫🇷 [Lire en français](README.fr.md)
 
-Admins hide collectibles (eggs or cheese wedges) around the world, each with a unique
-procedurally generated texture. Players find them by right-clicking, which records the
-discovery, hands out a matching decorative item, and can complete an FTB Quests task.
+> A collectible egg hunt where every egg's appearance is computed from an immutable DNA
+> record rather than stored as a texture.
 
-**Minecraft 1.21.1 · Fabric · Java 21 · 49 files, ~6 400 lines**
+An admin designs an egg in the CheeseDash dashboard — palette, two pattern layers, a glow
+layer, a stamp, a surface finish, five post-processing flags — watches it turn in a 3D
+preview, then hides the block somewhere in the world. A player who finds it right-clicks
+it once: a pickup sound, a line in the action bar, and a decorative egg in their inventory
+carrying that exact texture. They can place it, frame it, or put it on a spinning
+pedestal.
+
+Nothing about that texture ships in the jar. The only images in the mod are three item
+icons and one particle. A 64×64 colour map and two emissive frames are generated on the
+client the first time each distinct DNA appears on screen, from a 13-step pipeline that
+exists twice: once in Java for the game, once in JavaScript for the dashboard preview.
+
+The eggs are indestructible to non-admins, pass-through for movement, waterloggable, and
+recorded once per player. With FTB Quests installed, each egg can carry its own quest,
+created automatically with the egg itself as the quest icon.
+
+**Minecraft 1.21.1 · Fabric · Java 21 · 49 source files, ~7 100 lines**
 
 ---
 
 ## Requirements
 
-- **CheeseDash** — required. Collectibles are authored in the web dashboard.
-- Fabric Loader ≥ 0.16.0, Fabric API, Java 21
+| | |
+|---|---|
+| **Required** | [CheeseDash](../CheeseDash/) · Fabric Loader ≥ 0.16.0 · Fabric API · Java 21 |
+| **Optional** | [FTB Quests](https://modrinth.com/mod/ftb-quests-fabric) — one quest per egg |
+| **Optional** | fabric-permissions-api / [LuckPerms](https://luckperms.net/) — the `eggandcheese.admin` node, otherwise op level 2 |
 
-Optional: **FTB Quests** (task completion), **JourneyMap** (automatic admin
-waypoints), **LuckPerms** (permission node `eggandcheese.admin`, falling back to OP
-level 2).
+CheeseDash is a hard dependency: collectibles are authored in the web dashboard and there
+is no in-game admin GUI. Install the mod on **both** the server and the clients — it
+registers 25 blocks and 25 items, and all rendering is client-side.
 
-Build CheeseDash first, then drop both in `mods/`.
+## Install
 
----
-
-## Admin workflow
-
-Everything happens in CheeseDash, under the **Eggs** section. (Earlier versions had an
-in-game admin GUI opened with `/eac`; it was removed when administration moved to the
-dashboard.)
-
-1. **New collectible.** Pick a type (egg or cheese), then cycle through:
-   - **Palette** — Warm, Cool, Nature, Dark, Pastel, Fire, Ice, Mystic, Gold, Candy
-   - **Pattern** — Spots, Stripes, Marble, Geometric, Veins, Constellation, Crystals,
-     Bubbles, Waves, Mosaic
-   - **Pattern scale** — 1 to 4
-   - **Emissive** type and density (see table below)
-
-   A live 3D rotating preview and a 2D icon preview update as you go, and
-   **Regenerate** reshuffles the random seed while keeping your parameters. Give it a
-   unique id (`cave_nord`, `spawn_secret`…) and confirm.
-
-2. **Place it.** You receive an admin placement item; right-click to place. The block
-   is indestructible for non-admins.
-
-3. **Adjust.** The detail page has a scale slider (0.1× to 4.0×), teleport, give admin
-   item, give reward item, and delete (which removes the world block too).
-
-4. **Check integrity.** The dashboard has an **Integrity** button that scans for
-   duplicate or mislabelled eggs. It exists because both did happen in production.
-
-## Player experience
-
-A player finds the collectible, right-clicks it, and:
-
-1. receives a unique decorative item carrying the same procedural texture,
-2. completes the matching FTB Quest task, if one is configured,
-3. is recorded as having discovered it — each egg can only be found once per player.
-
-The decorative item can be placed as a block, put in an item frame, or shown on a
-display pedestal.
-
-## Emissive patterns
-
-| Type | Appearance |
-|------|------------|
-| None | no emissive layer |
-| Spots | glowing dots scattered across the surface |
-| Lines | bright glowing line segments |
-| Runes | angular rune-like glyphs |
-| Stars | multi-pointed star bursts |
-| Aurora | a flowing band of light |
-| Veins | glowing crack-like veins |
-| Sparks | small sparks with trailing light |
-
-## FTB Quests integration
-
-Right-clicking an admin egg fires `eggandcheese:egg_found` with the egg's id. In your
-quest book, add a task of type **Advancement**:
-
-```
-Advancement ID: eggandcheese:egg_found
+```bash
+cd CheeseDash && ./gradlew build      # EggAndCheese compiles against its jar
+cd ../EggAndCheese && ./gradlew build
 ```
 
-For a task tied to one specific egg, use the criterion trigger directly:
+Drop `build/libs/eggandcheese-1.0.0+1.21.1.jar` and the CheeseDash jar into the server's
+`mods/`, and the EggAndCheese jar into each client's `mods/`. There is **no config file**;
+the mod stores its state in `world/data/eggandcheese_registry.dat`. On startup it logs:
 
-```json
-{
-  "trigger": "eggandcheese:egg_found",
-  "conditions": {
-    "egg_id": "your_egg_id_here"
-  }
-}
+```text
+[EggAndCheese] Initializing...
+[EggAndCheese] Ready!
 ```
 
-## Commands
+Full walkthrough: [installation](docs/installation.md).
 
-| Command | Purpose |
-|---------|---------|
-| `/eac give <id>` | give yourself the admin placement item for an existing egg |
-| `/eac pedestal` · `/eac pillar` | placement helpers |
-| `/eac scale` · `/eac height` · `/eac spin` | display tuning |
-| `/eac reload` | reload definitions and print the registry count |
+## Documentation
 
-Permission node `eggandcheese.admin`, falling back to OP level 2.
+| Page | What it covers |
+|---|---|
+| [Installation](docs/installation.md) | Prerequisites, which side to install on, build order, what the first launch creates, how to verify it loaded, clean removal and what it destroys |
+| [Getting started](docs/getting-started.md) | A tutorial: from an empty dashboard to a second player discovering an egg whose texture you designed |
+| [Commands](docs/commands.md) | `/eac` and `/pedestal`, argument by argument, with permissions, every output message and every failure |
+| [Configuration](docs/configuration.md) | The four settings, where they live given there is no config file, the per-egg fields, and an annotated worked example |
+| [Collectible DNA](docs/dna.md) | The 14-component record, every enum and range, and what immutability means for an API caller doing a partial `PUT` |
+| [Texture generation and previews](docs/rendering.md) | The 13-step pipeline, the 15 emissive patterns, the client texture cache, level of detail, and why the 3D preview lives in CheeseDash |
+| [Placement and discovery](docs/placement-and-discovery.md) | How an egg is placed, why it cannot be broken, what a discovery records, and what the player sees |
+| [Decorative eggs and pedestals](docs/display.md) | The reward item, the 23 pedestal variants and their recipes, display tuning, and the `egg_found` advancement |
+| [FTB Quests integration](docs/ftb-quests.md) | The reflection hook, what it resolves, quest creation and completion, full sync, and the fallback when it breaks |
+| [Integrity: duplicates and orphans](docs/integrity.md) | The live block index, reconciliation on load, the Integrity button, and the chunk-loading rule learned from two production crashes |
+| [Dashboard API](docs/dashboard.md) | Every route under `/api/v1/eggs`, request and response shapes, the `egg_discovery` WebSocket message, and the role situation |
+| [Architecture](docs/architecture.md) | Package layout, state and threading, extension points, dead code, and a candid list of known weaknesses |
+| [Troubleshooting](docs/troubleshooting.md) | Symptom, cause, fix — including the three ways a right-click silently does nothing |
+
+## Commands at a glance
+
+| Command | Permission | What it does |
+|---|---|---|
+| `/eac` | `eggandcheese.admin`, else op 2 | prints a pointer to the dashboard |
+| `/eac give <id>` | `eggandcheese.admin`, else op 2 | gives you the admin placement item for an existing egg |
+| `/eac reload` | `eggandcheese.admin`, else op 2 | prints the number of registry entries — it reloads nothing |
+| `/pedestal scale <0.5–3.0>` | **none** | size of the item on the pedestal you are looking at |
+| `/pedestal height <−0.5–0.5>` | **none** | vertical offset of that item |
+| `/pedestal pillar <0.0–5.0>` | **none** | pillar height under the platform |
+| `/pedestal spin` | **none** | toggles rotation |
+
+Everything else — creating, editing, renaming, deleting, teleporting, statistics,
+integrity — is dashboard only. Details in [commands](docs/commands.md).
 
 ## Dashboard
 
-Registers under the `eggs` prefix: CRUD for collectibles, DNA merge-update,
-discoveries, configuration, enums, statistics, and the integrity endpoint. An
-`egg_discovery` event is pushed over the CheeseDash WebSocket on each find.
+Registers under the `eggs` prefix, so everything lives at `/api/v1/eggs/*`: collectible
+CRUD, DNA merge-update, discoveries, give-item, configuration, enums, statistics, and the
+integrity report and repair. An `egg_discovery` message is pushed on the `eggs` WebSocket
+channel each time a player finds one.
+
+## Honest warnings
+
+⚠️ **No role checks in the API.** `EggsApi` contains no call to
+`WebDashboard.requireWrite` or `requireAdmin`. Every route is open to any authenticated
+CheeseDash session, `READ_ONLY` included — which means a read-only account can delete
+collectibles and hand out items. Restrict the dashboard port, and who holds an account, as
+if every account were an administrator.
+
+⚠️ **`/pedestal` has no permission requirement at all.** Any player on the server can
+retune any pedestal they can stand in front of.
+
+⚠️ **Renaming a placed egg orphans its block.** `POST /collectibles/:id/rename` changes
+the registry key and leaves the block carrying the old id. Choose ids before placing, or
+run the integrity repair afterwards.
+
+⚠️ **The FTB Quests integration is pure reflection** against
+`dev.ftb.mods.ftbquests.*` internals — 733 lines of it. It degrades quietly and logs what
+it resolved, but it will break when FTB Quests restructures. The
+`eggandcheese:egg_found` advancement is the stable alternative.
+
+The `CHEESE` collectible type is half-implemented: the enum, the API and the statistics
+know about it, and no cheese block or item is ever registered. Creating a collectible with
+`"type":"cheese"` gives you an egg with a cheese label.
 
 ## For contributors
 
-**`CollectibleDNA` is an immutable Java record.** To change one field you rebuild the
-whole record — `new CollectibleDNA(...)`, merging the modified fields over the old
-ones. A `PUT` that forgets a field will blank it.
+`CollectibleDNA` is an immutable Java record. To change one field you rebuild the whole
+record, merging modified fields over the old ones — which is exactly what the dashboard
+`PUT` does, so a partial `dna` object keeps the fields you omit.
 
-**Never force-load a chunk from a `BLOCK_ENTITY_LOAD` or `CHUNK_LOAD` handler.** This
-mod learned that the hard way: a reconciliation pass calling `getBlockEntity` during
-block-entity load deadlocked the server watchdog under c2me and took production down
-twice in one night. The fix was to defer the work with `server.execute(...)` and read
-chunks non-blockingly with `getChunk(..., FULL, false)`. That pattern is still in the
-code — please keep it.
+**Never force-load a chunk from a `BLOCK_ENTITY_LOAD` or `CHUNK_LOAD` handler.** A June
+2026 fix did, deadlocked the server thread inside c2me's chunk pipeline, and crashed
+production twice in one night. The reconciliation is now deferred onto a queue drained at
+tick end — not `server.execute`, which runs inline when you are already on the server
+thread — and chunk reads check `isChunkLoaded` first. Both defences must stay. The account
+is in [integrity](docs/integrity.md#never-force-load-a-chunk-from-a-block-entity-load-handler).
 
-The duplicate protection (a runtime `LiveAdminEggIndex`, reconciliation on load, and
-removal of the old block when one is re-placed) exists for the same reason.
-
-## Note on the package name
-
-The Java package was renamed to `com.roicheese.eggandcheese` when the mod was
-published, so an older branch or jar will carry a different package root. Two inert
-mixin configurations declaring a `com.fromages.eggandcheese.mixin` package that never
-existed were removed at the same time — they were not referenced by
-`fabric.mod.json` and the mod has no mixin classes at all.
-
-None of this affects resources: the asset namespace is `eggandcheese`, derived from
-the mod id rather than the package, so advancement and datapack identifiers such as
-`eggandcheese:egg_found` are unchanged.
-
-## Building
-
-The mod uses `splitEnvironmentSourceSets()`, so client-only code lives in
-`src/client/java` and server code in `src/main/java`.
-
-```bash
-cd ../CheeseDash && ./gradlew build   # required first
-cd ../EggAndCheese && ./gradlew build # -> build/libs/eggandcheese-1.0.0.jar
-```
+The Java package was renamed from `com.roicheese.eggandcheese` to
+`com.roicheese.eggandcheese` when the mod was published. Resource identifiers are
+unaffected: the namespace is `eggandcheese`, derived from the mod id, so
+`eggandcheese:egg_found` and every recipe id are unchanged.
 
 ## License
 
-[PolyForm Noncommercial 1.0.0](../LICENSE) with an Additional Permission for server
-operators.
+[PolyForm Noncommercial 1.0.0](../LICENSE), with an Additional Permission for server
+operators. You may run this on a server that takes donations or sells ranks; you may not
+sell the mod itself.
+
+## Support
+
+- Bugs → [GitHub Issues](https://github.com/AdrienPVM/ArkensiaCobblemonMods/issues)
+- Questions → [Arkensia Discord](https://discord.gg/fYmPwMBjdB)

@@ -73,7 +73,7 @@ public class RacesApi {
     // ═══════════════════════════════════════════════════════════════════════════
 
     private static void handleScan(HttpExchange exchange, MinecraftServer server) throws IOException {
-        WebDashboard.requireWrite(exchange);
+        if (!WebDashboard.requireWrite(exchange)) return;
 
         String body = WebDashboard.readBody(exchange);
         JsonObject data = JsonParser.parseString(body).getAsJsonObject();
@@ -206,7 +206,7 @@ public class RacesApi {
     // ═══════════════════════════════════════════════════════════════════════════
 
     private static void handlePutTrack(HttpExchange exchange, String eventId) throws IOException {
-        WebDashboard.requireWrite(exchange);
+        if (!WebDashboard.requireWrite(exchange)) return;
 
         String body = WebDashboard.readBody(exchange);
         JsonObject data = JsonParser.parseString(body).getAsJsonObject();
@@ -227,7 +227,7 @@ public class RacesApi {
     // ═══════════════════════════════════════════════════════════════════════════
 
     private static void handleDeleteTrack(HttpExchange exchange, String eventId) throws IOException {
-        WebDashboard.requireWrite(exchange);
+        if (!WebDashboard.requireWrite(exchange)) return;
 
         RaceTrackConfig.delete(eventId);
         WebDashboard.respond(exchange, 200, "{\"ok\":true}");

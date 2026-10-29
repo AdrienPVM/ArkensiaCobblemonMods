@@ -38,7 +38,7 @@ public class MusicApi {
                 WebDashboard.respond(exchange, 200, arr.toString());
 
             } else if (path.equals("/assignments") && method.equals("POST")) {
-                WebDashboard.requireWrite(exchange);
+                if (!WebDashboard.requireWrite(exchange)) return;
                 JsonObject body = readBody(exchange);
                 MusicAssignment assignment = MusicAssignment.fromJson(body);
                 if (assignment.getZoneId() == null || assignment.getZoneId().isBlank()) {
@@ -50,7 +50,7 @@ public class MusicApi {
                 WebDashboard.respond(exchange, 200, assignment.toJson().toString());
 
             } else if (path.startsWith("/assignments/") && method.equals("PUT")) {
-                WebDashboard.requireWrite(exchange);
+                if (!WebDashboard.requireWrite(exchange)) return;
                 String zoneId = decodePath(path.substring("/assignments/".length()));
                 MusicAssignment existing = config.getAssignment(zoneId);
                 if (existing == null) {
@@ -64,7 +64,7 @@ public class MusicApi {
                 WebDashboard.respond(exchange, 200, updated.toJson().toString());
 
             } else if (path.startsWith("/assignments/") && method.equals("DELETE")) {
-                WebDashboard.requireWrite(exchange);
+                if (!WebDashboard.requireWrite(exchange)) return;
                 String zoneId = decodePath(path.substring("/assignments/".length()));
                 if (config.getAssignment(zoneId) == null) {
                     WebDashboard.respond(exchange, 404, "{\"error\":\"Assignment not found\"}");
@@ -89,7 +89,7 @@ public class MusicApi {
 
             // POST /tracks/upload — upload .ogg file
             else if (path.equals("/tracks/upload") && method.equals("POST")) {
-                WebDashboard.requireWrite(exchange);
+                if (!WebDashboard.requireWrite(exchange)) return;
                 SoundScanner scanner = mod.getSoundScanner();
                 if (scanner == null) {
                     WebDashboard.respond(exchange, 503, "{\"error\":\"SoundScanner not ready\"}");
@@ -128,7 +128,7 @@ public class MusicApi {
 
             // DELETE /tracks/:name — delete .ogg file
             else if (path.startsWith("/tracks/") && method.equals("DELETE")) {
-                WebDashboard.requireWrite(exchange);
+                if (!WebDashboard.requireWrite(exchange)) return;
                 String trackName = decodePath(path.substring("/tracks/".length()));
                 if (trackName.isEmpty() || trackName.equals("upload") || trackName.contains("..") || trackName.contains("/") || trackName.contains("\\")) {
                     WebDashboard.respond(exchange, 400, "{\"error\":\"Invalid track name\"}");
@@ -172,7 +172,7 @@ public class MusicApi {
                 WebDashboard.respond(exchange, 200, obj.toString());
 
             } else if (path.equals("/config") && method.equals("PUT")) {
-                WebDashboard.requireWrite(exchange);
+                if (!WebDashboard.requireWrite(exchange)) return;
                 JsonObject body = readBody(exchange);
                 if (body.has("enabled")) config.setEnabled(body.get("enabled").getAsBoolean());
                 if (body.has("defaultFadeInTicks")) config.setDefaultFadeInTicks(body.get("defaultFadeInTicks").getAsInt());

@@ -21,8 +21,22 @@ Authorization: Bearer <session-token>
 ```
 
 Obtiens-en une auprès de `POST /api/v1/auth/login`. Les routes de lecture acceptent tous
-les rôles, `READ_ONLY` compris. Toute route qui modifie quelque chose passe par le garde
-d'écriture de CheeseDash, et exige donc au moins `OPERATOR`.
+les rôles, `READ_ONLY` compris.
+
+> ⚠️ **Le garde d'écriture de ce module n'empêche en réalité rien.** Chaque route qui
+> modifie quelque chose appelle `WebDashboard.requireWrite(exchange)` et **jette sa
+> valeur de retour**. Cette méthode ne lève pas d'exception : elle envoie le `403`
+> elle-même et rend le verdict sous forme de booléen. L'appel correct est
+> `if (!WebDashboard.requireWrite(exchange)) return;`, et c'est ce que font les routes
+> de CheeseDash lui-même. Ici, une session `READ_ONLY` reçoit un `403` **et** l'action
+> est exécutée quand même.
+>
+> Prends donc les rôles indiqués ci-dessous comme une intention, pas comme une frontière
+> appliquée : dans cette version, n'importe quelle session authentifiée, quel que soit
+> son rôle, peut démarrer un kart, en arrêter un, ou créer, modifier et supprimer des
+> presets. Tant que ce n'est pas corrigé, ne distribue pas de comptes `READ_ONLY` en
+> comptant sur le fait qu'ils soient en lecture seule. La même erreur est présente dans
+> CheeseMusic, CheesePatrol, CobbleCap et le module de courses de CheeseGuard.
 
 Si CheeseKart n'a pas fini de démarrer — ou si le serveur n'est pas en marche — chaque
 route répond `503` avec `{"error":"CheeseKart not ready"}`, plutôt que d'échouer d'une

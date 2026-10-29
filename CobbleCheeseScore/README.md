@@ -1,212 +1,137 @@
 # CobbleCheeseScore
 
-> Thirty-odd leaderboards for a Cobblemon server, rendered as PNG images you can hang
-> on an in-world map or embed elsewhere.
+> 🇫🇷 [Lire en français](README.fr.md)
 
-The mod reads player data straight off disk — Pokédex NBT, Cobblemon player data,
-vanilla stats — ranks everyone, and renders each leaderboard to a PNG with
-configurable colours. Images refresh on a timer and are served through CheeseDash.
+> Thirty-four Cobblemon leaderboards, each rendered to a PNG you can hang on a wall
+> in-game and leave there.
 
-**Minecraft 1.21.1 · Fabric · Java 21 · 16 files, ~2 700 lines · server-side**
+The mod reads player data straight off disk — Cobblemon's Pokédex NBT, its player-data
+JSON, and vanilla's statistics — ranks everyone on whichever boards you have enabled, and
+draws each ranking into an image with `Graphics2D`. Nothing is written back to the world
+folder, and nothing is written to disk at all: the images live in memory and are encoded
+to PNG bytes on each request.
+
+What makes it worth installing is the last link in that chain. Each board is served on a
+stable URL that needs no authentication, which means an image-frame mod on the clients can
+point at it and the leaderboard becomes part of the world. A player walks past the spawn
+noticeboard and sees who is top of the shiny count, with a render timestamp in the footer
+proving it is current. Refresh happens on a timer — ten minutes by default — with no
+command to run and no file to copy.
+
+There are no commands. Admins drive everything from the CheeseDash dashboard or its REST
+API: recolour a board, retitle it, turn it off, force a refresh. A separate mini-game
+ledger records event results that nothing in the game counts automatically, scored on a
+podium-points rule.
+
+**Minecraft 1.21.1 · Fabric · Java 21 · 16 source files, ~2 940 lines · server-side only**
 
 ---
 
 ## Requirements
 
-- **CheeseDash** — required. Leaderboards are configured and served through it.
-- Fabric Loader ≥ 0.16.0, Java 21
-- **Cobblemon** — optional at build time, required in practice: without it there is no
-  data to rank.
+| | |
+|---|---|
+| **Required** | [CheeseDash](../CheeseDash/) · Fabric Loader ≥ 0.16.0 · Fabric API · Java 21 |
+| **Required in practice** | [Cobblemon](https://modrinth.com/mod/cobblemon) — declared under `suggests`, so the mod loads without it, but 30 of the 34 boards then have nothing to rank |
+| **Optional** | [CobbleCap](../CobbleCap/) — feeds the four Conseil 4 league boards. Without it they render empty |
+| **For in-game display** | an image-frame mod on the **clients**, such as WaterFrames. Not a dependency, not installed by this mod |
 
-Build CheeseDash first, then drop both in `mods/`. `environment` is `server`.
+`"environment": "server"`, and the only entrypoint is `DedicatedServerModInitializer`. The
+jar does nothing in a client's `mods/` folder, and nothing starts in single player.
 
-## Where the data comes from
+## Install
 
-The mod reads these files out of your world folder. Nothing is written back.
+CobbleCheeseScore compiles against CheeseDash's jar through a `fileTree` glob, so
+CheeseDash has to be **built** first:
 
-```
-world/
-├── pokedex/<uuid>.nbt                 ← player Pokédex
-├── cobblemonplayerdata/<uuid>.json    ← Cobblemon stats
-└── stats/<uuid>.json                  ← vanilla Minecraft stats
-```
-
-A player with no Pokédex file simply does not appear — they have to have caught at
-least one Pokémon first.
-
-## How you reach the leaderboards
-
-Through **CheeseDash**, under the `scores` section. The API lives at
-`/api/v1/scores/*`:
-
-| Method | Route | Purpose |
-|--------|-------|---------|
-| GET | `/scoreboards` | list every board |
-| GET | `/scoreboards/<id>` | one board's data |
-| GET | `/scoreboards/<id>/image` | the rendered **PNG** |
-| PUT | `/scoreboards/<id>` | edit a board |
-| POST | `/refresh` | force a regeneration |
-| GET/PUT | `/config` | global configuration |
-| GET | `/stats` | collection statistics |
-| GET/POST/PUT/DELETE | `/minigames[/<id>]` | minigame boards and sessions |
-
-> ### ⚠️ If you read an older guide, ignore its access section
->
-> An earlier version ran **its own web server on port 44310**, serving the PNGs and a
-> JSON API publicly with no authentication. **That server no longer exists** — it was
-> removed when the mod moved to CheeseDash.
->
-> The `port`, `enableWebInterface` and `enableJsonApi` keys are still written to the
-> config file but are **dead**: no code reads them. Changing them does nothing.
->
-> The practical consequence is good news — leaderboard images now sit behind
-> CheeseDash's authentication instead of being world-readable. The flip side is that
-> embedding an image in a public website now needs something that holds a CheeseDash
-> session to proxy it, or an export of your own.
-
-## Configuration
-
-`config/cobblecheesescore.json`, created on first boot.
-
-### Global
-
-```json
-{
-  "updateIntervalMinutes": 10,
-  "timeZone": "Europe/Paris",
-  "autoDetectDataFolder": true,
-  "manualDataFolderPath": "",
-  "defaultMaxPlayers": 30,
-  "defaultRowsPerColumn": 10,
-  "showLastUpdate": true,
-  "lastUpdateText": "Last updated:",
-  "enableDiscordWebhook": false,
-  "discordWebhookUrl": "",
-  "enableHistory": true,
-  "historyRetentionDays": 30
-}
+```bash
+cd CheeseDash && ./gradlew build
+cd ../CobbleCheeseScore && ./gradlew build
 ```
 
-If auto-detection of the world folder fails, set `autoDetectDataFolder` to `false` and
-fill in `manualDataFolderPath`.
+Drop `build/libs/cobblecheesescore-1.0.0+1.21.1.jar` and the CheeseDash jar in the
+server's `mods/`. On first start the mod writes `config/cobblecheesescore.json` with 30
+boards, seeds four more for Conseil 4, and logs:
 
-### Colours
-
-```json
-"defaultColors": {
-  "background": "#141414",
-  "titleBackground": "#009B72",
-  "titleText": "#FFFFFF",
-  "text": "#FFFFFF",
-  "footerText": "#FFFF00",
-  "firstPlaceBackground": "#ff715b",
-  "secondPlaceBackground": "#ff5b42",
-  "thirdPlaceBackground": "#ff2f0f"
-}
+```text
+[cobblecheesescore] CobbleCheeseScore initialized successfully!
+[CheeseDash] Public context registered: /scores/
+[cobblecheesescore] Scoreboard update scheduler started (interval: 10 minutes)
 ```
 
-### One board
+Full walkthrough: [installation](docs/installation.md).
 
-Any colour key can be overridden per board:
+## Documentation
 
-```json
-{
-  "id": "shiny_hunter",
-  "enabled": true,
-  "filename": "shiny.png",
-  "title": "Shiny Hunter",
-  "description": "Shinies caught",
-  "sortOrder": "desc",
-  "maxPlayers": 30,
-  "rowsPerColumn": 10,
-  "colors": { "titleBackground": "#FFD700" }
-}
-```
+| Page | What it covers |
+|---|---|
+| [Installation](docs/installation.md) | Prerequisites, build order, what the first launch creates, the log lines that prove it loaded, clean removal |
+| [Getting started](docs/getting-started.md) | A tutorial: from a fresh server to a recoloured leaderboard hanging on a wall and refreshing itself |
+| [Configuration](docs/configuration.md) | `cobblecheesescore.json` in full, what reloads and what needs a restart, the nine keys that do nothing, and a complete annotated example |
+| [Leaderboards](docs/leaderboards.md) | Every board field with its type and default, what each of the 34 ids measures, where the data comes from, refresh timing, and the externally-fed Conseil 4 boards |
+| [PNG export](docs/png-export.md) | How the image is drawn, how big it comes out, which fonts it asks for, both routes that serve it, and the full procedure for getting it onto a map in-game |
+| [Mini-games](docs/minigames.md) | The event-result ledger, its podium-points rule, the 500-session cap and the permanent hall of fame |
+| [Dashboard API](docs/dashboard.md) | Every route under `/api/v1/scores`, request and response shapes, status codes, and the role each one really enforces |
+| [Architecture](docs/architecture.md) | Package layout, class responsibilities, threading and the refresh race, extension points, and a candid list of weaknesses |
+| [Troubleshooting](docs/troubleshooting.md) | Symptom, cause, fix — including the four reasons an in-game frame shows nothing |
 
-Set `"enabled": false` to stop generating a board.
+## Commands at a glance
 
-## The boards
+**None.** The mod registers no commands: there is no `commands/` package and no call to
+`CommandRegistrationCallback` anywhere in the source. Every operation goes through
+CheeseDash.
 
-### Main (11)
+| Thing you want to do | How |
+|---|---|
+| see all boards and their top players | `GET /api/v1/scores/scoreboards` |
+| fetch a board's rendered PNG | `GET /api/v1/scores/scoreboards/<id>/image` |
+| fetch it with no authentication, for in-game use | `GET /scores/api/images/<name>/<id>.png` |
+| retitle, recolour, resize or disable a board | `PUT /api/v1/scores/scoreboards/<id>` |
+| force a full refresh now | `POST /api/v1/scores/refresh` |
+| record a mini-game result | `POST /api/v1/scores/minigames/<id>/sessions` |
 
-| Id | Measures | Score format |
-|----|----------|--------------|
-| `pokedex_completed` | species caught | `906/1025 (88%)` |
-| `shiny_hunter` | shinies caught | `69` |
-| `play_time` | hours played | `141.4h` |
-| `battle_elite` | total battle wins | `443` |
-| `trainer_tamer` | wins against trainers | `347` |
-| `distance_traveled` | distance covered | `829.7 km` |
-| `evolutionist` | evolutions performed | `225` |
-| `pokeball_crafter` | Poké Balls crafted | `5964` |
-| `pvp_champion` | PvP wins | `4` |
-| `trader` | trades completed | `56` |
-| `survivor` | fewest deaths (ascending) | `10 deaths` |
+## Dashboard
 
-### By type (18)
+Registers under the `scores` prefix, giving `/api/v1/scores/*`, plus one unauthenticated
+public route at `/scores/api/images/…` so that something inside Minecraft can fetch a PNG
+without a token. No WebSocket channel: the module broadcasts nothing, so a dashboard view
+has to poll.
 
-`type_normal`, `type_water`, `type_fire`, `type_grass`, `type_electric`, `type_ice`,
-`type_fighting`, `type_poison`, `type_ground`, `type_flying`, `type_psychic`,
-`type_bug`, `type_rock`, `type_ghost`, `type_dragon`, `type_dark`, `type_steel`,
-`type_fairy` — each pre-coloured with that type's official colour.
+⚠️ **No route in this module checks the caller's role.** `ScoresApi` contains no call to
+`WebDashboard.requireWrite` or `requireAdmin`, so a **READ_ONLY** CheeseDash account can
+rewrite board titles and colours, create and delete mini-games, delete recorded sessions
+and force refreshes. Hand out accounts accordingly. Details in
+[dashboard](docs/dashboard.md#required-role).
 
-### Minigames
+## Honest warnings
 
-A separate board family with its own sessions and a persistent legends list.
-
-## Adding your own board
-
-Add an entry to `scoreboards` in the config, **then implement its score calculation in
-`ScoreboardManager.java`**. Config alone is not enough — the mod has to be told how to
-compute the number.
-
-## Discord notifications
-
-```json
-{
-  "enableDiscordWebhook": true,
-  "discordWebhookUrl": "https://discord.com/api/webhooks/..."
-}
-```
-
-Posts when the top spot on a board changes hands.
-
-## Performance
-
-| Players | Full refresh | Memory | Suggested interval |
-|---------|--------------|--------|--------------------|
-| ~30 | 1–2 s | 50–100 MB | 10 min |
-| 100+ | 3–5 s | 100–200 MB | 15–20 min |
-
-Lower `defaultMaxPlayers` and raise `updateIntervalMinutes` if it costs too much.
-
-## Troubleshooting
-
-**No data at all.** Check the three source folders exist under `world/` and that
-players have actually caught Pokémon. Look for
-`[CobbleCheeseScore] Collected data for N players` in the log.
-
-**Images look stale.** Check `updateIntervalMinutes`, then force a refresh with
-`POST /api/v1/scores/refresh`.
-
-**A player is missing.** They have no Pokédex `.nbt` file yet.
-
-Useful log lines:
-
-```
-[CobbleCheeseScore] Configuration loaded from /config/cobblecheesescore.json
-[CobbleCheeseScore] Auto-detected world path: /world
-[CobbleCheeseScore] Collected data for 30 players
-[CobbleCheeseScore] Updated scoreboard: pokedex_completed (25 players)
-```
-
-## Arkensia specifics
-
-`ScoreboardManager` can load four "Conseil 4" ranking boards from a JSON export
-produced by **CobbleCap**. Those are tied to Arkensia's league format; without
-CobbleCap's export file the boards are simply empty and nothing breaks.
+- **The public image route is open to anyone who can reach port 44311.** It serves player
+  names and statistics with no authentication. That is the deliberate trade-off that makes
+  in-game display work; put the port behind a proxy if it is not acceptable to you.
+- **Nine config keys do nothing.** `port`, `enableWebInterface` and `enableJsonApi` are
+  leftovers from a standalone web server on port 44310 that was removed when the mod moved
+  to CheeseDash. `enableDiscordWebhook` and `discordWebhookUrl` describe a feature that has
+  no implementation at all — **this mod sends nothing to Discord**, whatever older
+  documentation claims. `enableHistory`, `historyRetentionDays`, `defaultMaxPlayers` and
+  `defaultRowsPerColumn` are reported by the API and acted on nowhere. Full list in
+  [configuration](docs/configuration.md#keys-nothing-reads).
+- **`PUT /api/v1/scores/config` answers `{"saved":true}` and applies nothing.** Use
+  `PUT /scoreboards/:id` for board changes and edit the file for global ones.
+- **The images ask for the Inter font**, which a headless server almost never has
+  installed. They render in a fallback font with different metrics.
+- **`survivor` ranks the most deaths first**, not the fewest. Its title, *Roi des Morts*,
+  is accurate; its id is not.
+- **Two Pokémon constants are hard-coded** and go stale with each generation: the
+  legendary species list in `PlayerData` and the 1 025-species total used for the Pokédex
+  percentage.
 
 ## License
 
-[PolyForm Noncommercial 1.0.0](../LICENSE) with an Additional Permission for server
-operators.
+[PolyForm Noncommercial 1.0.0](../LICENSE), with an Additional Permission for server
+operators. You may run this on a server that takes donations or sells ranks; you may not
+sell the mod itself.
+
+## Support
+
+- Bugs → [GitHub Issues](https://github.com/AdrienPVM/ArkensiaCobblemonMods/issues)
+- Questions → [Arkensia Discord](https://discord.gg/fYmPwMBjdB)

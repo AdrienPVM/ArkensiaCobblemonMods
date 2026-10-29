@@ -26,7 +26,7 @@ public class CheesePatrolApi {
             if (path.equals("/list") && method.equals("GET")) {
                 handleList(exchange, server);
             } else if (path.equals("/tp") && method.equals("POST")) {
-                WebDashboard.requireWrite(exchange);
+                if (!WebDashboard.requireWrite(exchange)) return;
                 handleTp(exchange, server);
             } else {
                 WebDashboard.respond(exchange, 404, "{\"error\":\"Unknown patrol route: " + path + "\"}");

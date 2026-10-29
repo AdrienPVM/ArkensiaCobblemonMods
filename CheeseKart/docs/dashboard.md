@@ -21,8 +21,20 @@ Authorization: Bearer <session-token>
 ```
 
 Get one from `POST /api/v1/auth/login`. Read routes accept any role, including
-`READ_ONLY`. Every route that changes something calls CheeseDash's write guard, so it
-requires at least `OPERATOR`.
+`READ_ONLY`.
+
+> ⚠️ **The write guard on this module does not actually stop anything.** Every mutating
+> route calls `WebDashboard.requireWrite(exchange)` and **discards its return value**.
+> That method does not throw — it sends the `403` itself and reports the outcome as a
+> boolean. The correct call is `if (!WebDashboard.requireWrite(exchange)) return;`, which
+> is what CheeseDash's own routes do. Here, a `READ_ONLY` session receives a `403`
+> **and** the action is carried out anyway.
+>
+> So treat the roles below as the intent, not as an enforced boundary: in this build, any
+> authenticated session of any role can start a kart, stop one, or create, edit and delete
+> presets. Until it is fixed, do not hand out `READ_ONLY` accounts expecting them to be
+> read-only. The same mistake is present in CheeseMusic, CheesePatrol, CobbleCap and
+> CheeseGuard's races module.
 
 If CheeseKart has not finished starting — or the server is not up — every route answers
 `503` with `{"error":"CheeseKart not ready"}` instead of failing in an unhelpful way.

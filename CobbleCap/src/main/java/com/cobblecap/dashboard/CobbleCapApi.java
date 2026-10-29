@@ -151,7 +151,7 @@ public class CobbleCapApi {
     }
 
     private static void handleSetCap(HttpExchange exchange, MinecraftServer server, UUID uuid) throws IOException {
-        WebDashboard.requireWrite(exchange);
+        if (!WebDashboard.requireWrite(exchange)) return;
         JsonObject body = readBody(exchange);
         if (body == null || !body.has("capLevel")) {
             WebDashboard.respond(exchange, 400, "{\"error\":\"Missing capLevel\"}");
@@ -181,7 +181,7 @@ public class CobbleCapApi {
     }
 
     private static void handleToggleExpLock(HttpExchange exchange, MinecraftServer server, UUID uuid) throws IOException {
-        WebDashboard.requireWrite(exchange);
+        if (!WebDashboard.requireWrite(exchange)) return;
         CapStorage storage = CobbleCapMod.INSTANCE.getCapStorage();
         Optional<PlayerCapData> opt = storage.getCapData(uuid);
         if (opt.isEmpty()) {
@@ -217,7 +217,7 @@ public class CobbleCapApi {
             }
             WebDashboard.respond(exchange, 200, arr.toString());
         } else if ("PUT".equals(method)) {
-            WebDashboard.requireWrite(exchange);
+            if (!WebDashboard.requireWrite(exchange)) return;
             JsonArray bodyArr = readBodyArray(exchange);
             if (bodyArr == null) {
                 WebDashboard.respond(exchange, 400, "{\"error\":\"Expected JSON array\"}");
@@ -261,7 +261,7 @@ public class CobbleCapApi {
             obj.add("availableZones", zonesArr);
             WebDashboard.respond(exchange, 200, obj.toString());
         } else if ("PUT".equals(method)) {
-            WebDashboard.requireWrite(exchange);
+            if (!WebDashboard.requireWrite(exchange)) return;
             JsonObject body = readBody(exchange);
             if (body == null) {
                 WebDashboard.respond(exchange, 400, "{\"error\":\"Invalid JSON body\"}");

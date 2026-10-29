@@ -47,6 +47,12 @@ public class MorphoCatalogApi {
 
     public static void handle(HttpExchange exchange, MinecraftServer server, String subRoute) throws IOException {
         String method = exchange.getRequestMethod();
+        // Anything other than a GET mutates state, so it needs OPERATOR or above.
+        // requireWrite sends the 403 itself and reports the verdict as a boolean, so the
+        // result has to be acted on: ignoring it would answer 403 and then do the work
+        // anyway. Public, unauthenticated routes live in handlePublic* and are unaffected.
+        if (!method.equals("GET") && !WebDashboard.requireWrite(exchange)) return;
+
         try {
             // POST /morphos/reorder
             if (subRoute.equals("/reorder") && method.equals("POST")) {
