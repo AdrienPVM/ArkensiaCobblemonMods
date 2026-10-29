@@ -12,12 +12,15 @@ never close a chest.
 ## Opening a shop
 
 You do not type anything. A shop opens when the server decides to open it for you,
-which in practice means one of three things:
+which in practice means one of two things:
 
 - an admin runs `/shop open <id>` while you are the one running it, or targets you some
   other way;
-- an NPC, a quest script or a command block sends you into a shop;
-- a mod or datapack sends the `open_shop_player:<shopId>` action on your behalf.
+- an NPC, a quest script or a command block sends you into a shop, by running
+  `/shop open <id>` as you (`/execute as <you> run …`) with enough permission.
+
+Nothing on the server can send the `open_shop_player:` action for you: it is a packet
+your own client sends, and only the admin screen's preview button does so.
 
 There is no `/shop` command for players. The whole `/shop` tree needs permission level
 2, so if you type it you get the vanilla *Unknown or incomplete command* error. See
@@ -55,8 +58,9 @@ Each card shows the item's icon and its price, up to three cost lines (a fourth 
 it and ships it with the shop data, so an enchanted book shows its enchantments and a
 custom quest item shows its lore exactly as it would in your inventory.
 
-Under the icon, depending on the item's limit, you may also see how many are left:
-`∞`, `42/100`, `2/3 (vous)`, `1/1 (Quotidien)`.
+You do not see how many are left. The server computes a stock line for every item and
+sends it along, but the client never draws it; the only sign of a limit is the card
+greying out once you can no longer buy it.
 
 **A greyed-out card is one you cannot buy right now** — out of stock, over your personal
 limit, or already owned. It is drawn with a dark overlay, does not highlight on hover,
@@ -82,21 +86,22 @@ the amounts configured on the item.
 
 ### What happens next
 
-The confirmation panel closes the instant the server answers, before the items land, so
-there is no double-click window.
+The confirmation panel closes the instant you click `Confirmer`, before the server has
+even answered, so there is no double-click window.
 
 | Outcome | What you see |
 |---|---|
-| Bought | green `Achat réussi : <item>` in chat, and the grid refreshes with new stock numbers |
-| Not enough money or items | red `Pas assez de ressources pour acheter x<n>.` |
-| No room | red `Ton inventaire est plein ! Libère de la place avant d'acheter.` — nothing was charged |
-| Out of stock | red `Stock épuisé pour cet item.` |
-| Over your limit | red `Vous avez atteint votre limite d'achat pour cet item.` |
-| Item switched off | red `Cet item n'est pas disponible.` |
-| Set closed while you browsed | red `Ce set n'est pas actif en ce moment.` |
-| Anything else | red `Achat impossible.` |
+| Bought | green `Purchase successful: <item>` in chat (with ` x<n>` above one), and the grid refreshes — a card you can no longer buy greys out |
+| Not enough money or items | red `Not enough resources to buy x<n>.` |
+| No room | red `Your inventory is full! Free up space before buying.` — nothing was charged |
+| Out of stock | red `Out of stock for this item.` |
+| Over your limit | red `You have reached your purchase limit for this item.` |
+| Item switched off | red `This item is not available.` |
+| Set closed while you browsed | red `This set is not active right now.` |
+| Anything else | red `Purchase impossible.` |
 
-If you paid in credits you also get a gold line: `🧀 -<n> Crédits (solde : <reste>)`.
+These are lang-file strings, so a French client shows them in French. If you paid in
+credits you also get a gold line: `🧀 -<n> Credits (balance: <rest>)`.
 
 ⚠️ One message means something went wrong on the server's side, not yours:
 
@@ -147,6 +152,7 @@ Honest list, so you do not go looking:
   ignores all three.
 - **No selling.** There is no sell screen and no sell action, despite sell-looking
   textures in the jar.
+- **No stock figure.** Remaining stock and your personal quota are never shown.
 - **No search and no categories.** The grid is the whole shop.
 - **No currency readout.** Your purse or credit balance is not shown anywhere in the
   panel; you find out when a purchase fails.
@@ -158,8 +164,8 @@ Honest list, so you do not go looking:
 A card with a blank white square instead of an icon means a custom
 item whose icon image did not arrive — the server logs
 `[Market]   <id> → NO image found` for that case. A card with the wrong icon is usually
-an item whose `displayItem` was left at `minecraft:paper`, which the mod reads as "unset"
-and replaces with the first output's icon.
+an item whose `displayItem` was left at its default, `minecraft:paper`, or one whose first
+output carries `components` — that output then replaces the `displayItem`.
 
 More in [troubleshooting](troubleshooting.md).
 

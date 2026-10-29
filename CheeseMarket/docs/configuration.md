@@ -73,11 +73,12 @@ missing key takes the default from the `ShopData` constructor.
 
   // A vanilla colour name or a hex triplet.
   "titleColor": "gold",
-  // Hex RRGGBB, no leading '#'.
+  // Hex RRGGBB, no leading '#'. This colour block and the four button
+  // colours below are sent to the client and never drawn.
   "bgColor": "1A1A2E",
   "borderColor": "2A5A8A",
   "accentColor": "4AC8EA",
-  // Confirmation dialog buttons.
+  // Meant for the confirmation dialog buttons; unused.
   "btnBuyColor": "1A5C2A",
   "btnBuyTextColor": "FFFFFF",
   "btnCloseColor": "1E3A5F",
@@ -151,8 +152,8 @@ missing key takes the default from the `ShopData` constructor.
       "items": [
         {
           "id": "b1c2d3e4",
-          // The icon. minecraft:paper is read as "unset" and replaced by
-          // the first output's item id — pick something else if you mean paper.
+          // The icon, used as-is (paper included). Blank falls back to the
+          // first output; a first output with "components" overrides it.
           "displayItem": "minecraft:potion",
           // Empty means the client shows the icon's translated vanilla name.
           "displayName": "Potion de soin",
@@ -201,8 +202,10 @@ missing key takes the default from the `ShopData` constructor.
 ```
 
 Field-by-field meaning, with the reasoning behind the odd ones, is in
-[the shop model](shop-model.md). The JSON comments above are for reading only — Gson's
-default parser rejects them, so strip them before using this as a real file.
+[the shop model](shop-model.md). The JSON comments above are for reading only. The mod parses
+shop files with Gson's lenient `JsonParser`, which tolerates `//` comments, but the next
+save rewrites the file from memory without them — so strip them rather than rely on
+them.
 
 ---
 
@@ -227,8 +230,10 @@ Three flat maps, string keys, integer or epoch-second values.
 - `global` holds **remaining** units, not units sold. A key absent from the map means
   "nobody has bought any yet", and the item's own `globalStock` is used as the starting
   figure.
-- `player` holds units **bought** by that player, counted up from zero. Delete a key to
-  give that one player their quota back.
+- `player` holds units **bought** by that player, counted up from zero. Delete a key
+  with the server stopped, or set it to `0` and `/shop reload`, to give that one player
+  their quota back — a key deleted from the file and then reloaded survives in memory,
+  because the reload merges into the existing counters without clearing them.
 - `lastReset` is the epoch second at which a `PER_PLAYER_RESET` item last had its
   per-player keys wiped. Zero or absent means the next access resets.
 

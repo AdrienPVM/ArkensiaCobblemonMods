@@ -31,7 +31,12 @@ The quantity is parsed server-side and clamped: `Math.max(1, Math.min(64, …))`
 missing fourth segment means 1, and an unparseable one also means 1 (`parseInt` returns
 1 on failure). So a crafted packet cannot ask for 10 000 of something.
 
-⚠️ The purchase does not check the player's proximity to the shop.
+⚠️ This payload is open to every player — it has to be, since it is how a purchase
+happens — and it carries **no proximity check**. Nothing records which shop was opened
+for a player, so a modified client can buy from any shop id it knows without ever
+having been shown that shop, quest-gated shops included. The admin actions on the same
+channel require permission level 2; see
+[the architecture page](architecture.md#the-action-channel).
 
 ---
 
@@ -55,20 +60,25 @@ is checked later, in step 3.
 Anything other than `OK` sends a red chat line and a `PURCHASE_RESULT` payload carrying
 the enum name, and stops. Nothing has been touched.
 
-| Result | Chat message (fr_fr) |
+| Result | Chat message (en_us) |
 |---|---|
-| `OUT_OF_GLOBAL_STOCK` | `Stock épuisé pour cet item.` |
-| `PLAYER_LIMIT_REACHED` | `Vous avez atteint votre limite d'achat pour cet item.` |
-| `ITEM_DISABLED` | `Cet item n'est pas disponible.` |
-| `SET_INACTIVE` | `Ce set n'est pas actif en ce moment.` |
-| `SHOP_NOT_FOUND` and anything else | `Achat impossible.` |
+| `OUT_OF_GLOBAL_STOCK` | `Out of stock for this item.` |
+| `PLAYER_LIMIT_REACHED` | `You have reached your purchase limit for this item.` |
+| `ITEM_DISABLED` | `This item is not available.` |
+| `SET_INACTIVE` | `This set is not active right now.` |
+| `SHOP_NOT_FOUND` and anything else | `Purchase impossible.` |
 
 ### Quantity is not part of the stock check
 
-`canPurchase` takes no quantity argument: the stock check ignores the requested
-quantity, so a single purchase can go past the remaining global stock or a per-player
-limit, and the counter is then clamped to zero. Treat those limits as approximate until
-this is fixed. It is a real gap, not a subtlety of reading.
+`canPurchase` takes no quantity argument. A `GLOBAL` item with 1 unit left accepts a
+buy of 64: the check sees `remaining > 0` and passes, and `recordPurchase` then does
+`Math.max(0, remaining - quantity)`, clamping the counter to zero. The player gets 64
+units for 64 times the price. The same applies to per-player limits: a limit of 1 does
+not stop a single purchase of 64.
+
+If that matters on your server, give those items a cost the player cannot pay 64 times,
+or treat the limit as a per-transaction limit rather than a hard cap. It is a real gap,
+not a subtlety of reading.
 
 ---
 
@@ -79,7 +89,7 @@ order and the reason an inventory-full purchase costs nothing.
 
 The simulation copies the 36 slots of `PlayerInventory.main`, fills existing matching
 stacks first, then empty slots, and returns false if anything is left over. On false the
-player gets `Ton inventaire est plein ! Libère de la place avant d'acheter.` and a
+player gets `Your inventory is full! Free up space before buying.` and a
 `PURCHASE_RESULT` of `INVENTORY_FULL`.
 
 Three limits of the simulation are worth knowing:
@@ -95,9 +105,9 @@ Three limits of the simulation are worth knowing:
 
 ## Step 3 — payment
 
-`deductCosts` runs in four phases: everything is checked before anything is deducted.
+`deductCosts` runs in phases 0 to 4: everything is checked before anything is deducted.
 Returning false at any point in the checking phases means no value has moved, and the
-player gets `Pas assez de ressources pour acheter x<quantity>.` with a
+player gets `Not enough resources to buy x<quantity>.` with a
 `PURCHASE_RESULT` of `INSUFFICIENT_FUNDS`.
 
 | Phase | What it does |
@@ -105,7 +115,7 @@ player gets `Pas assez de ressources pour acheter x<quantity>.` with a
 | 0 | For every cost whose `itemId` is `cheesestore:fromage`, compares `count × quantity` against the CheeseStore balance |
 | 1 | For every ordinary item cost, counts matching stacks in the inventory and compares against `count × quantity` |
 | 2 | For Numismatic Overhaul coin costs, adds the inventory coins and the purse together |
-| 3a | Deducts the fromage, then tells the player `🧀 -<n> Crédits (solde : <balance>)` |
+| 3a | Deducts the fromage, then tells the player `🧀 -<n> Credits (balance: <balance>)` |
 | 3b | Removes the ordinary item costs from the inventory |
 | 4 | Removes coin costs from the inventory first, then takes the shortfall out of the purse in bronze |
 
@@ -149,7 +159,7 @@ used — see [the unused keys](architecture.md#unused-language-keys).
 
 That line means the cost was already taken in step 3 and the output silently did not
 exist. The purchase then continues to completion: commands run, stock is decremented, a
-transaction is recorded, and the player is told `Achat réussi : <name>`. Nothing in the
+transaction is recorded, and the player is told `Purchase successful: <name>`. Nothing in the
 code refunds them.
 
 This is the failure mode to watch for after removing a mod whose items a shop still
@@ -254,15 +264,18 @@ the mod at all, despite the `shop_sell.png` and `*_sell/` textures shipped in th
 
 After recording, in order:
 
-1. Chat: `Achat réussi : <itemName>` (plus ` x<n>` when quantity is above 1), green.
-2. A `PURCHASE_RESULT` payload with `purchaseResult: "OK"`, sent before anything else so
-   the client closes the confirmation panel without waiting.
+1. Chat: `Purchase successful: <itemName>` (plus ` x<n>` when quantity is above 1),
+   green.
+2. A `PURCHASE_RESULT` payload with `purchaseResult: "OK"`. The client closed the
+   confirmation panel already, the moment the player clicked `Confirmer`; on receipt it
+   only makes sure the panel is shut and the quantity back to 1.
 3. If CheeseDash is loaded, a `market_purchase` message on the `market` WebSocket
    channel — payload documented in [the dashboard page](dashboard.md#websocket).
    The call is guarded by `isModLoaded("cheesedash")` and wrapped against
    `NoClassDefFoundError`, so a CheeseDash-less install does not crash here.
-4. A fresh `SHOP_VIEW` payload with `skipImages = true`, so the grid shows the new stock
-   numbers without re-sending the base64 background the client already holds.
+4. A fresh `SHOP_VIEW` payload with `skipImages = true`, so the grid picks up the new
+   `canBuy` flags — a card the player can no longer buy greys out — without re-sending
+   the base64 background the client already holds.
 
 ---
 
@@ -297,7 +310,7 @@ The quantity argument is ignored entirely: one purchase grants one morpho.
 Everything about it depends on CheeseItems class and method names resolved by
 reflection. This is an observation of how the two mods currently fit together, not a
 contract: rename `getPriceCredits` or `hasInCodex` in CheeseItems and this path stops
-working, silently, with a single warning line at startup.
+working, silently, with a single warning line the first time it is used.
 
 ---
 

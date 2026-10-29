@@ -21,6 +21,17 @@ public class ShopGuiHandler {
     public static void handle(ShopActionPayload payload, ServerPlayerEntity player) {
         String action = payload.action();
 
+        // The channel is open to every client, so admin actions must be gated here:
+        // item_save can write a shop item's commands, which shop_buy then runs as the
+        // server console. Same bar as /cmadmin, which opens the editor.
+        if (!action.startsWith("shop_buy:") && !action.startsWith("open_shop_player:")
+                && !player.hasPermissionLevel(2)) {
+            org.slf4j.LoggerFactory.getLogger("CheeseMarket").warn(
+                "[CheeseMarket] Refused admin action from non-op {}: {}",
+                player.getName().getString(), action.length() > 64 ? action.substring(0, 64) + "…" : action);
+            return;
+        }
+
         // ── Admin actions ──────────────────────────────────────────────────────
 
         if (action.equals("open_shop_list")) {

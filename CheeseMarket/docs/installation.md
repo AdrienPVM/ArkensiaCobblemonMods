@@ -73,8 +73,10 @@ mods/
 └── fabric-api-*.jar
 ```
 
-Then the same `cheesemarket` jar — and Fabric API — in the client's `mods/`. The client
-does not need CheeseDash.
+Then the same `cheesemarket` jar — and Fabric API **and the CheeseDash jar** — in the
+client's `mods/`. The `cheesedash` dependency in `fabric.mod.json` is not restricted to
+the server, and CheeseDash itself declares `"environment": "*"`, so Fabric Loader refuses
+to start a client that has CheeseMarket without CheeseDash.
 
 ---
 
@@ -90,11 +92,12 @@ save:
 └── templates/    created on first dashboard use
 ```
 
-`cheesemarket_stock.json` and `cheesemarket_transactions.json` appear on the first
-purchase, not before.
+`cheesemarket_transactions.json` appears on the first purchase, not before.
+`cheesemarket_stock.json` appears on the first purchase or the first server stop,
+whichever comes first — `SERVER_STOPPING` writes it even when it is empty.
 
 No shops are created by default. A fresh install has an empty shop list, and
-`/shop list` answers `Aucun shop trouvé.`
+`/shop list` answers `No shop found.`
 
 ⚠️ Keep `level-name=world` in `server.properties` unless you are prepared to patch the
 mod. `ShopManager` resolves its directory from the real save path, but `AssetManager`
@@ -148,7 +151,7 @@ usually when a shop view is first built rather than at startup:
 /shop list
 ```
 
-If the command exists and answers — even with `Aucun shop trouvé.` — the server side is
+If the command exists and answers — even with `No shop found.` — the server side is
 loaded. Then:
 
 ```mcfunction

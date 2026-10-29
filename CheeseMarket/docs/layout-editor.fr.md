@@ -22,7 +22,8 @@ dashboard (module `market`). Il te donne :
 - une grille d'accrochage de 1, 2, 5, 10, 15 ou 20 pixels (5 par défaut) ;
 - un panneau de calques avec des flèches d'ordre Z par élément ;
 - un panneau de propriétés pour ce qui est sélectionné ;
-- annuler et refaire, sur 30 niveaux, liés à Ctrl+Z et Ctrl+Y ;
+- annuler et refaire sur un historique de 50 états (49 retours en arrière), liés à Ctrl+Z
+  et Ctrl+Y ;
 - Suppr pour retirer la sélection, Ctrl+D pour la dupliquer, les flèches pour déplacer
   d'un pixel et Maj+flèches pour déplacer du pas d'accrochage ;
 - un enregistrement automatique après 2 secondes d'inactivité : tu édites et ça persiste,
@@ -63,8 +64,8 @@ dessinés par `zOrder` croissant.
 | `text` | la chaîne ; `{shopName}` et `{shopDesc}` sont substitués au rendu |
 | `color` | hexadécimal `RRGGBB`, un nom de couleur vanilla, ou le littéral `{titleColor}` pour hériter de la couleur de titre de la boutique |
 | `align` | `left`, `center` (défaut) ou `right`, dans la `width` de l'élément |
-| `fontSize` | présent dans la mise en page par défaut ; le renderer tire son échelle de `scale` |
-| `scale` | facteur d'échelle du texte |
+| `fontSize` | taille de base ; 9 est la taille vanilla — l'échelle dessinée vaut `fontSize / 9 × scale` |
+| `scale` | facteur d'échelle supplémentaire, multiplié par `fontSize / 9` |
 | `bold` | booléen |
 
 La mise en page par défaut utilise deux éléments TEXT dont `text` vaut `{shopName}` et
@@ -105,14 +106,17 @@ La grille se centre horizontalement dans l'élément. Quand tout tient sans déf
 se centre aussi verticalement, et une dernière ligne incomplète est centrée elle aussi —
 donc une boutique de quatre items dans une grille à six colonnes les affiche en une ligne
 centrée bien nette, et non alignée à gauche avec deux trous. Au-delà d'une page, une barre
-de défilement apparaît à droite et le centrage cesse.
+de défilement apparaît à droite ; la grille reste centrée horizontalement, mais le
+centrage vertical et celui de la dernière ligne cessent.
 
 ### BACKGROUND
 
 Une seule propriété, `src` : soit `default` pour le `shop/custom/shop.png` intégré, soit
 le nom d'un asset téléversé. Le client reçoit le PNG en base64 dans le premier payload
 `SHOP_VIEW` et l'enregistre comme texture dynamique, puis il n'est pas réexpédié lors du
-rafraîchissement de stock qui suit un achat.
+rafraîchissement de stock qui suit un achat. Les `x`, `y`, `width` et `height` de
+l'élément sont ignorés : le fond est toujours dessiné à l'origine du panneau, étiré à
+350 × 250.
 
 ---
 
@@ -145,29 +149,33 @@ pour coller l'icône au nombre.
 
 ## La fenêtre de confirmation
 
-`layout.confirmLayout` met en forme la fenêtre d'achat. Elle est absente jusqu'à ce que tu
-l'édites, et absente signifie que les constantes propres au client s'appliquent. Elle
-porte une clé de géométrie et quinze couleurs :
+`layout.confirmLayout` est censé mettre en forme la fenêtre d'achat. Elle est absente
+jusqu'à ce que tu l'édites, et absente signifie que les constantes propres au client
+s'appliquent. Elle porte une clé de géométrie, une clé d'image et quinze couleurs — et le
+client n'en respecte que quatre. La fenêtre est dessinée à partir de la texture intégrée
+`confirm.png`, à sa taille fixe de 204 × 146, avec le remplissage du curseur et le texte
+de quantité dans des couleurs codées en dur ; les autres clés sont lues et jamais
+utilisées.
 
-| Clé | Défaut | Ce qu'elle colore |
-|---|---|---|
-| `width` | 340 | largeur de la fenêtre |
-| `bgImage` | `""` | nom d'asset pour une image de fond ; vide utilise le `confirm.png` intégré |
-| `bgColor` | `1A1A2E` | fond de la fenêtre |
-| `borderColor` | `2A5A8A` | bordure |
-| `accentColor` | `4AC8EA` | accents |
-| `headerBgColor` | `0D2137` | bandeau d'en-tête |
-| `titleColor` | `4AC8EA` | nom de l'item |
-| `labelColor` | `7A8A9A` | étiquettes de colonnes |
-| `costColor` | `FFCC44` | prix |
-| `arrowColor` | `4AC8EA` | la flèche entre les deux colonnes |
-| `sliderBgColor` | `1A2A4A` | rail du curseur |
-| `sliderFillColor` | `357EA3` | partie remplie du rail |
-| `sliderThumbColor` | `4AC8EA` | poignée du curseur |
-| `sepColor` | `1E3050` | séparateurs |
-| `btnConfirmTextColor` | `55FF55` | libellé `Confirmer` |
-| `btnCancelTextColor` | `FF6666` | libellé `Fermer` |
-| `columnBgColor` | `18FFFFFF` | fond des colonnes, `AARRGGBB` |
+| Clé | Défaut | Prévue pour | Utilisée par le client ? |
+|---|---|---|---|
+| `width` | 340 | largeur de la fenêtre | non |
+| `bgImage` | `""` | nom d'asset pour une image de fond | non — le serveur l'intègre en `confirmBgImageBase64`, le client ne le lit jamais |
+| `bgColor` | `1A1A2E` | fond de la fenêtre | non |
+| `borderColor` | `2A5A8A` | bordure | non |
+| `accentColor` | `4AC8EA` | accents | non |
+| `headerBgColor` | `0D2137` | bandeau d'en-tête | non |
+| `titleColor` | `4AC8EA` | nom de l'item | non |
+| `labelColor` | `7A8A9A` | étiquettes de colonnes | oui — seulement le `—` dessiné dans une colonne vide |
+| `costColor` | `FFCC44` | prix | oui — les libellés `x<quantité>` des deux colonnes |
+| `arrowColor` | `4AC8EA` | la flèche entre les deux colonnes | non |
+| `sliderBgColor` | `1A2A4A` | rail du curseur | non |
+| `sliderFillColor` | `357EA3` | partie remplie du rail | non |
+| `sliderThumbColor` | `4AC8EA` | poignée du curseur | non |
+| `sepColor` | `1E3050` | séparateurs | non |
+| `btnConfirmTextColor` | `55FF55` | libellé `Confirmer` | oui |
+| `btnCancelTextColor` | `FF6666` | libellé `Fermer` | oui |
+| `columnBgColor` | `18FFFFFF` | fond des colonnes, `AARRGGBB` | non |
 
 `columnBgColor` prend huit chiffres hexadécimaux parce qu'il lui faut un canal alpha ; les
 autres en prennent six.

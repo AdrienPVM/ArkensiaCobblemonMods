@@ -74,8 +74,10 @@ mods/
 └── fabric-api-*.jar
 ```
 
-Puis le même jar `cheesemarket` — et Fabric API — dans le `mods/` du client. Le client n'a
-pas besoin de CheeseDash.
+Puis le même jar `cheesemarket` — ainsi que Fabric API **et le jar de CheeseDash** — dans
+le `mods/` du client. La dépendance `cheesedash` de `fabric.mod.json` n'est pas limitée au
+serveur, et CheeseDash déclare lui-même `"environment": "*"` : Fabric Loader refuse donc de
+démarrer un client qui a CheeseMarket sans CheeseDash.
 
 ---
 
@@ -91,8 +93,9 @@ sauvegarde du monde :
 └── templates/    créé au premier usage du dashboard
 ```
 
-`cheesemarket_stock.json` et `cheesemarket_transactions.json` apparaissent au premier
-achat, pas avant.
+`cheesemarket_transactions.json` apparaît au premier achat, pas avant.
+`cheesemarket_stock.json` apparaît au premier achat ou au premier arrêt du serveur, selon
+ce qui arrive en premier — `SERVER_STOPPING` l'écrit même vide.
 
 Aucune boutique n'est créée par défaut. Une installation neuve a une liste de boutiques
 vide, et `/shop list` répond `Aucun shop trouvé.`

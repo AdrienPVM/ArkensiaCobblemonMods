@@ -7,7 +7,8 @@ card, drag a quantity slider, pay five emeralds and walk away with a diamond pic
 and you will see the sale in the dashboard's transaction list. Allow twenty minutes.
 
 You need a 1.21.1 Fabric server with CheeseDash and CheeseMarket installed on the
-server, CheeseMarket installed on your own client, and your dashboard token to hand. If
+server, CheeseMarket and CheeseDash installed on your own client, and your dashboard
+token to hand. If
 any of that is not true yet, start with [installation](installation.md).
 
 ---
@@ -21,7 +22,7 @@ In game, as an operator:
 ```
 
 ```text
-Shop créé : starter
+Shop created: starter
 ```
 
 That wrote `<world>/data/cheesemarket/shops/starter.json` with default values and an
@@ -123,8 +124,10 @@ build:
   it could be `cheesestore:fromage` for credits or
   `numismatic-overhaul:silver_coin` for coins. See
   [how a price is paid](shop-model.md#how-a-price-is-paid).
-- **`displayItem` set to `minecraft:paper` means "no icon"**, and falls back to the
-  first output. Anything else is used as-is.
+- **`displayItem` is used as-is, paper included.** Only a blank `displayItem` falls back
+  to the first output — and the dashboard editor fills a blank one with the first output
+  for you. An item created through the API without a `displayItem` keeps the default,
+  `minecraft:paper`, and shows a sheet of paper.
 
 ---
 
@@ -137,7 +140,8 @@ build:
 The world dims and the panel appears: your shop name in gold, the description under it,
 a close button top right, and a single card in the middle of the grid showing a diamond
 pickaxe with `5` and an emerald icon under it. Hovering the card gives you the pickaxe's
-real tooltip. Under the icon, `2/2 (vous)` — your personal quota.
+real tooltip. The card shows no stock figure: the server computes one (`2/2 (vous)`)
+and sends it as `stockDisplay`, but the client never draws it.
 
 If nothing happens at all, your client is missing the mod. If the panel opens empty, the
 set is not active or the item is disabled — check the `active` flag in
@@ -163,11 +167,11 @@ Then, in the panel:
 3. **Click `Confirmer`.**
 
 ```text
-Achat réussi : Pioche de mineur x2
+Purchase successful: Pioche de mineur x2
 ```
 
-The panel closes, your emeralds are gone, two pickaxes are in your inventory, and the
-card now reads `0/2 (vous)` and is greyed out. You are at your limit; clicking it does
+The confirmation panel closes, your emeralds are gone, two pickaxes are in your
+inventory, and the card is now greyed out. You are at your limit; clicking it does
 nothing.
 
 That greying is the per-player limit doing its job. The counter is written to
@@ -187,9 +191,10 @@ curl -H "Authorization: Bearer <token>" \
 ```
 
 ```json
-{"transactions":[{"timestamp":"2026-10-29T14:03:11.284Z","playerName":"Steve",
-  "shopId":"starter","shopName":"Boutique de départ","itemName":"Pioche de mineur",
-  "quantity":2,"costs":[{"itemId":"minecraft:emerald","count":5}],
+{"transactions":[{"timestamp":"2026-10-29T14:03:11.284Z",
+  "playerUUID":"00000000-0000-0000-0000-000000000000","playerName":"Steve",
+  "shopId":"starter","shopName":"Boutique de départ","setId":"a1b2c3d4","setName":"Outils",
+  "itemId":"e5f6a7b8","itemName":"Pioche de mineur","quantity":2,"costs":[{"itemId":"minecraft:emerald","count":5}],
   "outputs":[{"itemId":"minecraft:diamond_pickaxe","count":1}]}],
  "total":1,"returned":1}
 ```
@@ -215,13 +220,14 @@ Try three things, in this order:
 1. **Move the grid.** Select the `ITEM_GRID` element and drag it, or nudge it with the
    arrow keys. Set its `cols` to 4 in the properties panel. Reopen the shop in game: four
    cards per row, centred.
-2. **Upload a background.** Click *Upload image*, pick a 350 × 250 PNG under 2 MB, then
-   select the `BACKGROUND` element and set its `src` to the name you gave. The image is
-   shipped to the client inline the next time a player opens the shop.
+2. **Upload a background.** Click *Upload image* and pick a 350 × 250 PNG under 2 MB.
+   The asset takes the file's name, and the editor sets the `BACKGROUND` element's `src`
+   to it for you. The image is shipped to the client inline the next time a player opens
+   the shop.
 3. **Save it as a template.** Click *Templates*, save under a name, and the arrangement
    becomes reusable on your next shop.
 
-Autosave runs two seconds after you stop editing, Ctrl+Z undoes thirty steps, and
+Autosave runs two seconds after you stop editing, Ctrl+Z undoes up to forty-nine steps (the history holds fifty states), and
 `Reset` puts the default arrangement back. The full element and property reference is in
 [the layout editor](layout-editor.md).
 
@@ -229,10 +235,11 @@ Autosave runs two seconds after you stop editing, Ctrl+Z undoes thirty steps, an
 
 ## 9. Put it behind an NPC
 
-`/shop open` needs permission level 2, so it is not how players reach a shop. Players
-get there because something else opens it for them: an NPC dialogue, a quest reward, a
-command block, or any mod that can send the `open_shop_player:<shopId>` action for a
-player.
+`/shop open` needs permission level 2, so players cannot type it themselves. They get
+there because something else runs it for them as them: an NPC dialogue, a quest reward
+or a command block executing `/execute as <player> run shop open starter` at level 2 or
+above. The server has no other way in — the `open_shop_player:` action can only come
+from the player's own client.
 
 That is also the point at which the shop stops being a test. Two things to settle before
 you let anyone else in:

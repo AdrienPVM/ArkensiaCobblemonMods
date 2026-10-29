@@ -21,7 +21,8 @@ imports `com.cheesedash` n'ont jamais été résolus.
 silence. Le panneau est un `Screen` côté client ; le serveur ne peut pas le dessiner.
 
 **Remède.** Installe le même `cheesemarket-*.jar` dans le `mods/` du client, plus Fabric
-API. Le client n'a pas besoin de CheeseDash. Cherche
+API et le jar de CheeseDash — une fois CheeseMarket installé, le client ne peut pas
+démarrer sans CheeseDash, car la dépendance s'applique des deux côtés. Cherche
 `[CheeseMarket] Client initialized.` dans le log du client pour confirmer.
 
 ---
@@ -57,13 +58,15 @@ lequel. Contexte dans [le modèle de boutique](shop-model.fr.md#boutique).
 
 ## Une carte affiche la mauvaise icône
 
-**Cause.** `getEffectiveDisplayItem()` traite `minecraft:paper` comme « non défini » — pas
-seulement une chaîne vide, le littéral papier aussi. Un item dont le `displayItem` est du
-papier retombe sur l'icône de sa première sortie.
+**Cause.** L'une de deux choses. Soit l'item a été créé par l'API ou par l'éditeur en jeu
+sans `displayItem` et a gardé la valeur par défaut, `minecraft:paper` — le client utilise
+`displayItem` tel quel, donc il affiche du papier. Soit la première sortie porte des
+`components` : le client dessine alors cette sortie à la place du `displayItem`, quoi
+qu'il contienne.
 
-**Remède.** Mets `displayItem` à autre chose que du papier. Si tu veux réellement une
-icône de papier pour un item qui produit autre chose, il n'y a aucun moyen de l'exprimer :
-choisis un autre item qui y ressemble, ou fais du papier la première sortie.
+**Remède.** Renseigne `displayItem` explicitement (l'éditeur du dashboard remplit un champ
+vide avec la première sortie). Si la première sortie a des components et que tu veux une
+autre icône, réordonne les sorties pour qu'une entrée simple passe en premier.
 
 ---
 
@@ -216,7 +219,9 @@ implémentation derrière.
 **Remède.** Arrête le serveur, édite
 `<world>/data/cheesemarket/cheesemarket_stock.json`, redémarre. Ou édite-le puis lance
 `/shop reload` avant que quiconque n'achète quoi que ce soit — l'achat suivant réécrit le
-fichier depuis la mémoire et ton édition serait perdue. La forme du fichier est dans
+fichier depuis la mémoire et ton édition serait perdue. Par la voie du rechargement,
+modifie des valeurs plutôt que de supprimer des clés : le rechargement fusionne le fichier
+dans les compteurs en mémoire sans les vider, donc une clé supprimée revient. La forme du fichier est dans
 [la configuration](configuration.fr.md#le-fichier-de-stock).
 
 ---
@@ -236,7 +241,9 @@ d'erreur standard porte
 
 Valide le JSON. Note que l'exemple annoté de
 [la configuration](configuration.fr.md#un-fichier-de-boutique-annoté) contient des
-commentaires destinés à la lecture, et que Gson les refuse.
+commentaires destinés à la lecture ; l'analyseur permissif tolère les commentaires `//`,
+donc cherche la vraie erreur de syntaxe ailleurs — une virgule ou un guillemet manquant,
+le plus souvent.
 
 ---
 
@@ -246,7 +253,7 @@ commentaires destinés à la lecture, et que Gson les refuse.
 |---|---|
 | *Unknown or incomplete command* vanilla | ton niveau de permission est sous 2 ; tout l'arbre `/cmadmin` et `/shop` exige le niveau 2 |
 | la même chose, sur `reload` ou `delete` seulement | ces deux sous-commandes exigent le niveau **4** |
-| `Joueur requis` | tu as lancé `/cmadmin` ou `/shop open` depuis la console ou un bloc de commande ; les deux exigent une source joueur |
+| `Joueur requis` | tu as lancé `/cmadmin` ou `/shop open` depuis la console ou un bloc de commande ; les deux exigent une source joueur (`/execute as <joueur> run …` en fournit une) |
 | `Shop introuvable : <id>` | mauvais identifiant — il n'y a aucune complétion sur `shopId`, donc vérifie avec `/shop list` |
 
 ---
@@ -288,23 +295,50 @@ les données de ventes. Les rôles par route sont dans
 
 ## Un joueur a acheté quelque chose sans pouvoir ouvrir la boutique
 
-**Cause.** ⚠️ Le canal d'actions client ne vérifie ni les permissions de l'expéditeur ni
-sa distance à la boutique : un client modifié peut donc acheter dans une boutique qu'on ne
-lui a jamais montrée.
+**Cause.** L'action d'achat est ouverte à tous les joueurs et ne comporte aucun contrôle
+de distance : rien n'enregistre quelle boutique un NPC, une quête ou `/shop open` a
+ouverte pour ce joueur, si bien qu'un client modifié peut acheter dans toute boutique dont
+il connaît l'identifiant. Les identifiants de boutique sont des mots courts et lisibles,
+pas des secrets. Depuis le 29 octobre
+2026, le problème s'arrête là : modifier une boutique par le même canal exige le niveau
+de permission 2.
 
-**Remède.** Il n'existe aucun interrupteur de configuration pour cela. Ne fais pas
-tourner cette version sur un serveur public, et surveille le journal des transactions pour
-y repérer des ventes depuis des boutiques qu'un joueur n'aurait pas dû atteindre. Un
-correctif arrive : voir
-[l'architecture](architecture.fr.md#le-canal-dactions-nest-pas-authentifié).
+**Remède.** Il n'existe aucun interrupteur de configuration pour cela. Ne traite pas les
+identifiants de boutique comme des secrets, et ne compte pas sur la manière dont une
+boutique s'ouvre pour limiter qui y achète : limite-le par les prix, le stock et la
+rotation. Le journal des transactions montre les ventes depuis des boutiques qu'un
+joueur n'aurait pas dû atteindre. Détails dans
+[l'architecture](architecture.fr.md#le-canal-dactions).
+
+---
+
+## Une action de l'éditeur en jeu ne fait rien pour un non-opérateur
+
+**Cause.** Les actions d'administration du canal `cheesemarket:shop_action` — toutes les
+actions de l'éditeur `/cmadmin` sauf l'aperçu *▶ Voir* — exigent le niveau de
+permission 2, contrôlé par `hasPermissionLevel(2)` à chaque action. Un joueur en dessous
+ne reçoit aucune réponse : le bouton ne fait rien et aucun message n'apparaît. Le journal
+du serveur affiche une ligne par action refusée :
+
+```text
+[CheeseMarket] Refused admin action from non-op <nom>: <action>
+```
+
+Cela arrive quand le joueur a perdu le statut d'opérateur alors que l'éditeur était
+ouvert, ou quand un mod de permissions lui permet de lancer `/cmadmin` sans lui donner le
+niveau 2 vanilla — le garde ne regarde que le niveau vanilla.
+
+**Remède.** Donne au joueur le niveau de permission 2 (`/op`, avec `op-permission-level`
+à 2 ou plus), puis rouvre l'éditeur. S'il ne doit pas modifier les boutiques, le refus
+est le comportement voulu ; passe par [le dashboard](dashboard.fr.md) pour ce travail.
 
 ---
 
 ## Un client en anglais voit du texte français dans la boutique
 
 **Cause.** Plusieurs chaînes sont du français codé en dur en Java plutôt que des clés de
-langue : les boutons de confirmation `Confirmer` et `Fermer`, `Aucun article.`, les
-libellés de stock (`Illimité`, `Quotidien`, `Par joueur`…), le message d'échec de livraison
+langue : les boutons de confirmation `Confirmer` et `Fermer`, `Aucun article.`,
+`Gratuit`, les lignes d'infobulle `Coût:` et `Quantité:`, le message d'échec de livraison
 et les messages morpho. Les fichiers de langue eux-mêmes sont complets pour les clés
 *réellement* utilisées.
 

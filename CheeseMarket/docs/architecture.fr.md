@@ -55,10 +55,12 @@ tables de stock et la liste des transactions ; c'est la seule classe qui écrit 
 boutiques, le fichier de stock ou le fichier de transactions. Rien d'autre ne garde une
 référence à un `ShopData` d'un tick sur l'autre.
 
-Ses collections sont volontairement hétérogènes : `shops` est un simple `LinkedHashMap`
-parce que seul le thread serveur y touche, tandis que les tables de stock sont des
-`ConcurrentHashMap` et la liste de transactions une `CopyOnWriteArrayList`, parce que des
-threads HTTP les lisent pendant la construction des réponses d'API.
+Ses collections sont hétérogènes : `shops` est un simple `LinkedHashMap`, modifié
+seulement sur le thread serveur mais aussi parcouru, sans synchronisation, par les
+handlers `GET` du dashboard sur le thread HTTP ; les tables de stock sont des
+`ConcurrentHashMap` (aucune route HTTP ne les lit) ; la liste de transactions est une
+`CopyOnWriteArrayList`, ce qui permet de servir `GET /transactions` depuis le thread HTTP
+sans risque.
 
 **`ShopGuiHandler`** est sans état et statique. Il prend une chaîne d'action plus un
 joueur et fait tout, du CRUD d'administration au pipeline d'achat. Avec ses 1 300 lignes,
@@ -94,7 +96,8 @@ tout le fichier de boutique. Les deux sont petits, les deux conviennent à l'éc
 cela a tourné, et les deux sont la première chose à regarder si un fichier de boutique
 dépasse un jour quelques centaines de kilooctets.
 
-Les lectures ont lieu au `SERVER_STARTED` et sur `/shop reload`, et nulle part ailleurs. Un
+Les trois fichiers JSON sont lus au `SERVER_STARTED` et sur `/shop reload`, et nulle part
+ailleurs ; images et templates sont relus sur le disque à chaque utilisation. Un
 fichier de boutique édité à la main pendant que le serveur tourne est écrasé par la
 mutation suivante.
 
@@ -115,13 +118,14 @@ Deux passages de relais, tous deux explicites :
   `context.server().execute(…)` : aucune action ne tourne donc sur un thread netty.
 - **Thread HTTP → thread serveur.** Chaque handler mutant de `MarketApi` enveloppe son
   travail dans `WebDashboard.executeOnServerThread(server, () -> …)` puis relit le résultat
-  dans un tableau à un élément. Les handlers GET lisent directement les collections
-  thread-safe depuis le thread HTTP, et c'est pour cela que `transactions` est en
-  copy-on-write.
+  dans un tableau à un élément. Les handlers GET lisent directement depuis le thread
+  HTTP : `transactions`, en copy-on-write, est sans risque ; la table `shops`, elle, ne
+  l'est pas et se lit sans verrou.
 
 `AssetManager` fait exception : il lit et écrit les fichiers PNG directement depuis le
-thread HTTP. C'est sans danger — ces fichiers ne sont jamais touchés par le thread
-serveur — mais cela veut dire qu'un disque lent bloque une requête HTTP plutôt qu'un tick.
+thread HTTP. Le thread serveur ne fait que les lire (pour intégrer un fond dans une vue
+de boutique), donc le chevauchement est bénin — mais un disque lent bloque une requête
+HTTP plutôt qu'un tick.
 
 ---
 
@@ -141,9 +145,9 @@ Il n'a pas le choix : une vue de boutique embarque des PNG en base64 pour le fon
 chaque icône d'item personnalisé, plus une infobulle vanilla sérialisée par identifiant
 d'item, et cela dépasse largement la limite par défaut.
 
-Le protocole est un protocole à découpage de chaînes. Un achat, par exemple, s'écrit
-`shop_buy:<shopId>:<setId>:<itemId>:<quantity>` : les actions sont découpées sur `:` avec
-une limite, et sur `|` pour les actions qui portent une charge. Deux séparateurs sont en usage parce que les identifiants d'items
+Le protocole est un protocole à découpage de chaînes. Les actions ressemblent à
+`item_save:<shopId>:<setId>:<itemId>|<json>`, découpées sur `:` avec une limite et sur `|`
+pour la charge. Deux séparateurs sont en usage parce que les identifiants d'items
 contiennent des deux-points : les actions de sortie et de coût utilisent `|` partout
 exactement pour cette raison. Ça marche, et c'est la partie du mod qu'un mainteneur a le
 plus de chances de casser en ajoutant un champ.
@@ -152,6 +156,9 @@ Valeurs de `viewMode` : `SHOP_LIST`, `SHOP_EDIT`, `SET_LIST`, `SET_EDIT`, `ITEM_
 `ITEM_EDIT`, `ITEM_PICKER`, `ERROR`, `SHOP_VIEW`, `PURCHASE_RESULT`, `CLOSE`. Le client
 route `SHOP_VIEW` et `PURCHASE_RESULT` vers l'écran joueur, `CLOSE` vers la fermeture de
 tout, et tout le reste vers l'écran d'administration.
+
+Les actions qu'un joueur ordinaire peut envoyer, et celles qui exigent le niveau de
+permission 2, sont décrites sous [le canal d'actions](#le-canal-dactions).
 
 ---
 
@@ -182,7 +189,8 @@ Tout cela résout classes et méthodes **par leur nom**. C'est un compromis dél
 mods restent compilables indépendamment — et une fragilité permanente : renomme
 `getPriceCredits`, `hasInCodex` ou `buildItemStack` dans CheeseItems, ou
 `CurrencyComponent.modify` dans Numismatic Overhaul, et la fonctionnalité correspondante
-s'éteint toute seule avec une ligne `WARN` au démarrage et plus aucune plainte ensuite.
+s'éteint toute seule avec une ligne `WARN` à la première utilisation du hook et plus
+aucune plainte ensuite.
 Cherche `[Market] Failed to initialize` dans le log après avoir mis à jour l'un de ces
 mods.
 
@@ -210,11 +218,77 @@ Tout a été supprimé. Si un ancien jar `cheesemarket` traîne encore dans un d
 
 ## Faiblesses connues
 
-### Le canal d'actions n'est pas authentifié
+### Le canal d'actions
 
-⚠️ Ne fais pas tourner cette version sur un serveur public : le canal d'actions client ne vérifie pas les permissions de l'expéditeur, si bien qu'un client modifié peut effectuer des actions d'administration. Un correctif arrive ; suis le dépôt.
+`CheeseMarket.onInitialize` enregistre un unique receiver global pour
+`cheesemarket:shop_action` et confie chaque payload à `ShopGuiHandler.handle`. N'importe
+quel client peut placer un payload sur ce canal — le client d'origine à travers ses
+écrans, un client modifié avec la chaîne de son choix. Le contrôle doit donc se trouver
+dans le gestionnaire, et c'est le cas : la première chose que fait `handle` est de ranger
+l'action dans l'un de deux groupes.
 
-Le correctif ajoutera un contrôle de permission sur les actions d'administration.
+| Groupe | Actions | Qui peut les envoyer |
+|---|---|---|
+| Actions joueur | `open_shop_player:<shopId>`, `shop_buy:<shopId>:<setId>:<itemId>[:<qté>]` | tout le monde — ce sont celles qu'envoie `ShopViewScreen` quand un joueur parcourt une boutique et achète |
+| Actions d'administration | tout le reste : les lectures `open_*`, `shop_*`, `set_*`, `item_*`, `picker_*` | niveau de permission 2 et plus (`player.hasPermissionLevel(2)`) |
+
+Le niveau 2 est la même barre que `/cmadmin`, la commande qui ouvre l'éditeur d'où
+partent ces actions : un opérateur ne remarque jamais ce garde. Une action
+d'administration envoyée par quelqu'un en dessous est écartée avant toute branche — rien
+n'est lu, écrit ni renvoyé — et une ligne part dans le journal du serveur :
+
+```text
+[CheeseMarket] Refused admin action from non-op <nom>: <action>
+```
+
+L'action est coupée à 64 caractères suivis de `…`, pour qu'un long payload `item_save`
+n'inonde pas le journal. Le client ne reçoit aucune réponse : un éditeur resté ouvert
+après que son joueur a perdu le statut d'opérateur cesse de répondre, sans aucun message
+à l'écran.
+
+**Historique.** Avant le 29 octobre 2026, ce chemin ne comportait aucun contrôle : ni le
+receiver ni aucune branche de `handle` ne regardait l'expéditeur. Un joueur muni d'un
+client modifié pouvait envoyer toutes les actions d'administration et, comme les
+commandes d'achat s'exécutent depuis la source console, cela suffisait à faire exécuter
+des commandes arbitraires comme la console du serveur. Le garde ci-dessus ferme cette
+faille. Si un jar `cheesemarket` compilé avant cette date se trouve dans un dossier
+`mods/`, remplace-le.
+
+#### Ce que le garde ne couvre pas
+
+Aucun des points ci-dessous ne permet à un joueur d'exécuter une commande ni de modifier
+une boutique. Tous sont antérieurs au correctif, et tous viennent de ce que les deux
+actions joueur font confiance à leurs arguments.
+
+- **N'importe quelle boutique, depuis n'importe où.** `open_shop_player` et `shop_buy`
+  acceptent n'importe quel identifiant de boutique. Rien ne vérifie que la boutique a
+  été ouverte pour ce joueur par un NPC, une quête ou `/shop open`, et rien ne teste la
+  distance. Un client modifié peut donc consulter toutes les boutiques et y acheter, y
+  compris celles qui ne devraient être accessibles qu'après une quête. Ne compte pas sur
+  la manière dont une boutique s'ouvre pour restreindre qui y achète ; restreins-le par
+  les prix, le stock et la rotation.
+- **Le stock et les quotas par joueur peuvent être dépassés.** `canPurchase` contrôle le
+  stock et le quota par joueur sans tenir compte de la quantité, qui peut monter à 64 :
+  un seul achat peut dépasser l'un comme l'autre. Traité dans
+  [Les contrôles de stock ignorent la quantité](#les-contrôles-de-stock-ignorent-la-quantité).
+- **Les commandes d'achat sont visibles des joueurs.** Le payload `SHOP_VIEW` est
+  construit à partir de `ShopItem.toJson()`, qui inclut le champ `commands` de chaque
+  item. Ce qu'un administrateur met dans une commande d'achat — une récompense cachée,
+  une coordonnée, un nom de tag — est lisible par un client modifié. N'y mets rien que tu
+  ne montrerais pas à l'acheteur.
+- **Les boutiques morpho vendent tout le catalogue.** Dans une boutique avec
+  `morphoCatalog: true`, `handlePurchase` passe la main à `handleMorphoPurchase` avant
+  que `canPurchase` ne s'exécute. Ce chemin vérifie uniquement que l'identifiant est de
+  la forme `morpho_<id>`, que le catalogue connaît `<id>`, que le joueur ne le possède
+  pas encore, et le solde. N'importe quelle entrée du catalogue est donc achetable à son
+  prix catalogue, y compris celles que la vue de la boutique écarte parce qu'elles ne
+  sont pas marquées disponibles auprès des NPC. Voir
+  [le parcours du catalogue morpho](purchases.fr.md#le-parcours-du-catalogue-morpho).
+- **Les identifiants de boutique ne sont pas validés sur disque.** `shop_create:` et
+  `shop_delete:` transmettent l'identifiant tel quel à `Path.resolve(id + ".json")` :
+  `..` et `/` ne sont pas refusés. Seuls les opérateurs peuvent encore l'atteindre, et
+  ils peuvent déjà faire bien davantage ; ce chemin mérite tout de même le contrôle de
+  type `isValidId` que `MarketApi` applique côté dashboard.
 
 ### Le paiement et la livraison ne sont pas atomiques
 
@@ -247,7 +321,7 @@ un deuxième set actif et le regarder ne jamais apparaître.
 
 ### Clés de langue inutilisées
 
-Dix-huit des 37 clés de `assets/cheesemarket/lang/en_us.json` ne sont référencées par
+Dix-huit des 39 clés de `assets/cheesemarket/lang/en_us.json` ne sont référencées par
 aucun code Java : tout le bloc `cheesemarket.command.*` (remplacé par
 `cheesemarket.cmd.*`), tout le bloc `cheesemarket.purchase.*` (remplacé par
 `cheesemarket.gui.*`), et tout le bloc `cheesemarket.tooltip.*` (les infobulles sont
@@ -257,9 +331,11 @@ des items *sont* lâchés aux pieds d'un joueur et personne ne le lui dit.
 
 Dans l'autre sens, plusieurs chaînes vues par les joueurs sont du français codé en dur en
 Java plutôt que des clés de langue : `Confirmer`, `Fermer`, `Aucun article.`, le message
-d'échec de livraison, les messages morpho, et les libellés de stock `Illimité`,
-`Par joueur`, `Quotidien`, `Toujours actif` et compagnie. Un client en anglais y voit du
-français.
+d'échec de livraison, les messages morpho, et les libellés `Gratuit`, `Coût:` et
+`Quantité:` des infobulles. Un client en
+anglais y voit du français. Les libellés de mode et de rotation — `Illimité`,
+`Par joueur`, `Quotidien`, `Toujours actif` et compagnie — sont eux aussi du français en
+dur, mais seuls l'écran d'administration et le dashboard les affichent.
 
 ### Code mort
 

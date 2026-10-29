@@ -13,8 +13,8 @@ in an inventory.
 
 Admins never touch a config file. Shops, sets, items, prices, stock limits and the visual
 arrangement are all authored in CheeseDash, and the layout tab is a genuine editor:
-drag elements on a canvas the size of the shop texture, snap to a grid, undo thirty
-steps, upload a background PNG, save the arrangement as a reusable template.
+drag elements on a canvas the size of the shop texture, snap to a grid, undo up to
+forty-nine steps, upload a background PNG, save the arrangement as a reusable template.
 
 There is no price field anywhere, because the currency *is* the item id you put in the
 cost list. Emeralds, a custom quest item, Numismatic Overhaul coins paid from the
@@ -31,7 +31,7 @@ than a stack.
 | | |
 |---|---|
 | **Required** | [CheeseDash](../CheeseDash/) · Fabric Loader ≥ 0.15.11 · Fabric API · Java 21 |
-| **Required on both sides** | the same jar on the server **and** on every client — the interface is a client screen |
+| **Required on both sides** | the same jar on the server **and** on every client — the interface is a client screen; CheeseDash has to be on the client as well, since it is a hard dependency |
 | **Optional** | [CheeseStore](../CheeseStore/) for credit prices · [CheeseItems](../CheeseItems/) for custom item icons and the morpho catalogue · [Numismatic Overhaul](https://modrinth.com/mod/numismatic-overhaul) for coin prices paid from the purse |
 
 All three optional integrations are reached by reflection, so the jar loads without
@@ -46,7 +46,8 @@ cd ../CheeseMarket && ./gradlew build
 ```
 
 Drop `build/libs/cheesemarket-1.0.0+1.21.1.jar` and the CheeseDash jar in the server's
-`mods/`, and the CheeseMarket jar in the client's. There is no config file: the first
+`mods/`, and both jars in the client's — the `cheesedash` dependency applies on the
+client too. There is no config file: the first
 launch creates `<world>/data/cheesemarket/shops/` and logs
 
 ```text
@@ -108,7 +109,19 @@ successful purchase, and CheeseDash forwards it to Discord if a webhook is confi
 
 ## Honest warnings
 
-⚠️ Do not run this version on a public server: the client action channel does not check the sender's permissions, so a modified client can carry out admin actions. A fix is on the way; follow the repo.
+⚠️ **Update any jar built before 29 October 2026.** Until then, the
+`cheesemarket:shop_action` channel accepted the admin actions from anyone, and a player
+with a modified client could have commands run as the server console. Every action other
+than opening a shop and buying now requires permission level 2, the same as `/cmadmin`,
+and a refused one is logged as a `WARN`.
+
+⚠️ **The buy action trusts its arguments.** `shop_buy` and `open_shop_player` accept any
+shop id, with no check that an NPC or a quest opened that shop for the player, so a
+modified client can buy from a quest-gated shop. A single purchase can overshoot a stock
+or a per-player limit, the shop view sends each item's purchase commands to the client,
+and a morpho shop sells any catalogue entry at its price. None of this runs a command.
+[The architecture note](docs/architecture.md#the-action-channel) lists what the gate
+covers and what it does not.
 
 ⚠️ **Payment is not atomic with delivery.** Costs are taken before outputs are handed
 over. An output whose item id is not in the registry is skipped with a log line while

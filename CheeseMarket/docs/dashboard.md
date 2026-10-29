@@ -35,8 +35,9 @@ if (module != null) {
     module.handleRequest(exchange, subRoute);
 ```
 
-That matters because in this repository `WebDashboard.requireWrite(exchange)` **returns
-a boolean and blocks nothing on its own** — ignoring its result lets the request through.
+That matters because in this repository `WebDashboard.requireWrite(exchange)` **sends
+the `403` and returns `false`, but does not stop the caller** — ignoring its result lets
+the request run anyway.
 The dispatch above uses the correct form, `if (!…) return;`, so the guard is real: in this
 build every non-`GET` request to any route under `/api/v1/market/` does require
 `OPERATOR` or above, and `GET` requests accept any role including `READ_ONLY`. The

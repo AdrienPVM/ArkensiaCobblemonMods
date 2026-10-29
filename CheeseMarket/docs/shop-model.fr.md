@@ -26,8 +26,11 @@ comment la limite de stock d'un item fonctionne, et comment un prix se paie rée
 ```
 
 Le dossier est résolu au `SERVER_STARTED` depuis
-`server.getSavePath(WorldSavePath.ROOT).resolve("data")` : il suit donc ton `level-name`
-au lieu d'être figé. Chaque enregistrement réécrit tout le fichier de boutique avec le
+`server.getSavePath(WorldSavePath.ROOT).resolve("data")` : `shops/` et les deux fichiers
+de compteurs suivent donc ton `level-name` au lieu d'être figés. `assets/` et
+`templates/`, non : `AssetManager` n'est jamais initialisé avec ce chemin et utilise
+toujours `./world/data/cheesemarket/` — voir
+[l'éditeur de mise en page](layout-editor.fr.md#les-images-téléversées). Chaque enregistrement réécrit tout le fichier de boutique avec le
 formatage lisible de Gson, donc les fichiers restent consultables et comparables.
 
 ---
@@ -46,13 +49,13 @@ dashboard et devient le nom du fichier ; il n'est jamais modifiable ensuite.
 | `showWelcomeMessage` | booléen | `false` | envoyé au client, jamais dessiné |
 | `welcomeMessage` | chaîne | `Bienvenue dans le shop !` | envoyé au client, jamais dessiné |
 | `titleColor` | chaîne | `gold` | un nom de couleur vanilla ou un triplet hexadécimal, pour le titre |
-| `bgColor` | chaîne | `1A1A2E` | hexadécimal `RRGGBB` |
-| `borderColor` | chaîne | `2A5A8A` | hexadécimal `RRGGBB` |
-| `accentColor` | chaîne | `4AC8EA` | hexadécimal `RRGGBB` |
-| `btnBuyColor` | chaîne | `1A5C2A` | fond du bouton de confirmation |
-| `btnBuyTextColor` | chaîne | `FFFFFF` | texte du bouton de confirmation |
-| `btnCloseColor` | chaîne | `1E3A5F` | fond du bouton d'annulation |
-| `btnCloseTextColor` | chaîne | `CCCCCC` | texte du bouton d'annulation |
+| `bgColor` | chaîne | `1A1A2E` | hexadécimal `RRGGBB` ; envoyé au client, jamais affiché |
+| `borderColor` | chaîne | `2A5A8A` | hexadécimal `RRGGBB` ; envoyé au client, jamais affiché |
+| `accentColor` | chaîne | `4AC8EA` | hexadécimal `RRGGBB` ; envoyé au client, jamais affiché |
+| `btnBuyColor` | chaîne | `1A5C2A` | prévu pour le fond du bouton de confirmation ; jamais affiché |
+| `btnBuyTextColor` | chaîne | `FFFFFF` | prévu pour le texte du bouton de confirmation ; jamais affiché |
+| `btnCloseColor` | chaîne | `1E3A5F` | prévu pour le fond du bouton d'annulation ; jamais affiché |
+| `btnCloseTextColor` | chaîne | `CCCCCC` | prévu pour le texte du bouton d'annulation ; jamais affiché |
 | `layout` | objet ou absent | absent | positions des éléments — voir [l'éditeur de mise en page](layout-editor.fr.md) |
 | `morphoCatalog` | booléen | `false` | remplace les sets de la boutique par le catalogue morpho CheeseItems au moment de l'affichage |
 | `sets` | tableau | `[]` | les sets, dans l'ordre du fichier |
@@ -66,8 +69,8 @@ non plus — la seule action de bouton personnalisé que le client comprend est 
 
 **Donc, dans l'interface joueur, seul le premier set actuellement actif est
 atteignable.** Conçois tes boutiques en conséquence : un set actif à la fois, la rotation
-décidant lequel. Le deuxième set actif est chargé et validé, mais
-invisible.
+décidant lequel. Le deuxième set actif est chargé, validé, achetable par un payload forgé,
+et invisible.
 
 `morphoCatalog` est une autre bête, décrite dans
 [les achats](purchases.fr.md#le-parcours-du-catalogue-morpho).
@@ -134,11 +137,15 @@ de 8 caractères.
 | `enabled` | booléen | `true` | false le cache aux joueurs et le garde dans le dashboard |
 | `sortOrder` | entier | index à la création | position dans la grille |
 
-`getEffectiveDisplayItem()` a une bizarrerie à connaître : la méthode traite
-`minecraft:paper` comme « non défini ». Si `displayItem` est vide **ou littéralement
-`minecraft:paper`**, l'icône retombe sur l'identifiant de la première sortie, et s'il n'y
-a aucune sortie, sur le papier. Un item dont l'icône est réellement censée être du papier,
-avec un diamant en sortie, affiche donc un diamant.
+L'icône que voit le joueur est choisie par le client (`ShopViewScreen.effectiveIcon`),
+dans cet ordre : la première sortie, **si elle porte des `components`** — elle passe
+alors devant `displayItem`, et la carte montre exactement la pile vendue ; sinon
+`displayItem` s'il n'est pas vide, papier compris ; sinon l'identifiant de la première
+sortie. `ShopItem` possède aussi un `getEffectiveDisplayItem()` qui traite
+`minecraft:paper` comme « non défini », mais rien ne l'appelle. En pratique : un item créé
+par l'API ou par l'éditeur en jeu sans `displayItem` garde la valeur par défaut
+`minecraft:paper` et affiche du papier ; l'éditeur du dashboard l'évite en remplissant un
+champ d'icône vide avec l'identifiant de la première sortie à l'enregistrement.
 
 `getEffectiveName()` renvoie `displayName` quand il est renseigné, sinon l'identifiant de
 l'icône débarrassé de son espace de noms, les tirets bas devenant des espaces
@@ -228,7 +235,10 @@ redémarre. Le fichier est lu une fois au chargement et écrit à chaque achat, 
 
 ### Ce que le joueur voit
 
-`stockDisplay` construit la petite ligne sous la carte :
+`stockDisplay` construit une ligne de stock pour chaque item, et le serveur l'envoie dans
+le payload `SHOP_VIEW` — mais **le client ne la dessine jamais** : un joueur ne voit donc
+aucun chiffre de stock, seulement une carte grisée une fois que `canBuy` vaut false. Les
+chaînes qu'elle afficherait :
 
 | Mode | Affiché |
 |---|---|

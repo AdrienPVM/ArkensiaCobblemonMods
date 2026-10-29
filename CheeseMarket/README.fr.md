@@ -15,7 +15,7 @@ Les administrateurs ne touchent jamais à un fichier de configuration. Les bouti
 sets, les items, les prix, les limites de stock et l'agencement visuel sont tous conçus
 dans CheeseDash, et l'onglet de mise en page est un véritable éditeur : fais glisser des
 éléments sur un canevas à la taille de la texture de boutique, accroche-les à une grille,
-annule trente niveaux, téléverse un PNG de fond, enregistre l'agencement comme template
+annule jusqu'à quarante-neuf niveaux, téléverse un PNG de fond, enregistre l'agencement comme template
 réutilisable.
 
 Il n'y a aucun champ de prix nulle part, parce que la monnaie *est* l'identifiant d'item
@@ -33,7 +33,7 @@ l'achat, et c'est ainsi qu'une boutique vend un rang ou une permission plutôt q
 | | |
 |---|---|
 | **Requis** | [CheeseDash](../CheeseDash/) · Fabric Loader ≥ 0.15.11 · Fabric API · Java 21 |
-| **Requis des deux côtés** | le même jar sur le serveur **et** sur chaque client — l'interface est un écran client |
+| **Requis des deux côtés** | le même jar sur le serveur **et** sur chaque client — l'interface est un écran client ; CheeseDash doit aussi être sur le client, puisque c'est une dépendance obligatoire |
 | **Facultatifs** | [CheeseStore](../CheeseStore/) pour des prix en crédits · [CheeseItems](../CheeseItems/) pour les icônes d'items personnalisés et le catalogue morpho · [Numismatic Overhaul](https://modrinth.com/mod/numismatic-overhaul) pour des prix en pièces payés depuis la bourse |
 
 Les trois intégrations facultatives sont atteintes par réflexion : le jar se charge donc
@@ -48,7 +48,8 @@ cd ../CheeseMarket && ./gradlew build
 ```
 
 Dépose `build/libs/cheesemarket-1.0.0+1.21.1.jar` et le jar de CheeseDash dans le `mods/`
-du serveur, et le jar CheeseMarket dans celui du client. Il n'y a aucun fichier de
+du serveur, et les deux jars dans celui du client — la dépendance `cheesedash` s'applique
+aussi côté client. Il n'y a aucun fichier de
 configuration : le premier démarrage crée `<world>/data/cheesemarket/shops/` et journalise
 
 ```text
@@ -111,7 +112,21 @@ réussi, et CheeseDash le relaie vers Discord si un webhook est configuré.
 
 ## Avertissements honnêtes
 
-⚠️ Ne fais pas tourner cette version sur un serveur public : le canal d'actions client ne vérifie pas les permissions de l'expéditeur, si bien qu'un client modifié peut effectuer des actions d'administration. Un correctif arrive ; suis le dépôt.
+⚠️ **Remplace tout jar compilé avant le 29 octobre 2026.** Jusque-là, le canal
+`cheesemarket:shop_action` acceptait les actions d'administration de n'importe qui, et un
+joueur muni d'un client modifié pouvait faire exécuter des commandes comme la console du
+serveur. Toute action autre que l'ouverture d'une boutique et l'achat exige désormais le
+niveau de permission 2, comme `/cmadmin`, et une action refusée est journalisée en `WARN`.
+
+⚠️ **L'action d'achat fait confiance à ses arguments.** `shop_buy` et `open_shop_player`
+acceptent n'importe quel identifiant de boutique, sans vérifier qu'un NPC ou une quête a
+ouvert cette boutique pour le joueur : un client modifié peut donc acheter dans une
+boutique réservée à une quête. Un seul achat peut dépasser un stock ou un quota par
+joueur, la vue de la boutique envoie au client les commandes d'achat de chaque item, et
+une boutique morpho vend n'importe quelle entrée du catalogue à son prix. Rien de tout
+cela n'exécute de commande.
+[La note d'architecture](docs/architecture.fr.md#le-canal-dactions) détaille ce que le
+garde couvre et ce qu'il ne couvre pas.
 
 ⚠️ **Le paiement n'est pas atomique avec la livraison.** Les coûts sont prélevés avant la
 remise des sorties. Une sortie dont l'identifiant d'item est absent du registre est sautée

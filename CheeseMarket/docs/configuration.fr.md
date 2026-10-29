@@ -74,11 +74,12 @@ une clé absente prend la valeur par défaut du constructeur de `ShopData`.
 
   // Un nom de couleur vanilla ou un triplet hexadécimal.
   "titleColor": "gold",
-  // Hexadécimal RRGGBB, sans '#' devant.
+  // Hexadécimal RRGGBB, sans '#' devant. Ces trois couleurs et les quatre
+  // couleurs de boutons ci-dessous sont envoyées au client et jamais dessinées.
   "bgColor": "1A1A2E",
   "borderColor": "2A5A8A",
   "accentColor": "4AC8EA",
-  // Boutons de la fenêtre de confirmation.
+  // Prévues pour les boutons de la fenêtre de confirmation ; inutilisées.
   "btnBuyColor": "1A5C2A",
   "btnBuyTextColor": "FFFFFF",
   "btnCloseColor": "1E3A5F",
@@ -152,8 +153,8 @@ une clé absente prend la valeur par défaut du constructeur de `ShopData`.
       "items": [
         {
           "id": "b1c2d3e4",
-          // L'icône. minecraft:paper est lu comme « non défini » et remplacé par
-          // l'identifiant de la première sortie — choisis autre chose si tu veux du papier.
+          // L'icône, utilisée telle quelle (papier compris). Vide, elle retombe sur
+          // la première sortie ; une première sortie avec "components" la remplace.
           "displayItem": "minecraft:potion",
           // Vide signifie que le client affiche le nom vanilla traduit de l'icône.
           "displayName": "Potion de soin",
@@ -203,8 +204,9 @@ une clé absente prend la valeur par défaut du constructeur de `ShopData`.
 
 Le sens de chaque champ, avec le raisonnement derrière les plus étranges, se trouve dans
 [le modèle de boutique](shop-model.fr.md). Les commentaires JSON ci-dessus sont là pour la
-lecture seule — l'analyseur Gson par défaut les refuse, donc retire-les avant d'utiliser
-ceci comme vrai fichier.
+lecture seule. Le mod lit les fichiers de boutique avec le `JsonParser` permissif de Gson,
+qui tolère les commentaires `//`, mais l'enregistrement suivant réécrit le fichier depuis la
+mémoire sans eux — retire-les donc plutôt que de compter dessus.
 
 ---
 
@@ -230,7 +232,9 @@ Trois tables plates, clés en chaîne, valeurs entières ou en secondes epoch.
   la table signifie « personne n'en a encore acheté », et le `globalStock` de l'item sert
   alors de valeur de départ.
 - `player` contient les unités **achetées** par ce joueur, comptées depuis zéro. Supprime
-  une clé pour rendre son quota à ce seul joueur.
+  une clé serveur arrêté, ou mets-la à `0` puis `/shop reload`, pour rendre son quota à ce
+  seul joueur — une clé supprimée du fichier puis rechargée survit en mémoire, parce que le
+  rechargement fusionne dans les compteurs existants sans les vider.
 - `lastReset` est la seconde epoch à laquelle un item `PER_PLAYER_RESET` a vu ses clés par
   joueur effacées pour la dernière fois. Zéro ou absent signifie que le prochain accès
   réinitialise.

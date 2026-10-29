@@ -55,11 +55,15 @@ Aucune sortie en chat. L'écran s'ouvre.
 | `shopId` | mot unique | oui | un identifiant de boutique chargée ; **aucune complétion par tabulation** | — |
 
 Niveau de permission 2. Ouvre la boutique **pour le joueur qui lance la commande**, et
-pour lui seul. Il n'y a aucun argument de joueur cible : `/shop open general` lancé depuis
-la console ne fait rien d'autre que signaler une erreur, et cette commande n'offre aucun
-moyen de pousser une boutique vers quelqu'un d'autre. Pour ouvrir une boutique pour un
-autre joueur, il faut envoyer l'action `open_shop_player:<shopId>` depuis ce qui le
-pilote — c'est ce que fait l'intégration NPC.
+pour lui seul. Il n'y a aucun argument de joueur cible : `/shop open general` tapé dans
+la console ne fait rien d'autre que signaler une erreur. La commande prend cependant le
+joueur de la source, donc `/execute as <joueur> run shop open <shopId>` — depuis la
+console, un bloc de commande, ou un NPC ou une quête qui exécute des commandes au niveau 2
+ou plus — ouvre la boutique sur l'écran de ce joueur. C'est ainsi qu'on pousse une
+boutique vers quelqu'un d'autre. L'action `open_shop_player:<shopId>` fait la même chose,
+mais c'est un paquet client vers serveur : seul le client du joueur lui-même peut
+l'envoyer, et le seul émetteur intégré est le bouton d'aperçu *▶ Voir* de l'écran
+`/cmadmin`.
 
 Ce qu'elle fait, dans l'ordre :
 
@@ -136,10 +140,14 @@ Deux conséquences à anticiper :
   fichier de boutique devenu illisible depuis le dernier chargement disparaît de la table,
   avec pour seule trace `[CheeseMarket] Failed to load shop: <fichier> → <message>` sur la
   sortie d'erreur standard.
-- Les fichiers de stock et de transactions sont relus depuis le disque : éditer
-  `cheesemarket_stock.json` à la main puis recharger est donc la façon prise en charge de
-  réinitialiser un compteur. Fais-le quand personne n'achète : l'achat suivant réécrit tout
-  le fichier depuis la mémoire.
+- Le fichier de stock est relu **dans les compteurs existants, qui ne sont pas vidés
+  avant** : une valeur modifiée dans `cheesemarket_stock.json` remplace celle en mémoire,
+  mais une clé supprimée du fichier survit en mémoire et est réécrite au prochain achat.
+  Pour réinitialiser un compteur de cette façon, donne-lui une valeur (`0` pour un
+  compteur par joueur, la quantité complète pour un stock global) au lieu de le retirer,
+  puis recharge. Fais-le quand personne n'achète : l'achat suivant réécrit tout le fichier
+  depuis la mémoire. La liste des transactions, elle, est vidée puis entièrement remplacée
+  par le fichier.
 
 Un joueur qui tient un panneau de boutique ouvert n'est pas rafraîchi. Il continue de
 regarder les anciennes données jusqu'à fermer et rouvrir le panneau.
@@ -163,8 +171,10 @@ d'affichage `TABS`, le jeu de couleurs d'origine, aucun set — et **écrit imm�
 
 L'identifiant devient le nom du fichier. Il est vérifié contre les collisions, et rien
 d'autre : aucune validation de caractères n'a lieu sur ce chemin, contrairement à
-l'`isValidId` du dashboard. Un identifiant de boutique contenant une barre oblique ou un
-`..` sera passé directement à `Path.resolve`. Utilise des mots simples en minuscules.
+l'`isValidId` du dashboard. L'argument `word()` de Brigadier le limite déjà aux lettres,
+chiffres et `_ - . +`, donc une barre oblique ne peut pas passer ici — mais l'action
+`shop_create:` du canal réseau transmet une chaîne arbitraire au même `Path.resolve`.
+Utilise des mots simples en minuscules.
 
 ```mcfunction
 /shop create farmers
@@ -217,8 +227,11 @@ Ce qu'elle laisse derrière :
   ventes doit survivre à la boutique.
 
 Recréer une boutique avec le même identifiant ressuscite ses anciens compteurs de stock,
-parce que les clés correspondent de nouveau. Si ce n'est pas ce que tu veux, vide le
-fichier de stock entre la suppression et la création.
+parce que les clés correspondent de nouveau. Les compteurs restent aussi en mémoire après
+la suppression, et le serveur les réécrit dans le fichier chaque fois qu'il enregistre le
+stock — à chaque achat et à l'arrêt — donc vider le fichier pendant que le serveur tourne
+ne sert à rien. Pour repartir de zéro, arrête le serveur, retire les clés de cette
+boutique de `cheesemarket_stock.json`, puis démarre-le et crée la boutique.
 
 | Message | Cause |
 |---|---|
@@ -233,10 +246,12 @@ Tout ce qui précède est accessible sans commande, et le dashboard est la voie 
 - **Dashboard** — le module `market`. CRUD boutiques, sets et items, l'éditeur de mise en
   page, les assets, les templates, les transactions et les statistiques. Voir
   [l'API dashboard](dashboard.fr.md).
-- **Le canal d'actions** — `cheesemarket:shop_action` porte les actions de l'écran joueur
-  et de l'écran d'administration. C'est ainsi qu'un NPC ouvre une boutique pour un joueur.
-  ⚠️ Dans cette version, il ne vérifie pas les permissions de l'expéditeur : voir
-  [l'architecture](architecture.fr.md#le-canal-dactions-nest-pas-authentifié).
+- **Le canal d'actions** — `cheesemarket:shop_action` porte à la fois les actions joueur et
+  un jeu complet d'actions d'administration. Seul un client peut émettre dessus — le
+  serveur ne peut pas envoyer une action à la place d'un joueur — et chaque action
+  d'administration exige le niveau de permission 2, la même barre que `/cmadmin` ; en
+  dessous, l'action est ignorée et journalisée. Voir
+  [l'architecture](architecture.fr.md#le-canal-dactions).
 
 ---
 

@@ -22,7 +22,7 @@ The editor lives behind the **Layout** tab of a shop's detail page in the dashbo
 - a snap grid of 1, 2, 5, 10, 15 or 20 pixels (5 by default);
 - a layers panel with per-element z-order arrows;
 - a properties panel for whatever is selected;
-- undo and redo, 30 steps deep, bound to Ctrl+Z and Ctrl+Y;
+- undo and redo over a 50-state history (49 steps back), bound to Ctrl+Z and Ctrl+Y;
 - Delete to remove the selection, Ctrl+D to duplicate it, arrow keys to nudge by one
   pixel and Shift+arrows to nudge by the snap step;
 - an autosave on a 2-second debounce, so you edit and it persists without a save button.
@@ -62,8 +62,8 @@ drawn in ascending `zOrder`.
 | `text` | the string; `{shopName}` and `{shopDesc}` are substituted at render time |
 | `color` | hex `RRGGBB`, a vanilla colour name, or the literal `{titleColor}` to inherit the shop's title colour |
 | `align` | `left`, `center` (default) or `right`, within the element's `width` |
-| `fontSize` | carried in the default layout; the renderer derives its scale from `scale` |
-| `scale` | text scale factor |
+| `fontSize` | base size; 9 is the vanilla size — the drawn scale is `fontSize / 9 × scale` |
+| `scale` | extra scale factor, multiplied with `fontSize / 9` |
 | `bold` | boolean |
 
 The default layout uses two TEXT elements with `text` set to `{shopName}` and
@@ -101,15 +101,17 @@ built-in 20 × 20 close texture rather than a colour fill.
 The grid centres itself horizontally inside the element. When everything fits without
 scrolling it also centres vertically, and an incomplete last row is centred too — so a
 shop with four items in a six-column grid shows them as a tidy centred row, not
-left-aligned with two gaps. Past one page a scrollbar appears on the right and the
-centring stops.
+left-aligned with two gaps. Past one page a scrollbar appears on the right; the grid
+stays centred horizontally, but the vertical and last-row centring stop.
 
 ### BACKGROUND
 
 One prop, `src`: either `default` for the built-in `shop/custom/shop.png`, or the name of
 an uploaded asset. The client receives the PNG inline as base64 on the first
 `SHOP_VIEW` payload and registers it as a dynamic texture, then skips re-sending it on
-the stock refresh that follows a purchase.
+the stock refresh that follows a purchase. The element's own `x`, `y`, `width` and
+`height` are ignored: the background is always drawn at the panel origin, stretched to
+350 × 250.
 
 ---
 
@@ -142,29 +144,32 @@ icon tight against the number.
 
 ## The confirmation panel
 
-`layout.confirmLayout` styles the buy dialog. It is absent until you edit it, and
-absent means the client's own constants apply. It carries one geometry key and fifteen
-colours:
+`layout.confirmLayout` is meant to style the buy dialog. It is absent until you edit it,
+and absent means the client's own constants apply. It carries one geometry key, one
+image key and fifteen colours — and the client honours only four of them. The dialog is
+drawn from the built-in `confirm.png` texture at its fixed 204 × 146 size, with its
+slider fill and quantity text in hardcoded colours; the other keys are parsed and never
+used.
 
-| Key | Default | What it colours |
-|---|---|---|
-| `width` | 340 | panel width |
-| `bgImage` | `""` | asset name for a background image; empty uses the built-in `confirm.png` |
-| `bgColor` | `1A1A2E` | panel background |
-| `borderColor` | `2A5A8A` | border |
-| `accentColor` | `4AC8EA` | accents |
-| `headerBgColor` | `0D2137` | header strip |
-| `titleColor` | `4AC8EA` | item name |
-| `labelColor` | `7A8A9A` | column labels |
-| `costColor` | `FFCC44` | prices |
-| `arrowColor` | `4AC8EA` | the arrow between the two columns |
-| `sliderBgColor` | `1A2A4A` | slider track |
-| `sliderFillColor` | `357EA3` | filled part of the track |
-| `sliderThumbColor` | `4AC8EA` | slider handle |
-| `sepColor` | `1E3050` | separators |
-| `btnConfirmTextColor` | `55FF55` | `Confirmer` label |
-| `btnCancelTextColor` | `FF6666` | `Fermer` label |
-| `columnBgColor` | `18FFFFFF` | column backgrounds, `AARRGGBB` |
+| Key | Default | Meant for | Used by the client? |
+|---|---|---|---|
+| `width` | 340 | panel width | no |
+| `bgImage` | `""` | asset name for a background image | no — the server embeds it as `confirmBgImageBase64`, the client never reads it |
+| `bgColor` | `1A1A2E` | panel background | no |
+| `borderColor` | `2A5A8A` | border | no |
+| `accentColor` | `4AC8EA` | accents | no |
+| `headerBgColor` | `0D2137` | header strip | no |
+| `titleColor` | `4AC8EA` | item name | no |
+| `labelColor` | `7A8A9A` | column labels | yes — only the `—` drawn in an empty column |
+| `costColor` | `FFCC44` | prices | yes — the `x<count>` labels in both columns |
+| `arrowColor` | `4AC8EA` | the arrow between the two columns | no |
+| `sliderBgColor` | `1A2A4A` | slider track | no |
+| `sliderFillColor` | `357EA3` | filled part of the track | no |
+| `sliderThumbColor` | `4AC8EA` | slider handle | no |
+| `sepColor` | `1E3050` | separators | no |
+| `btnConfirmTextColor` | `55FF55` | `Confirmer` label | yes |
+| `btnCancelTextColor` | `FF6666` | `Fermer` label | yes |
+| `columnBgColor` | `18FFFFFF` | column backgrounds, `AARRGGBB` | no |
 
 `columnBgColor` takes eight hex digits because it needs an alpha channel; the others are
 six.

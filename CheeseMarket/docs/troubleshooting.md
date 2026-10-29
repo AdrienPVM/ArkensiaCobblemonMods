@@ -21,7 +21,8 @@ payload and the client has no receiver for it, so it is dropped silently. The pa
 client-side `Screen`; the server cannot draw it.
 
 **Fix.** Install the same `cheesemarket-*.jar` in the client's `mods/` as well, plus
-Fabric API. The client does not need CheeseDash. Look for
+Fabric API and the CheeseDash jar — the client cannot start without CheeseDash once
+CheeseMarket is installed, because the dependency applies on both sides. Look for
 `[CheeseMarket] Client initialized.` in the client log to confirm.
 
 ---
@@ -57,13 +58,14 @@ Background in [the shop model](shop-model.md#shop).
 
 ## A card shows the wrong icon
 
-**Cause.** `getEffectiveDisplayItem()` treats `minecraft:paper` as "unset" — not just a
-blank string, the literal paper id too. An item whose `displayItem` is paper falls back
-to the first output's icon.
+**Cause.** One of two things. Either the item was created through the API or the in-game
+editor without a `displayItem` and kept the default, `minecraft:paper` — the client uses
+`displayItem` as-is, so it shows paper. Or the first output carries `components`: the
+client then draws that output instead of `displayItem`, whatever `displayItem` says.
 
-**Fix.** Set `displayItem` to something other than paper. If you genuinely want a paper
-icon for an item that outputs something else, there is no way to express it: pick another
-paper-like item, or make paper the first output.
+**Fix.** Set `displayItem` explicitly (the dashboard editor fills a blank one with the
+first output). If the first output has components and you want another icon, reorder the
+outputs so that a plain entry comes first.
 
 ---
 
@@ -98,7 +100,7 @@ Grep the server log:
 
 The first line means a shop sells an item id that does not exist on this server, usually
 after a mod was removed. The purchase completes "successfully": the player is charged,
-told `Achat réussi`, and the transaction is recorded. The second means delivery threw;
+told `Purchase successful`, and the transaction is recorded. The second means delivery threw;
 the player at least gets `[Market] Erreur de livraison ! Contactez un admin pour un
 remboursement.` in chat.
 
@@ -207,7 +209,9 @@ implementation behind it.
 
 **Fix.** Stop the server, edit `<world>/data/cheesemarket/cheesemarket_stock.json`,
 start it again. Or edit it and run `/shop reload` before anyone buys anything — the next
-purchase rewrites the file from memory and your edit would be lost. The file's shape is
+purchase rewrites the file from memory and your edit would be lost. With the reload
+route, change values rather than delete keys: the reload merges the file into the
+counters in memory without clearing them, so a deleted key comes back. The file's shape is
 in [configuration](configuration.md#the-stock-file).
 
 ---
@@ -226,7 +230,8 @@ to parse and the shop was dropped from the map; standard error carries
 
 Validate the JSON. The annotated example in
 [configuration](configuration.md#a-shop-file-annotated) carries comments for the
-reader's benefit, and Gson rejects those.
+reader's benefit; the lenient parser tolerates `//` comments, so look for the real
+syntax error elsewhere — a missing comma or quote is the usual one.
 
 ---
 
@@ -236,8 +241,8 @@ reader's benefit, and Gson rejects those.
 |---|---|
 | vanilla *Unknown or incomplete command* | your permission level is below 2; the whole `/cmadmin` and `/shop` tree needs level 2 |
 | the same, on `reload` or `delete` only | those two subcommands need level **4** |
-| `Joueur requis` | you ran `/cmadmin` or `/shop open` from the console or a command block; both need a player source |
-| `Shop introuvable : <id>` | wrong id — there is no tab completion on `shopId`, so check `/shop list` |
+| `Player required` | you ran `/cmadmin` or `/shop open` from the console or a command block; both need a player source (`/execute as <player> run …` provides one) |
+| `Shop not found: <id>` | wrong id — there is no tab completion on `shopId`, so check `/shop list` |
 
 ---
 
@@ -275,21 +280,46 @@ data. Per-route roles are in [the dashboard page](dashboard.md#required-roles).
 
 ## A player bought something without being able to open the shop
 
-**Cause.** ⚠️ The client action channel checks neither the sender's permissions nor
-their proximity to the shop, so a modified client can buy from a shop it was never shown.
+**Cause.** The buy action is open to every player and has no proximity check: nothing
+records which shop an NPC, a quest or `/shop open` opened for that player, so a modified
+client can buy from any shop whose id it knows. Shop ids are short, readable words and
+are not secret. Since 29 October 2026 this is the extent of it:
+editing shops through the same channel requires permission level 2.
 
-**Fix.** There is no configuration switch for this. Do not run this version on a public
-server, and watch the transaction log for sales from shops a player should not have
-reached. A fix is on the way: see
-[architecture](architecture.md#the-action-channel-is-unauthenticated).
+**Fix.** There is no configuration switch for this. Do not treat shop ids as secret, and
+do not rely on how a shop is opened to limit who buys from it: limit it with prices,
+stock and rotation. The transaction log shows sales from shops a player should not have
+reached. Details in [architecture](architecture.md#the-action-channel).
+
+---
+
+## An action in the in-game editor does nothing for a non-op
+
+**Cause.** The admin actions of the `cheesemarket:shop_action` channel — every action of
+the `/cmadmin` editor except the *▶ Voir* preview — require permission level 2, checked
+with `hasPermissionLevel(2)` on every action. A player below it gets no reply at all: the
+button does nothing and no message appears. The server log shows one line per refused
+action:
+
+```text
+[CheeseMarket] Refused admin action from non-op <name>: <action>
+```
+
+That happens when the player lost operator status with the editor still open, or when a
+permission mod lets them run `/cmadmin` without giving them vanilla level 2 — the gate
+checks the vanilla level only.
+
+**Fix.** Give the player permission level 2 (`/op`, with `op-permission-level` at 2 or
+more), then reopen the editor. If they should not edit shops, the refusal is the
+intended behaviour; use [the dashboard](dashboard.md) for that work instead.
 
 ---
 
 ## An English client sees French text in the shop
 
 **Cause.** Several strings are hardcoded French literals in Java rather than lang keys:
-the confirmation buttons `Confirmer` and `Fermer`, `Aucun article.`, the stock labels
-(`Illimité`, `Quotidien`, `Par joueur`…), the delivery-failure message and the morpho
+the confirmation buttons `Confirmer` and `Fermer`, `Aucun article.`, `Gratuit`, the
+`Coût:` and `Quantité:` tooltip lines, the delivery-failure message and the morpho
 messages. The lang files themselves are complete for the keys that *are* used.
 
 **Fix.** Not configurable. The keys are listed in

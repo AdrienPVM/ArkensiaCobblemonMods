@@ -12,12 +12,16 @@ déplaces jamais un item et tu ne fermes jamais un coffre.
 ## Ouvrir une boutique
 
 Tu ne tapes rien. Une boutique s'ouvre quand le serveur décide de l'ouvrir pour toi, ce
-qui veut dire en pratique l'une de ces trois choses :
+qui veut dire en pratique l'une de ces deux choses :
 
 - un administrateur lance `/shop open <id>` et c'est lui qui la lance, ou il te cible
   autrement ;
-- un NPC, un script de quête ou un bloc de commande t'envoie dans une boutique ;
-- un mod ou un datapack envoie l'action `open_shop_player:<shopId>` à ta place.
+- un NPC, un script de quête ou un bloc de commande t'envoie dans une boutique, en lançant
+  `/shop open <id>` en ton nom (`/execute as <toi> run …`) avec assez de permission.
+
+Rien sur le serveur ne peut envoyer l'action `open_shop_player:` à ta place : c'est un
+paquet que ton propre client envoie, et seul le bouton d'aperçu de l'écran
+d'administration le fait.
 
 Il n'existe aucune commande `/shop` pour les joueurs. Tout l'arbre `/shop` exige le
 niveau de permission 2, donc si tu la tapes tu reçois l'erreur vanilla *Unknown or
@@ -57,8 +61,9 @@ l'item — le serveur la pré-calcule et l'envoie avec les données de boutique,
 enchanté affiche ses enchantements et un item de quête personnalisé affiche son lore
 exactement comme dans ton inventaire.
 
-Sous l'icône, selon la limite de l'item, tu peux aussi voir combien il en reste : `∞`,
-`42/100`, `2/3 (vous)`, `1/1 (Quotidien)`.
+Tu ne vois pas combien il en reste. Le serveur calcule une ligne de stock pour chaque item
+et l'envoie, mais le client ne la dessine jamais ; le seul signe d'une limite est la carte
+qui se grise quand tu ne peux plus l'acheter.
 
 **Une carte grisée est une carte que tu ne peux pas acheter maintenant** — stock épuisé,
 quota personnel atteint, ou déjà possédée. Elle est dessinée sous un voile sombre, ne
@@ -86,12 +91,12 @@ l'affichage seulement — le serveur débite les montants configurés sur l'item
 
 ### Ce qui se passe ensuite
 
-La fenêtre de confirmation se ferme dès que le serveur répond, avant même que les items
-n'arrivent : il n'y a donc pas de fenêtre pour un double-clic.
+La fenêtre de confirmation se ferme dès que tu cliques `Confirmer`, avant même que le
+serveur ait répondu : il n'y a donc pas de fenêtre pour un double-clic.
 
 | Résultat | Ce que tu vois |
 |---|---|
-| Acheté | `Achat réussi : <item>` en vert dans le chat, et la grille se rafraîchit avec les nouveaux stocks |
+| Acheté | `Achat réussi : <item>` en vert dans le chat (suivi de ` x<n>` au-delà d'un), et la grille se rafraîchit — une carte que tu ne peux plus acheter se grise |
 | Pas assez d'argent ou d'items | `Pas assez de ressources pour acheter x<n>.` en rouge |
 | Pas de place | `Ton inventaire est plein ! Libère de la place avant d'acheter.` en rouge — rien n'a été débité |
 | Stock épuisé | `Stock épuisé pour cet item.` en rouge |
@@ -147,6 +152,8 @@ Liste honnête, pour que tu ne les cherches pas :
 
 - **Pas d'onglets.** Une boutique peut contenir plusieurs sets, et seul le premier set
   actif est affiché. Rien dans l'interface ne change de set.
+- **Pas de chiffre de stock.** Le stock restant et ton quota personnel ne sont jamais
+  affichés.
 - **Pas de message d'accueil.** La boutique peut en porter un, et le client ne le dessine
   jamais.
 - **Pas de modes d'affichage.** `TABS`, `FLAT` et `FEATURED` sont configurables et le
@@ -164,8 +171,9 @@ Liste honnête, pour que tu ne les cherches pas :
 Une carte avec un carré blanc vide à la place de l'icône signifie un item personnalisé
 dont l'image d'icône n'est pas arrivée — le serveur journalise
 `[Market]   <id> → NO image found` dans ce cas. Une carte avec la mauvaise icône est
-d'habitude un item dont le `displayItem` est resté à `minecraft:paper`, ce que le mod lit
-comme « non défini » et remplace par l'icône de la première sortie.
+d'habitude un item dont le `displayItem` est resté à sa valeur par défaut,
+`minecraft:paper`, ou dont la première sortie porte des `components` — cette sortie
+remplace alors le `displayItem`.
 
 Plus de cas dans [le dépannage](troubleshooting.fr.md).
 

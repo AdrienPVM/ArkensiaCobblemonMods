@@ -32,7 +32,13 @@ La quantité est analysée côté serveur puis bornée : `Math.max(1, Math.min(6
 quatrième segment absent vaut 1, et un segment illisible vaut aussi 1 (`parseInt` renvoie
 1 en cas d'échec). Un paquet forgé ne peut donc pas réclamer 10 000 unités.
 
-⚠️ L'achat ne vérifie pas la distance entre le joueur et la boutique.
+⚠️ Ce payload est ouvert à tous les joueurs — il doit l'être, puisque c'est par lui que
+passe un achat — et il ne comporte **aucun contrôle de distance**. Rien n'enregistre
+quelle boutique a été ouverte pour un joueur : un client modifié peut donc acheter dans
+n'importe quelle boutique dont il connaît l'identifiant sans qu'on lui ait jamais montré
+cette boutique, y compris une boutique réservée à une quête. Les actions
+d'administration du même canal exigent le niveau de permission 2 ; voir
+[l'architecture](architecture.fr.md#le-canal-dactions).
 
 ---
 
@@ -66,10 +72,15 @@ Tout résultat autre que `OK` envoie une ligne rouge en chat plus un payload
 
 ### La quantité ne fait pas partie du contrôle de stock
 
-`canPurchase` ne prend aucun argument de quantité : le contrôle de stock ignore la
-quantité demandée, si bien qu'un seul achat peut dépasser le stock global restant ou une
-limite par joueur, et le compteur est alors borné à zéro. Considère ces limites comme
-approximatives jusqu'à correction. C'est un vrai manque, pas une subtilité de lecture.
+`canPurchase` ne prend aucun argument de quantité. Un item en mode `GLOBAL` avec une
+seule unité restante accepte un achat de 64 : le contrôle voit `remaining > 0` et passe,
+puis `recordPurchase` applique `Math.max(0, remaining - quantity)` et borne le compteur à
+zéro. Le joueur obtient 64 unités pour 64 fois le prix. C'est pareil pour les limites par
+joueur : une limite de 1 n'empêche pas un achat unique de 64.
+
+Si cela compte sur ton serveur, donne à ces items un coût que le joueur ne peut pas payer
+64 fois, ou considère la limite comme une limite par transaction plutôt que comme un
+plafond dur. C'est un vrai manque, pas une subtilité de lecture.
 
 ---
 
@@ -98,7 +109,7 @@ Trois limites de cette simulation méritent d'être connues :
 
 ## Étape 3 — le paiement
 
-`deductCosts` procède en quatre phases : tout est vérifié avant que quoi que ce soit ne
+`deductCosts` procède par phases, de 0 à 4 : tout est vérifié avant que quoi que ce soit ne
 soit prélevé. Un false renvoyé pendant les phases de vérification signifie qu'aucune
 valeur n'a bougé, et le joueur reçoit
 `Pas assez de ressources pour acheter x<quantité>.` avec un `PURCHASE_RESULT` valant
@@ -267,15 +278,16 @@ Après l'enregistrement, dans cet ordre :
 
 1. Chat : `Achat réussi : <itemName>` (suivi de ` x<n>` quand la quantité dépasse 1), en
    vert.
-2. Un payload `PURCHASE_RESULT` portant `purchaseResult: "OK"`, envoyé avant tout le reste
-   pour que le client ferme le panneau de confirmation sans attendre.
+2. Un payload `PURCHASE_RESULT` portant `purchaseResult: "OK"`. Le client a déjà fermé le
+   panneau de confirmation, à l'instant où le joueur a cliqué `Confirmer` ; à réception, il
+   s'assure seulement que le panneau est fermé et la quantité revenue à 1.
 3. Si CheeseDash est chargé, un message `market_purchase` sur le canal WebSocket
    `market` — payload documenté dans [la page dashboard](dashboard.fr.md#websocket).
    L'appel est protégé par `isModLoaded("cheesedash")` et enveloppé contre
    `NoClassDefFoundError` : une installation sans CheeseDash ne plante donc pas ici.
-4. Un nouveau payload `SHOP_VIEW` avec `skipImages = true`, pour que la grille affiche les
-   nouveaux chiffres de stock sans réexpédier le fond en base64 que le client possède
-   déjà.
+4. Un nouveau payload `SHOP_VIEW` avec `skipImages = true`, pour que la grille reprenne
+   les nouveaux drapeaux `canBuy` — une carte que le joueur ne peut plus acheter se grise —
+   sans réexpédier le fond en base64 que le client possède déjà.
 
 ---
 
@@ -312,7 +324,7 @@ ignoré : un achat accorde une morpho.
 Tout cela dépend de noms de classes et de méthodes CheeseItems résolus par réflexion.
 C'est une observation de la façon dont les deux mods s'emboîtent aujourd'hui, pas un
 contrat : renomme `getPriceCredits` ou `hasInCodex` dans CheeseItems et ce parcours
-s'arrête, en silence, avec une unique ligne d'avertissement au démarrage.
+s'arrête, en silence, avec une unique ligne d'avertissement à sa première utilisation.
 
 ---
 

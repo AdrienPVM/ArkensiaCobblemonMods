@@ -26,8 +26,11 @@ item's stock limit works, and how a price is actually paid.
 ```
 
 The directory is resolved at `SERVER_STARTED` from
-`server.getSavePath(WorldSavePath.ROOT).resolve("data")`, so it follows your
-`level-name` rather than being hardcoded. Every save rewrites the whole shop file with
+`server.getSavePath(WorldSavePath.ROOT).resolve("data")`, so `shops/` and the two
+counter files follow your `level-name` rather than being hardcoded. `assets/` and
+`templates/` do not: `AssetManager` is never initialised with that path and always uses
+`./world/data/cheesemarket/` — see
+[the layout editor](layout-editor.md#uploaded-images). Every save rewrites the whole shop file with
 Gson pretty-printing, so the files stay readable and diffable.
 
 ---
@@ -46,13 +49,13 @@ becomes the file name; it is never editable afterwards.
 | `showWelcomeMessage` | boolean | `false` | sent to the client, never rendered |
 | `welcomeMessage` | string | `Bienvenue dans le shop !` | sent to the client, never rendered |
 | `titleColor` | string | `gold` | a vanilla colour name or a hex triplet, used for the title |
-| `bgColor` | string | `1A1A2E` | hex `RRGGBB` |
-| `borderColor` | string | `2A5A8A` | hex `RRGGBB` |
-| `accentColor` | string | `4AC8EA` | hex `RRGGBB` |
-| `btnBuyColor` | string | `1A5C2A` | confirm button background |
-| `btnBuyTextColor` | string | `FFFFFF` | confirm button text |
-| `btnCloseColor` | string | `1E3A5F` | cancel button background |
-| `btnCloseTextColor` | string | `CCCCCC` | cancel button text |
+| `bgColor` | string | `1A1A2E` | hex `RRGGBB`; sent to the client, never rendered |
+| `borderColor` | string | `2A5A8A` | hex `RRGGBB`; sent to the client, never rendered |
+| `accentColor` | string | `4AC8EA` | hex `RRGGBB`; sent to the client, never rendered |
+| `btnBuyColor` | string | `1A5C2A` | meant for the confirm button background; never rendered |
+| `btnBuyTextColor` | string | `FFFFFF` | meant for the confirm button text; never rendered |
+| `btnCloseColor` | string | `1E3A5F` | meant for the cancel button background; never rendered |
+| `btnCloseTextColor` | string | `CCCCCC` | meant for the cancel button text; never rendered |
 | `layout` | object or absent | absent | element positions — see [the layout editor](layout-editor.md) |
 | `morphoCatalog` | boolean | `false` | replaces the shop's own sets with the CheeseItems morpho catalogue at view time |
 | `sets` | array | `[]` | the sets, in file order |
@@ -66,7 +69,8 @@ only custom button action the client understands is `close`.
 
 **So in the player interface, only the first currently-active set is reachable.** Design
 your shops accordingly: one active set at a time, with rotation deciding which one that
-is. The second active set is loaded and validated, but invisible.
+is. The second active set is loaded, validated, purchasable through a crafted payload,
+and invisible.
 
 `morphoCatalog` is a different beast and is described in
 [purchases](purchases.md#the-morpho-catalog-path).
@@ -111,7 +115,7 @@ falls back to `ALWAYS`.
 
 The check runs on every view build and every purchase, so a set closes for a player
 with their shop still open: the window closes, the next purchase answers
-`Ce set n'est pas actif en ce moment.`
+`This set is not active right now.`
 
 ---
 
@@ -131,11 +135,14 @@ A `ShopItem` is one card in the grid. Its id is also a random 8-character fragme
 | `enabled` | boolean | `true` | false hides it from players, keeps it in the dashboard |
 | `sortOrder` | int | index at creation | position in the grid |
 
-`getEffectiveDisplayItem()` has a quirk worth knowing: it treats
-`minecraft:paper` as "unset". If `displayItem` is blank **or literally
-`minecraft:paper`**, the icon falls back to the first output's item id, and if there are
-no outputs, back to paper. So an item whose icon is genuinely meant to be paper, while
-its output is a diamond, shows a diamond.
+The icon the player sees is chosen by the client (`ShopViewScreen.effectiveIcon`), in
+this order: the first output, **if it carries `components`** — it then wins over
+`displayItem`, so the card shows the exact stack being sold; otherwise `displayItem` if
+it is not blank, paper included; otherwise the first output's id. `ShopItem` also has a
+`getEffectiveDisplayItem()` that treats `minecraft:paper` as "unset", but nothing calls
+it. In practice: an item created through the API or the in-game editor without a
+`displayItem` keeps the default `minecraft:paper` and shows paper; the dashboard editor
+avoids that by filling a blank icon field with the first output's id when you save.
 
 `getEffectiveName()` returns `displayName` when set, otherwise the icon id with its
 namespace stripped and underscores turned into spaces (`minecraft:diamond_sword` →
@@ -221,7 +228,9 @@ overwritten.
 
 ### What the player sees
 
-`stockDisplay` builds the small line under the card:
+`stockDisplay` builds a stock line for each item and the server sends it in the
+`SHOP_VIEW` payload — but **the client never draws it**, so a player sees no stock figure
+at all, only a greyed-out card once `canBuy` is false. The strings it would show:
 
 | Mode | Shown |
 |---|---|

@@ -36,8 +36,9 @@ if (module != null) {
     module.handleRequest(exchange, subRoute);
 ```
 
-Cela compte, parce que dans ce dépôt `WebDashboard.requireWrite(exchange)` **renvoie un
-booléen et ne bloque rien par lui-même** : ignorer son résultat laisse passer la requête.
+Cela compte, parce que dans ce dépôt `WebDashboard.requireWrite(exchange)` **envoie le
+`403` et renvoie `false`, mais n'arrête pas l'appelant** : ignorer son résultat laisse la
+requête s'exécuter quand même.
 Le dispatch ci-dessus utilise la forme correcte, `if (!…) return;`, donc le garde est
 réel : dans cette version, toute requête non-`GET` vers n'importe quelle route sous
 `/api/v1/market/` exige bien `OPERATOR` ou au-dessus, et les requêtes `GET` acceptent tous

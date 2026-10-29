@@ -8,7 +8,8 @@ avec une pioche en diamant — et tu verras la vente dans la liste des transacti
 dashboard. Compte vingt minutes.
 
 Il te faut un serveur Fabric 1.21.1 avec CheeseDash et CheeseMarket installés côté serveur,
-CheeseMarket installé sur ton propre client, et ton token de dashboard sous la main. Si ce
+CheeseMarket et CheeseDash installés sur ton propre client, et ton token de dashboard sous
+la main. Si ce
 n'est pas encore le cas, commence par [l'installation](installation.fr.md).
 
 ---
@@ -125,8 +126,10 @@ construiras :
   émeraudes ici ; ce pourrait être `cheesestore:fromage` pour des crédits ou
   `numismatic-overhaul:silver_coin` pour des pièces. Voir
   [comment un prix se paie](shop-model.fr.md#comment-un-prix-se-paie).
-- **Un `displayItem` à `minecraft:paper` signifie « pas d'icône »**, et retombe sur la
-  première sortie. Toute autre valeur est utilisée telle quelle.
+- **Le `displayItem` est utilisé tel quel, papier compris.** Seul un `displayItem` vide
+  retombe sur la première sortie — et l'éditeur du dashboard remplit un champ vide avec la
+  première sortie à ta place. Un item créé par l'API sans `displayItem` garde la valeur
+  par défaut, `minecraft:paper`, et affiche une feuille de papier.
 
 ---
 
@@ -139,8 +142,9 @@ construiras :
 Le monde s'assombrit et le panneau apparaît : le nom de ta boutique en doré, la description
 en dessous, un bouton de fermeture en haut à droite, et une seule carte au milieu de la
 grille montrant une pioche en diamant avec `5` et une icône d'émeraude en dessous. Survoler
-la carte te donne la vraie infobulle de la pioche. Sous l'icône, `2/2 (vous)` — ton quota
-personnel.
+la carte te donne la vraie infobulle de la pioche. La carte n'affiche aucun chiffre de
+stock : le serveur en calcule un (`2/2 (vous)`) et l'envoie dans `stockDisplay`, mais le
+client ne le dessine jamais.
 
 Si rien ne se passe du tout, ton client n'a pas le mod. Si le panneau s'ouvre vide, le set
 n'est pas actif ou l'item est désactivé — vérifie le drapeau `active` dans
@@ -169,9 +173,9 @@ Puis, dans le panneau :
 Achat réussi : Pioche de mineur x2
 ```
 
-La fenêtre se ferme, tes émeraudes ont disparu, deux pioches sont dans ton inventaire, et
-la carte affiche désormais `0/2 (vous)` et est grisée. Tu es à ta limite ; cliquer dessus
-ne fait rien.
+La fenêtre de confirmation se ferme, tes émeraudes ont disparu, deux pioches sont dans ton
+inventaire, et la carte est désormais grisée. Tu es à ta limite ; cliquer dessus ne fait
+rien.
 
 Ce grisement, c'est le quota par joueur qui fait son travail. Le compteur est écrit dans
 `<world>/data/cheesemarket/cheesemarket_stock.json` immédiatement, donc il survit à un
@@ -190,9 +194,10 @@ curl -H "Authorization: Bearer <token>" \
 ```
 
 ```json
-{"transactions":[{"timestamp":"2026-10-29T14:03:11.284Z","playerName":"Steve",
-  "shopId":"starter","shopName":"Boutique de départ","itemName":"Pioche de mineur",
-  "quantity":2,"costs":[{"itemId":"minecraft:emerald","count":5}],
+{"transactions":[{"timestamp":"2026-10-29T14:03:11.284Z",
+  "playerUUID":"00000000-0000-0000-0000-000000000000","playerName":"Steve",
+  "shopId":"starter","shopName":"Boutique de départ","setId":"a1b2c3d4","setName":"Outils",
+  "itemId":"e5f6a7b8","itemName":"Pioche de mineur","quantity":2,"costs":[{"itemId":"minecraft:emerald","count":5}],
   "outputs":[{"itemId":"minecraft:diamond_pickaxe","count":1}]}],
  "total":1,"returned":1}
 ```
@@ -221,14 +226,15 @@ Essaie trois choses, dans cet ordre :
 1. **Déplace la grille.** Sélectionne l'élément `ITEM_GRID` et fais-le glisser, ou
    déplace-le aux flèches. Mets son `cols` à 4 dans le panneau de propriétés. Rouvre la
    boutique en jeu : quatre cartes par ligne, centrées.
-2. **Téléverse un fond.** Clique *Upload image*, choisis un PNG de 350 × 250 sous 2 Mo,
-   puis sélectionne l'élément `BACKGROUND` et mets son `src` au nom que tu as donné.
-   L'image est envoyée au client en ligne la prochaine fois qu'un joueur ouvre la boutique.
+2. **Téléverse un fond.** Clique *Upload image* et choisis un PNG de 350 × 250 sous 2 Mo.
+   L'asset prend le nom du fichier, et l'éditeur règle lui-même le `src` de l'élément
+   `BACKGROUND` sur ce nom. L'image est envoyée au client en ligne la prochaine fois qu'un
+   joueur ouvre la boutique.
 3. **Enregistre-le comme template.** Clique *Templates*, enregistre sous un nom, et
    l'agencement devient réutilisable sur ta prochaine boutique.
 
 L'enregistrement automatique part deux secondes après que tu as cessé d'éditer, Ctrl+Z
-annule trente niveaux, et `Reset` remet l'agencement par défaut. La référence complète des
+annule jusqu'à quarante-neuf niveaux (l'historique garde cinquante états), et `Reset` remet l'agencement par défaut. La référence complète des
 éléments et des propriétés est dans
 [l'éditeur de mise en page](layout-editor.fr.md).
 
@@ -236,10 +242,12 @@ annule trente niveaux, et `Reset` remet l'agencement par défaut. La référence
 
 ## 9. La mettre derrière un NPC
 
-`/shop open` exige le niveau de permission 2 : ce n'est donc pas ainsi qu'un joueur atteint
-une boutique. Les joueurs y arrivent parce que quelque chose d'autre l'ouvre pour eux — un
-dialogue de NPC, une récompense de quête, un bloc de commande, ou n'importe quel mod capable
-d'envoyer l'action `open_shop_player:<shopId>` pour un joueur.
+`/shop open` exige le niveau de permission 2 : un joueur ne peut donc pas la taper
+lui-même. Les joueurs arrivent dans une boutique parce que quelque chose d'autre la lance
+pour eux, en leur nom : un dialogue de NPC, une récompense de quête ou un bloc de commande
+qui exécute `/execute as <joueur> run shop open starter` au niveau 2 ou plus. Le serveur
+n'a pas d'autre moyen — l'action `open_shop_player:` ne peut venir que du client du joueur
+lui-même.
 
 C'est aussi le moment où la boutique cesse d'être un test. Deux points à régler avant de
 laisser entrer qui que ce soit d'autre :
