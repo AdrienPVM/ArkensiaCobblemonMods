@@ -111,7 +111,7 @@ The response reports the work done:
 
 `totalBlocksScanned` counts every position visited, including air, so a tall zone inflates
 it badly. A 200×200 footprint over 20 vertical blocks is 800 000 positions; the same
-footprint over the full world height is 24 million. Keep the zone's Y range tight around
+footprint over the full overworld height (384 blocks) is about 15.4 million. Keep the zone's Y range tight around
 the track — it is the single biggest factor in scan time.
 
 ### Re-scanning
@@ -145,14 +145,16 @@ The area cap is 500 000 columns:
 That is roughly a 700×700 footprint. Unlike the scan, the cap is on area only — zone height
 does not count, because each column stops at its first solid block.
 
-The response gives `width`, `depth`, `minX`, `minZ` and the pixel data, which the dashboard
-turns into an image. `minX` and `minZ` are what let a checkpoint's world centre be placed on
+The response gives `width`, `height` (the Z depth), `minX`, `minZ` and `image`, the map
+already encoded as a `data:image/png;base64,…` URL that the dashboard draws as is. `minX` and `minZ` are what let a checkpoint's world centre be placed on
 the right pixel.
 
 ## Track settings
 
 `PUT /races/:eventId/track` merges whatever keys the body contains; absent keys keep their
-value. These are read by `MiniGameManager` when the race starts, so changing them mid-race
+value. The three collection keys are the exception: `transformCommands`, `blockMappings` and
+`powerupTypes` are replaced wholesale, so send the full list or map. `DELETE` on the same
+path removes the track file. These are read by `MiniGameManager` when the race starts, so changing them mid-race
 has no effect.
 
 | Key | Type | Default | Effect |
@@ -173,7 +175,7 @@ has no effect.
 | `revertTransformsOnEnd` | bool | `true` | undo the transform when the race ends |
 | `pointsPerCheckpoint` | int | `10` | event score per gate |
 | `finishBonusPoints` | int | `100` | event score for finishing |
-| `positionBonusPoints` | int | `50` | extra score weighted by finishing position |
+| `positionBonusPoints` | int | `50` | extra score: the full value for 1st, half for 2nd, a quarter for 3rd, nothing after |
 | `checkpointReplacementBlock` | string | `minecraft:air` | what a taken gate's blocks become |
 | `startLineReplacementBlock` | string | `minecraft:air` | what the start line becomes once the race begins |
 | `teleportOnOutOfBounds` | bool | `true` | pull a racer who leaves the zone back to their last gate |
@@ -187,7 +189,7 @@ checkpoint, what position is it in the lap". Re-scanning can change the stored o
 is why `applyToConfig` tries to carry the values across.
 
 `movementMode` is only partly implemented. Only `foot` is enforced, and the enforcement is
-to dismount anyone riding anything, once per tick, with
+to dismount anyone riding anything, on the race's 1 Hz tick, with
 `⚠ On foot only! You have been dismounted.` `shift` and `kart` are accepted, stored, and
 have no effect in this build.
 
@@ -216,8 +218,9 @@ The race runs inside `MiniGameManager`, and the checkpoint test is the part wort
 about. Checkpoint detection does not sample the player's position once per tick — it
 interpolates the segment between the previous tick's position and this one, so a racer
 moving fast enough to pass through a one-block-thick gate between two ticks still triggers
-it. That is why `tickRaceCheckpoints` runs every tick, while everything else in the race
-updates at 1 Hz.
+it. That is why `tickRaceCheckpoints` runs every tick, while power-up pickups are checked every
+4 ticks and everything else in the race (countdown, action bar, particles, end conditions)
+updates at about 1 Hz.
 
 With `orderedCheckpoints: true` each racer has a next-checkpoint index. Only that gate
 counts; standing in any other scanned checkpoint produces
@@ -232,21 +235,25 @@ Out-of-bounds handling, when `teleportOnOutOfBounds` is on, teleports the racer 
 last taken checkpoint's centre, or to the start line if they have not taken one yet, with
 `⚠ You left the track! Teleported to last checkpoint.`
 
-An event whose track config has no checkpoints is cancelled outright:
+A track config with no checkpoints is ignored and the race falls back to legacy mode (below);
+if that finds no checkpoint zones either, the event is ended at once with
 `⚠ Race cancelled — no checkpoints configured.`
 
 Scores feed the event's normal score table, so the race's own ranking and the event
 scoreboard agree: gates give `pointsPerCheckpoint`, finishing gives `finishBonusPoints`, and
-`positionBonusPoints` is scaled by finishing position.
+`positionBonusPoints` goes in full to the winner, halved to the second and quartered to the
+third.
 
 ### Legacy mode
 
-A `RACE` event with **no** track config file still runs, in what the code calls legacy mode:
-checkpoints are plain CheeseGuard zones listed in the event's `miniGameConfig`, and the
-scoring keys (`pointsPerCheckpoint`, `finishBonusPoints`, `positionBonusPoints`,
-`checkpointSound`, `finishSound`) are read from that config object instead of from the track
-file. There is no interpolated detection and no power-ups in legacy mode. New tracks should
-use the scanner.
+A `RACE` event with **no** track config file, or one whose file has no checkpoints, still
+runs, in what the code calls legacy mode: checkpoints are plain CheeseGuard zones listed in
+the event's `miniGameConfig` under `checkpointZoneIds`, power-ups are zones listed under
+`powerUpZones`, and the scoring keys (`pointsPerCheckpoint`, `finishBonusPoints`,
+`positionBonusPoints`, `checkpointSound`, `finishSound`) are read from that config object
+instead of from the track file. Detection is interpolated there too, but checkpoints are
+always ordered, there are no laps (the last zone is the finish) and no out-of-bounds
+teleport. New tracks should use the scanner.
 
 ## Authorisation
 

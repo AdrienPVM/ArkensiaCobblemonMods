@@ -31,9 +31,9 @@ death · dimension · inventory · visibility · redstone · stats · logic
 ```
 
 La valeur `track` d'un bloc est cosmétique. Déplacer un bloc `POTION` sur la ligne `weather`
-ne change rien à ce qu'il fait. Le seul endroit où la piste compte fonctionnellement est
-`EventAct.fromLegacyPhase()`, qui choisit une piste par type d'effet lors de la migration
-d'un ancien événement à phases.
+ne change rien à ce qu'il fait. Le seul code qui déduit une piste d'un type d'effet est
+`EventAct.fromLegacyPhase()`, et rien n'appelle cette méthode (voir
+[les phases historiques](#phases-historiques)).
 
 **Un bloc** (`data/TimelineBlock.java`) est un effet, placé dans le temps :
 
@@ -96,11 +96,18 @@ l'acte.
 
 - **Bloc instantané** (`duration == 0`) : se déclenche une fois, au premier tick où
   `elapsed >= start`. Avec `repeat > 0`, il se redéclenche ensuite toutes les `repeat`
-  secondes, tant que l'acte dure.
+  secondes, tant que l'acte dure — et à ce premier tick il se déclenche en réalité **deux
+  fois**, car le déclenchement unique et la première répétition partent tous les deux
+  (l'horloge de répétition démarre à `start - repeat`).
 - **Bloc à durée** : au premier tick dans `[start, start+duration)`, il exécute son
   gestionnaire de *début* ; puis son gestionnaire de *tick* chaque seconde, ou toutes les
   `repeat` secondes si `repeat > 0` ; puis son gestionnaire de *fin* au premier tick à partir
   de `start+duration`.
+
+Le premier tick d'un acte est la seconde 1, pas 0 : `elapsed` est incrémenté avant
+l'évaluation des blocs, donc un bloc à `start: 0` et un bloc à `start: 1` partent au même
+tick. La condition du bloc est vérifiée avant tout le reste, chaque seconde ; tant qu'elle
+est fausse, le bloc est entièrement sauté, gestionnaire de fin compris.
 
 Trois conséquences à connaître. Un bloc dont le `start` dépasse la durée de l'acte ne se
 déclenche jamais. Le gestionnaire de fin d'un bloc à durée est ce qui défait un `MULTIPLIER`
@@ -143,11 +150,12 @@ participants ». Avec un peloton hétérogène, les deux peuvent être vraies en
 |---|---|
 | `DURATION` | `actElapsedSeconds >= durationSeconds` |
 | `CONDITION` | la `transitionCondition` configurée est satisfaite |
-| `MANUAL` | jamais automatiquement — un administrateur doit le faire avancer |
+| `MANUAL` | jamais : `TimelineExecutor.advanceAct()` existe mais aucune commande ni route ne l'appelle |
 
 Quand le **dernier** acte se termine, l'exécuteur pose `signalEnd` sur l'événement et
-`EventManager` l'emmène en `ENDING` au tick suivant. Un événement composé uniquement d'actes
-`MANUAL` tourne donc jusqu'à ce que quelque chose l'arrête.
+`EventManager` l'emmène en `ENDING` au tick suivant. Un acte `MANUAL` ne se termine donc
+jamais de lui-même : l'événement y reste jusqu'à ce qu'on l'arrête
+(`POST /events/:id/stop`) ou qu'une condition de victoire y mette fin.
 
 Conditions de transition :
 
@@ -208,7 +216,7 @@ de 1 s est volontairement généreuse.
 
 | Type | Mode | Propriétés | Comportement |
 |---|---|---|---|
-| `COMMAND` | instantané / début + tick de durée | `command`, `target` (`all`/`zone`/`random`/`team`) | exécutée depuis la console au niveau 4 |
+| `COMMAND` | instantané / début + tick de durée | `command`, `target` | exécutée depuis la source console (niveau 4) une fois **par joueur visé**, avec `{player}`, `{uuid}`, `{x}`, `{y}`, `{z}` substitués |
 | `COMMAND_PLAYER` | instantané | `command`, `target` | exécutée en tant que chaque joueur visé |
 | `WEIGHTED_RANDOM_COMMAND` | instantané | `cmd0`, `weight0`, `cmd1`, `weight1`, … , `target` | tire une commande selon les poids |
 | `CONDITIONAL_BRANCH` | — | — | **non implémenté** |
@@ -217,8 +225,15 @@ Le bloc aléatoire pondéré lit `cmd0`, `cmd1`, … jusqu'à la première clé 
 `weightN` à 1 par défaut. Un trou dans la numérotation tronque silencieusement la liste.
 
 Attention : `COMMAND` sur un bloc à durée se déclenche au *début* **et** à chaque tick. Un
-bloc avec `duration: 60` et sans `repeat` exécute sa commande 61 fois. Utilise `duration: 0`
+bloc avec `duration: 60` et sans `repeat` exécute sa commande 61 fois par joueur visé (60 s'il
+commence à la seconde 0, puisque le premier tick est la seconde 1). Utilise `duration: 0`
 pour un coup unique.
+
+`target`, partout où un bloc le lit, accepte `all` (par défaut), `role` (les joueurs dont le
+flag d'état `role` vaut la propriété `targetRole` du bloc) et `random` (chaque joueur
+indépendamment, avec 50 % de chances). Toute autre valeur — `zone` et `team` compris —
+signifie tout le monde. La liste de joueurs est celle de tous les membres connectés de
+l'événement, **spectateurs compris**.
 
 ### Zones
 
@@ -232,8 +247,8 @@ pour un coup unique.
 | `ZONE_MOVE` | — | — | **non implémenté** |
 | `FLAG_OVERRIDE` | instantané / début + fin de durée | `flagId`, `targetZone`, `flagValue` | impose un flag de zone pendant la durée du bloc et le restaure à la fin |
 
-`ZONE_SHRINK` lit deux orthographes pour son centre (`zoneCenterX` et `cx`) parce que la
-migration historique écrit l'une et l'éditeur l'autre. Les particules de bordure sont dessinées
+`ZONE_SHRINK` lit deux orthographes pour son centre (`zoneCenterX`, et l'ancienne `cx`) par
+compatibilité avec les blocs enregistrés sous les anciennes clés. Les particules de bordure sont dessinées
 par une boucle à 3 ticks séparée dans `EventManager`, et non par le tick du bloc : c'est
 pourquoi la bordure paraît fluide alors que les dégâts tombent une fois par seconde.
 
@@ -242,7 +257,7 @@ pourquoi la bordure paraît fluide alors que les dégâts tombent une fois par s
 | Type | Mode | Propriétés | Comportement |
 |---|---|---|---|
 | `ENTITY_SPAWN` | instantané | `command` | exécute une commande de spawn depuis la console |
-| `POKEMON_SPAWN` | instantané | `species`, `level` (50), `x`, `y` (64), `z`, `world` | fait apparaître via le hook Cobblemon |
+| `POKEMON_SPAWN` | instantané | `species`, `level` (50), `x`, `y` (64), `z`, `world` | lance le `pokespawn <species> level=<n> pos=<x> <y> <z>` de Cobblemon dans ce monde ; ne fait rien sans Cobblemon |
 | `SPAWN_ITEM_AT_POS` | instantané | `itemId` (`minecraft:diamond`), `x`, `y` (64), `z` | lâche une entité item |
 | `SPAWN_STRUCTURE` | début de durée | `structureName`, `x`, `y` (64), `z` | place une structure |
 | `SET_BLOCK_AT_POS` | instantané | `blockId` (`minecraft:air`), `bx`, `by` (64), `bz`, `world` | un `setblock` |
@@ -258,7 +273,7 @@ pourquoi la bordure paraît fluide alors que les dégâts tombent une fois par s
 | `FREEZE_PLAYERS` | instantané / début + fin de durée | — | les participants ne peuvent plus bouger ; imposé à chaque tick et relâché à la fin |
 | `UNFREEZE_PLAYERS` | instantané | — | relâche tout le monde |
 | `GIVE_ITEM_TO_PLAYER` | instantané | `itemId` (`minecraft:diamond`), `count` (1), `target` | |
-| `TAKE_ITEM_FROM_PLAYER` | instantané | `itemId`, `count`, `target` | |
+| `TAKE_ITEM_FROM_PLAYER` | instantané | `itemId`, `target` | lance `clear <joueur> <itemId>` : retire tous les items correspondants, il n'y a pas de quantité |
 | `TELEPORT_PLAYER_TO_PLAYER` | instantané | `targetRole` | téléporte les joueurs sur le porteur d'un rôle |
 | `ITEM_DROP` | — | — | **non implémenté** dans la chronologie (phases historiques seulement) |
 | `SET_PLAYER_HEALTH` | — | — | **non implémenté** |
@@ -295,7 +310,7 @@ première clé manquante.
 
 | Type | Mode | Propriétés | Comportement |
 |---|---|---|---|
-| `MULTIPLIER` | début + fin de durée | `multType` (`score`), `multValue` (2.0) | pose un multiplicateur pendant l'activité, le retire à la fin |
+| `MULTIPLIER` | début + fin de durée | `multType` (`score`), `multValue` (2.0) | stocke un multiplicateur sur l'événement pendant l'activité et le retire à la fin — mais rien ne le lit, donc les scores ne changent pas (voir [Événements](events.fr.md#scores)) |
 | `DEATH_BEHAVIOR_OVERRIDE` | instantané | `behavior` (`RESPAWN_EVENT`) | remplace le comportement de mort de l'événement pour le reste de l'exécution |
 
 ### Effets inter-mods
@@ -315,7 +330,7 @@ résout sa classe cible une fois au démarrage du serveur et consigne le résult
 | `TRANSFORM_ALL` | CobbleShift | `transformSpecies` (`pikachu`) | `[CG-TL] TRANSFORM_ALL: CobbleShift not available` en **warn**, le bloc ne fait rien |
 | `TRANSFORM_RANDOM` | CobbleShift | `transformSpeciesList` (`pikachu,charizard,mewtwo`), `allowDuplicates` (true) | idem, avec le nom du type dans le message |
 | `TRANSFORM_BY_TEAM` | CobbleShift | `transformTeamMap` (un objet JSON sous forme de chaîne) | idem |
-| `TRANSFORM_REVERT_ALL` | CobbleShift | — | `CobbleShiftHook.revertAll()` attrape l'erreur et la consigne en debug ; rien ne se passe |
+| `TRANSFORM_REVERT_ALL` | CobbleShift | — | `CobbleShiftHook.revertAll()` rend la main sans rien dire ; rien ne se passe |
 | `KART_START_ALL` | CheeseKart | `kartPresetId` (`rally`), `kartSpeciesOverride` (vide) | `[CG] Cannot start karts — CheeseKart not available` en warn |
 | `KART_STOP_ALL` | CheeseKart | — | retourne silencieusement |
 | `DUNGEON_OPEN` | CobblemonDungeons | `dungeonId`, `dungeonTier` (1) | `[CG-TL] DUNGEON_OPEN: CobblemonDungeons not available` en warn |
@@ -327,8 +342,10 @@ emploient le nom court ; la constante de l'énumération et la valeur stockée d
 sont la forme longue.
 
 `TRANSFORM_BY_TEAM` ne lit les équipes d'aucun système d'équipes. Il découpe la liste des
-participants en blocs de `event.teamSize` selon leur position dans la collection, et associe
-les indices de bloc 0, 1, 2 … aux clés de `transformTeamMap`. L'ordre des participants vient
+participants en blocs de `event.teamSize` selon leur position dans la collection, et cherche
+l'indice de bloc 0, 1, 2 … sous les **clés textuelles** `"0"`, `"1"`, `"2"` … de
+`transformTeamMap` (`{"0":"charizard","1":"blastoise"}`) ; un bloc sans clé correspondante
+n'est pas transformé. L'ordre des participants vient
 des valeurs d'une `HashMap` : il n'est donc pas stable d'une exécution à l'autre. Prends
 l'attribution d'équipe ici pour « arbitraire mais équilibrée », pas pour « l'équipe rouge
 devient Dracaufeu ».
@@ -356,18 +373,17 @@ messages et au décor, à moins d'avoir lu le code du mini-jeu.
 ## Phases historiques
 
 Avant les actes, un événement avait des `phases`, chacune portant une liste plate d'objets
-`EventEffect`. `useActSystem` choisit la structure utilisée ; les événements chargés depuis
-une ancienne configuration sont migrés par `EventAct.fromLegacyPhase()`, qui crée un acte par
-phase et transforme chaque effet en bloc avec `start: 0` et `duration` égale à la longueur de
-la phase.
+`EventEffect`. Ce qui décide de la structure exécutée, c'est la présence d'actes : un
+événement qui a au moins un acte exécute la chronologie, un événement qui n'en a aucun
+exécute ses phases par le chemin historique (`useActSystem` est stocké mais n'est pas
+consulté pour cela). Rien ne convertit l'un en l'autre : `ServerEvent.migrateToActSystem()`
+et `EventAct.fromLegacyPhase()` — un acte par phase, chaque effet transformé en bloc avec
+`start: 0` et `duration` égale à la longueur de la phase — existent dans le code mais n'ont
+aucun appelant.
 
-La migration est mécanique. Tout ce qui se trouvait dans une phase démarre simultanément en
-tête d'acte, ce qui n'est presque jamais le minutage réel de la phase. Ouvre tout événement
-migré dans l'éditeur et réespace les blocs avant de le lancer.
-
-`PARTICLE` et `ITEM_DROP` sont les deux effets qui fonctionnent encore sur le chemin des
-phases historiques mais n'ont aucun gestionnaire dans `TimelineExecutor` — migrer un événement
-qui les utilisait les perd silencieusement.
+`PARTICLE` et `ITEM_DROP` sont les deux effets qui fonctionnent sur le chemin des phases
+historiques mais n'ont aucun gestionnaire dans `TimelineExecutor`. Reconstruire en actes un
+événement à phases les perd.
 
 ---
 

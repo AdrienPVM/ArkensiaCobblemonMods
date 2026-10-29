@@ -53,8 +53,8 @@ Position 1 : 118, 64, -302
 Position 2 : 142, 90, -276
 ```
 
-Les deux coins doivent être dans le même monde, et la sélection ne vit qu'en mémoire — un
-redémarrage l'efface.
+Marque les deux coins dans le même monde : rien ne le vérifie, et la zone est créée dans
+le monde du dernier coin posé. La sélection ne vit qu'en mémoire — un redémarrage l'efface.
 
 ## 3. Créer la zone
 
@@ -82,10 +82,11 @@ ID : market_square | Overworld
 Min : 118,64,-302
 Max : 142,90,-276
 Groupe : aucun
-Priorité : 0 | Membres : 1
+Priorité : 0 | Membres : 0
 ```
 
-`Membres : 1`, c'est toi — le créateur est ajouté automatiquement. `Groupe : aucun` est le
+`Membres : 0` est normal : tu es le **propriétaire** de la zone, stocké à part de la liste
+des membres. `Groupe : aucun` est le
 repli codé en dur pour « pas de groupe » ; tu changeras cela à l'étape 7.
 
 Cette écriture a créé `config/cheeseguard/regions.json`.
@@ -127,10 +128,12 @@ Flag block-break = false
 /cg flag market_square pvp false
 ```
 
-Connecte-toi maintenant avec un joueur qui n'est **pas** membre, ou demande à quelqu'un, et
-essaie de casser un bloc dans la boîte. Rien ne se passe. Toi, en tant que membre, peux
-toujours construire : `block-break` est l'un des flags dont les membres sont exemptés — le
-comportement classique d'une protection.
+Connecte-toi maintenant avec un joueur qui n'est **ni membre ni opérateur**, ou demande à
+quelqu'un, et essaie de casser un bloc dans la boîte. Rien ne se passe. Toi, tu peux
+toujours construire : `block-break` est l'un des flags dont les membres et le propriétaire
+sont exemptés — le comportement classique d'une protection. Note que les opérateurs
+(niveau 2) contournent partout tous les flags à exemption de membres
+(`RegionManager.isAllowed`) : tester avec ton propre compte op ne prouve donc rien.
 
 ⚠️ Deux choses à ne pas rater ici. La valeur doit être exactement `true`, `false` ou
 `inherit` : toute autre valeur, `yes` et `1` compris, est lue comme `false`, avec un
@@ -157,7 +160,7 @@ Steve ajouté.
 ```
 
 Steve peut désormais casser et poser dans la zone. Vérifie avec `/cg info market_square` —
-le nombre de membres passe à 2.
+le nombre de membres passe à 1.
 
 Pour le retirer, `/cg removemember market_square Steve`. Attention : cette commande signale
 une réussite qu'elle ait retiré quelque chose ou non, donc revérifie toujours le compte.
@@ -208,7 +211,7 @@ de `/cg group flag`. Ouvre CheeseDash, va dans la section CheeseGuard, ouvre **P
 Areas** et mets `block-break` et `block-place` en refus là. Les deux zones suivent.
 
 Contrôle ton travail avec `/cg info market_square` : la ligne `Groupe :` affiche désormais
-`Public Areas`.
+`public_areas` (l'identifiant du groupe, pas son nom affiché).
 
 Le modèle complet d'héritage et de priorité, y compris ce qui se passe quand deux zones se
 recouvrent, est dans [les groupes](groups.fr.md).
@@ -223,7 +226,7 @@ fonctionnent les remises à zéro d'arène.
 ```
 
 ```text
-État 'Pristine' capturé (18432 blocs, 3 entités)
+État 'Pristine' capturé (9620 blocs, 3 entités)
 ```
 
 ⚠️ La capture parcourt chaque bloc sur le thread serveur. Une boîte de 20×10×20 fait 4 000
@@ -238,28 +241,28 @@ Liste ce que tu as :
 
 ```text
 États de la zone 'market_square' :
-  a1b2c3d4 — Pristine (18432 blocs, 3 entités)
+  1 — Pristine (9620 blocs, 3 entités)
 ```
 
 La première colonne est l'identifiant d'état. Casse maintenant quelques blocs dans la zone,
 puis remets-les :
 
 ```mcfunction
-/cg state apply market_square a1b2c3d4
+/cg state apply market_square 1
 ```
 
 ```text
-État 'a1b2c3d4' appliqué à la zone 'market_square'
+État '1' appliqué à la zone 'market_square'
 ```
 
 Les blocs cassés sont revenus. Essaie avec l'animation :
 
 ```mcfunction
-/cg state apply market_square a1b2c3d4 true cascade_from_bottom 4 sparkle
+/cg state apply market_square 1 true cascade_from_bottom 4 sparkle
 ```
 
 ```text
-Animation de l'état 'a1b2c3d4' sur la zone 'market_square'...
+Animation de l'état '1' sur la zone 'market_square'...
 ```
 
 Le retour signifie « démarré ». La reconstruction s'exécute sur les ticks suivants. Les
@@ -320,7 +323,7 @@ Vérifie, puis libère :
 
 ```text
 Prisonniers actifs (1)
-• Steve — 9m47s — test de la prison
+• Steve — 9m — test de la prison
 ```
 
 ```mcfunction

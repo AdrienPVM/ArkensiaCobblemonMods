@@ -49,8 +49,11 @@ publishes its own `player_join` / `player_leave` / `player_list` messages on the
 currently connected.
 
 The source is vanilla's own `usercache.json` in the server directory, read and parsed on each
-request. The file is ordered oldest-first, so the handler walks it backwards and stops after
-`n` entries, skipping anyone whose name matches an online player case-insensitively. `n` is
+request. The handler walks the file from its **last** entry backwards and stops after `n`
+entries, skipping anyone whose name matches an online player case-insensitively. Vanilla
+writes that file most-recently-used first, so walking it backwards returns the players seen
+**longest ago** first — the opposite of what the route intends (its source comment assumes
+the reverse order). With more cached players than `n`, the most recent ones are cut off. `n` is
 clamped to 1–100 and defaults to 20; an unparseable `n` falls back to the default rather
 than failing.
 
@@ -140,7 +143,9 @@ the player is not in yet. That asymmetry catches people out: the same partial bo
 different things depending on whether `dimension` is present.
 
 Yaw and pitch are always preserved. An unknown dimension id gives
-`500 {"error":"Dimension not found: <id>"}`.
+`500 {"error":"java.lang.RuntimeException: Dimension not found: <id>"}`: the exception is
+thrown inside the server-thread task, and the handler reports the wrapping
+`ExecutionException`'s message without unwrapping it.
 
 The dimension-spawn form delegates to `DimensionManager.tpToDimension()`, which knows about
 CheeseGuard's custom dimensions and their configured spawn points — see

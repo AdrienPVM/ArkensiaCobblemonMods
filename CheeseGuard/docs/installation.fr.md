@@ -80,19 +80,25 @@ Fabric API. CheeseDash n'est pas nécessaire sur le client.
 ## Ce que crée le premier démarrage
 
 CheeseGuard crée `config/cheeseguard/` immédiatement — ses classes de stockage le font
-dans leurs constructeurs — mais n'y écrit rien avant qu'une sauvegarde ait lieu. Un
-premier démarrage sans zone te laisse donc avec :
+dans leurs constructeurs — mais n'y écrit rien avant qu'une sauvegarde ait lieu. À
+`SERVER_STARTED`, quelques éléments de plus sont écrits d'office : un premier démarrage
+sans zone te laisse donc avec :
 
 ```text
 config/
-└── cheeseguard/          (vide)
+├── cheeseguard/                      (vide)
+├── cheeseguard_assets/prophunt/      (vide)
+├── cheeseguard_states/               (vide)
+├── cheeseguard_dimensions.json       les mondes chargés, enregistrés d'office comme dimensions intégrées
+├── cheeseguard_fish_pokemon.json     la table de pêche par défaut
+└── cheeseguard_pastures.json         les deux plafonds de pâturages par défaut
 ```
 
-Les fichiers apparaissent à l'usage : `regions.json` à la première zone,
-`cheeseguard_dimensions.json` à la première dimension, `cheeseguard_events.json` au
-premier événement, et ainsi de suite. Le seul fichier qui s'écrit avec des valeurs par
-défaut utiles est `config/cheeseguard_fish_pokemon.json`, créé au premier chargement de la
-table de pêche.
+Tout le reste apparaît à l'usage : `regions.json` à la première zone,
+`cheeseguard_events.json` au premier événement, et ainsi de suite.
+`cheeseguard_dimensions.json` est écrit à chaque démarrage, parce que
+`DimensionManager.init` enregistre chaque monde chargé qui n'a pas encore de configuration
+(l'Overworld, le Nether, l'End et toute dimension moddée) puis sauvegarde.
 
 **`config/cheeseguard_webhook.json` n'est jamais créé pour toi.** Si tu veux des
 notifications Discord, tu l'écris toi-même, avec la structure donnée dans
@@ -123,9 +129,12 @@ Les autres lignes du même logger portent un préfixe `[CG]` dans le message, ce
 de repérer l'activité à l'exécution :
 
 ```text
-[CheeseGuard] [CG] Event launch config loaded
-[CheeseGuard] [CG] Fish Pokemon table loaded: 42 entries
+[CheeseGuard] [CG] Fish Pokemon table loaded: 39 entries
+[CheeseGuard] [CG] EventManager: 0 events, EC=false, SB=false
 ```
+
+(La ligne de la table de pêche n'apparaît qu'une fois le fichier créé, donc à partir du
+deuxième démarrage ; 39 est la taille de la table par défaut.)
 
 En jeu, en tant qu'opérateur :
 

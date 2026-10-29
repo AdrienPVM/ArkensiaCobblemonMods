@@ -42,8 +42,10 @@ not already in. The order is the list order in `cheeseguard_events.json`, not a 
 so with two events running you cannot predict which one you get. Pass the id when it
 matters.
 
-You join as `PARTICIPANT`. Joining saves your inventory and position first, so that
-leaving can put you back.
+You join as `PARTICIPANT` — or as `SPECTATOR` if the event is already full, or if it is an
+active minigame (you are told so). Joining records your position so that leaving can put
+you back; your inventory is saved only if the event has `saveInventory` on, and only when
+the event starts (or immediately, for a late join into an `ACTIVE` event).
 
 ```text
 Registered for event: Spleef Night
@@ -51,9 +53,9 @@ Registered for event: Spleef Night
 
 | Message | Cause |
 |---|---|
-| `No event available to join` | nothing is running, or you are already in every running event |
+| `No event available to join` | no running event accepted you — none is running, you are already in each one, or each is in a state that refuses joins |
 | `Event not found` | the id does not match any event |
-| `Unable to join this event` | `EventManager.joinEvent` refused — the event is past its queue phase, full, or the join conditions are not met |
+| `Unable to join this event` | `EventManager.joinEvent` refused — the event is not in `ANNOUNCED`, `COUNTDOWN` or `ACTIVE` (so `IDLE`, `QUEUE`, `ENDING` and `CLEANUP` refuse), or you are already in it. A full event does not refuse: it downgrades you to spectator |
 
 ### `/cg event spectate`
 
@@ -83,8 +85,9 @@ Spectating: Spleef Night
 No permission required. Three fallbacks, tried in order, which is what makes it the
 command to reach for when a player is stuck:
 
-1. If you are a participant of any event, leave it normally — inventory and position
-   restored, score kept in the event's record.
+1. If you are a participant of any event, leave it normally — inventory (if it was saved)
+   and position restored. Your participant entry, and the score stored on it, is removed
+   from the event.
 2. Otherwise, if a **pending restore** is waiting for you (the server crashed while you
    were in an event, and your inventory snapshot survived in
    `config/cheeseguard_pending_inv/`), apply it now and remove the leave item.
@@ -212,6 +215,11 @@ Only `ACTIVE` counts: a player in an event still in `COUNTDOWN` cannot be scored
 The minimum of 1 means there is no way to subtract points from a command. Use the
 dashboard for corrections.
 
+The points actually credited are multiplied by any score `MULTIPLIER` effect of the
+current phase, and a target who is in the event as a **spectator** gets nothing — yet the
+command still reports `+<amount> pts` in both cases, because it prints the raw amount
+after finding the target in the event.
+
 ```mcfunction
 /cg event score add Steve 50
 ```
@@ -233,8 +241,10 @@ dashboard for corrections.
 ```
 
 **Level 2.** A lighter mechanism than [saved zone states](commands.md#saved-zone-states):
-one NBT file per snapshot in `config/cheeseguard_snapshots/<snapId>.nbt`, blocks only, no
-animation and no per-zone index.
+one NBT file per snapshot in `config/cheeseguard_snapshots/<snapId>.nbt`, non-air blocks
+only, no animation and no per-zone index. Only each block's **id** is written to disk, so a
+snapshot loaded back restores every block in its default state — stair orientation, slab
+halves, chest contents and the like are lost.
 
 ```mcfunction
 /cg event snapshot save arena_clean boss_arena
@@ -254,7 +264,7 @@ Snapshot 'arena_clean': 18432 blocks
 
 | Message | Cause |
 |---|---|
-| `No blocks in zone <id>` | capture found nothing — usually a wrong zone id, since an empty box still captures air |
+| `No blocks in zone <id>` | capture found nothing — a wrong zone id, a world that is not loaded, or a box that contains only air (air is skipped) |
 | `Snapshot not found: <id>` | no file with that id |
 
 `restore` takes no zone argument: the snapshot remembers the region it came from. Nothing
@@ -295,8 +305,11 @@ Template saved: Spleef Standard
 ```
 
 ```text
-  📄 spleef_standard
+  📄 Spleef Standard
 ```
+
+`list` prints the `templateName` stored inside each file (falling back to the filename),
+sorted alphabetically.
 
 | Message | Cause |
 |---|---|
@@ -455,7 +468,7 @@ Spawn set to 118.5, 64.0, -302.5 in Boss Arena
 
 | Message | Cause |
 |---|---|
-| `Dimension not found in config: <worldId>` | the world you are in is not managed by CheeseGuard. The vanilla worlds are not, unless you added them |
+| `Dimension not found in config: <worldId>` | the world you are in has no CheeseGuard dimension config. Rare in practice: `DimensionManager` auto-registers every loaded world as a built-in dimension — the vanilla ones at start, later ones as they load — so `/cg setspawn` works in the overworld too |
 
 This sets the dimension's *CheeseGuard* spawn, used when the mod teleports a player in. It
 does not touch the vanilla world spawn.
@@ -478,7 +491,8 @@ making a chunk unloadable.
 | `max` | integer | yes | 0 or more | both limits default to `1` |
 
 `limits` prints the current pair. `chunk` sets the total per chunk; `player` sets the
-total per chunk **per player**. `0` means no pasture may be placed at all, not "unlimited".
+total per chunk **per player**. `0` disables that limit (unlimited), it does not forbid
+pastures; with both at `0` CheeseGuard does not limit pastures at all.
 
 ```text
 Pastures — max per chunk: 1 | max per chunk/player: 1
@@ -506,8 +520,10 @@ placement attempt. No restart.
 ```
 
 **Level 2.** Restores a player's inventory from the archive CheeseGuard writes in
-`config/cheeseguard_inv_archive/` when an event clears an inventory. This is the recovery
-tool for the worst class of bug this mod can cause, so it is deliberately verbose.
+`config/cheeseguard_inv_archive/` every time an event saves a player's inventory (file
+name `<uuid8>_<yyyy-MM-dd_HH-mm-ss>_<playerName>.nbt`; these files are never cleaned up
+automatically). This is the recovery tool for the worst class of bug this mod can cause,
+so it is deliberately verbose.
 
 | Argument | Type | Required | Accepted values |
 |---|---|---|---|
@@ -524,21 +540,21 @@ are long.
 
 ```text
 Archives for Steve (UUID 00000000-0000-0000-0000-000000000000) — most recent first:
-  2026-10-28T19:04:11  inv_f81d4fae_2026-10-28T19-04-11.nbt
-  2026-10-27T21:40:02  inv_f81d4fae_2026-10-27T21-40-02.nbt
+  2026-10-28_19-04-11  f81d4fae_2026-10-28_19-04-11_Steve.nbt
+  2026-10-27_21-40-02  f81d4fae_2026-10-27_21-40-02_Steve.nbt
 ```
 
 `apply` prints the resolved UUID *before* doing anything destructive, so you can check it:
 
 ```text
 Resolved Steve → UUID 00000000-0000-0000-0000-000000000000
-Inventory restored online for Steve from inv_f81d4fae_2026-10-28T19-04-11.nbt
+Inventory restored online for Steve from f81d4fae_2026-10-28_19-04-11_Steve.nbt
 ```
 
 The target also gets told:
 
 ```text
-Your inventory has been restored from a CheeseGuard archive (2026-10-28T19:04:11).
+Your inventory has been restored from a CheeseGuard archive (2026-10-28_19-04-11).
 ```
 
 Two paths, chosen automatically:
@@ -548,7 +564,7 @@ Two paths, chosen automatically:
   next to it. The feedback names the safety copy.
 
 ```text
-Offline inventory swap done for Steve from inv_f81d4fae_2026-10-28T19-04-11.nbt (safety copy: 00000000-....dat.bak)
+Offline inventory swap done for Steve from f81d4fae_2026-10-28_19-04-11_Steve.nbt (safety copy: 00000000-0000-0000-0000-000000000000.nbt.cgrestore-1761678251000.bak)
 ```
 
 If an explicit `filename` belongs to a different UUID than the player you named, the
@@ -571,7 +587,7 @@ WARNING: archive UUID prefix 7d4448d9 does not match Steve (f81d4fae)
 Every apply is logged at INFO with the actor, the target, the archive and the mode:
 
 ```text
-[CG] /cg restoreinv: actor=RoiCheese target=Steve (00000000-...) archive=inv_f81d4fae_2026-10-28T19-04-11.nbt mode=online
+[CG] /cg restoreinv: actor=RoiCheese target=Steve (00000000-...) archive=f81d4fae_2026-10-28_19-04-11_Steve.nbt mode=online
 ```
 
 Unlike the rest of the mod, this subcommand's messages are `Text.literal` and therefore
@@ -677,7 +693,7 @@ Steve has been released from prison.
 ```
 
 ```text
-✨ %s has been released from prison (pardoned).
+✨ Steve has been released from prison (pardoned).
 ```
 
 | Message | Cause |
@@ -693,7 +709,7 @@ Steve has been released from prison.
 
 ```text
 Active prisoners (2)
-• Steve — 1h47m — griefing the market
+• Steve — 1h 47m — griefing the market
 • Alex — 12m — chat spam
 ```
 
@@ -708,7 +724,7 @@ An empty prison prints the header with `(0)` and nothing else.
 ```text
 Prison — Steve
 Reason: griefing the market
-Time remaining: 1h47m
+Time remaining: 1h 47m
 Imprisoned by: RoiCheese
 ```
 

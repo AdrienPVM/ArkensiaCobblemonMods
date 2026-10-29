@@ -31,7 +31,7 @@ overwrites them on the next save; edit those only with the server stopped, and k
 | `config/cheeseguard_prophunt_icons.json` | `PropHuntIconStorage` | prop icon key → `custom_model_data` mapping | no |
 | `config/cheeseguard_pending_reverts.json` | `CobbleShiftHook` | CobbleShift transforms still owed a revert after a crash | no |
 
-And five directories:
+And nine directories:
 
 | Path | What it holds |
 |---|---|
@@ -98,9 +98,10 @@ not created until something saves it.
 
 The window is half-open: `8`–`22` allows a launch at 21:59 and refuses one at 22:00. A
 start greater than the end wraps around midnight, so `22`–`6` is a night window. Setting
-both to the same hour closes the window completely — every launch is refused, because
-neither branch of the comparison can be true. If you want no window, set
-`timeWindowEnabled` to `false` rather than making the hours equal.
+both to the same hour does **not** close the window: equal hours take the wrap-around
+branch (`hour >= start || hour < end`), which is true at every hour, so every launch is
+allowed. There is no way to close the window completely short of refusing player launches
+on the events themselves (`playerLaunchable`).
 
 Both limits are sliding windows over recorded launch timestamps, not calendar buckets:
 with `playerLimitCount: 2` and period `DAY`, a player who launched twice at 20:00 can
@@ -135,8 +136,9 @@ Caps on Cobblemon pasture blocks, enforced at placement time.
 | `maxPerChunk` | int | `1` | pastures allowed in one chunk, all owners together |
 | `maxPerChunkPerPlayer` | int | `1` | pastures one player may own in one chunk |
 
-Both are clamped at 0 and have no upper bound. **`0` forbids placement entirely** — it is
-not a sentinel for "unlimited". There is no unlimited value; use a large number.
+Both are clamped at 0 and have no upper bound. **`0` disables that cap** — it means
+"unlimited", not "forbidden" (`PastureLimitsManager` only checks a cap that is above 0).
+With both at `0`, CheeseGuard does not limit pastures at all.
 
 The two are checked independently, so the effective cap is the smaller of the two for a
 single player. `maxPerChunk: 4` with `maxPerChunkPerPlayer: 1` means four players may each
@@ -144,7 +146,7 @@ place one.
 
 Changes made with `/cg pasture chunk` or `/cg pasture player` rewrite the file at once and
 take effect on the next placement. Hand edits need a restart, since the file is read only
-at server start.
+at server start. A missing file is created with the defaults on that first load.
 
 ```json
 {
@@ -201,14 +203,13 @@ is the sum over *entries*, so a tier with weight 100 and ten species is ten time
 likely to be rolled than a tier with weight 100 and one species. To make a tier rarer, cut
 its weight or its species list.
 
-`points` and `weight` are read from the **first** entry of each tier when the file is
-saved back out, so if you hand-edit the file into a shape where entries in one tier
-disagree, a later save by the mod will flatten them to the first one's values.
+The mod only writes this file when it is absent (the built-in defaults are saved on that
+first load); it never rewrites a file you have edited.
 
-The table is reloaded by `PokemonFishingTable.reload`, which the dashboard calls — a hand
-edit does not need a full restart if you reload from there. A malformed file logs
-`Failed to load fish pokemon table` and falls back to the built-in defaults, so a syntax
-error silently gives you the stock table.
+The table is loaded by `PokemonFishingTable.reload`, which only `EventManager.init` calls,
+at server start. Nothing in the dashboard reloads it, so a hand edit needs a restart. A
+malformed file logs `Failed to load fish pokemon table` and falls back to the built-in
+defaults, so a syntax error silently gives you the stock table.
 
 ---
 
@@ -229,10 +230,11 @@ Two top-level objects, `regions` and `groups`, each keyed by id:
       "world": "minecraft:overworld",
       "minX": 118, "minY": 64, "minZ": -302,
       "maxX": 142, "maxY": 90, "maxZ": -276,
+      "group": "public_areas",
       "priority": 0,
-      "groupId": null,
-      "flags": { "block-break": false, "pvp": false },
-      "members": [ { "uuid": "…", "name": "RoiCheese" } ]
+      "owner": { "uuid": "…", "name": "RoiCheese", "role": "OWNER" },
+      "members": [ { "uuid": "…", "name": "Steve", "role": "MEMBER" } ],
+      "flags": { "block-break": false, "pvp": false }
     }
   },
   "groups": {
@@ -240,6 +242,11 @@ Two top-level objects, `regions` and `groups`, each keyed by id:
   }
 }
 ```
+
+The sample is trimmed: each zone also carries its entry/exit/protection messages,
+particle colour and, when set, `parent`, tags, advancement and quest requirements, enter/exit
+commands and a `saleConfig`. The `group` key is omitted when the zone has no group, and the
+owner is stored apart from `members`.
 
 A flag absent from the `flags` object is *inherited*, which is not the same as `false`.
 The full semantics, priority resolution and the sale fields are in
@@ -297,7 +304,8 @@ does not clear it — the setter keeps the previous value.
 ### `config/cheeseguard/tag_configs.json`
 
 Per-tag ownership caps consulted by `/cg buy`: how many zones carrying a given tag one
-player may own. Written when a purchase succeeds.
+player may own. Written when a tag is created, edited or deleted from the dashboard; a
+purchase only reads it.
 
 ### `config/cheeseguard_scores.json`
 
@@ -324,8 +332,11 @@ read at server start. Delete it only if you are certain no player is still trans
 - **Permission levels.** They are compiled into the Brigadier tree. You cannot change the
   level on `/cg flag` from a config file; see
   [the command gate table](commands.md#permission-levels).
-- **Flag defaults.** The default for each flag, and whether members are exempt from it,
-  are fields on the `Flag` enum. Changing them means recompiling.
+- **Flag defaults.** A flag that no zone, group or dimension sets is always *allowed* —
+  there is no per-flag default value. Whether members are exempt from a flag is the
+  `memberExempt` field on the `Flag` enum. Changing either means recompiling. (The closest
+  thing to a configurable default is a dimension's `deniedFlags`, in
+  `cheeseguard_dimensions.json`.)
 - **Ports.** CheeseGuard serves no HTTP of its own. Its dashboard routes run inside
   CheeseDash, on CheeseDash's port — configured in `config/cheesedash.json`.
 - **The hot potato toggle.** `HotPotatoHandler` holds it in a static field. It is off at

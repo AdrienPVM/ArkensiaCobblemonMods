@@ -21,7 +21,8 @@ l'ont délibérément pas.
 
 | Sous-commande | Garde dans le code | Accès réel |
 |---|---|---|
-| `/cg` (nu), `gui` | la racine est ouverte ; `openGui` vérifie lui-même le niveau 2 | tout le monde — les non-ops reçoivent une aide, les ops un avis |
+| `/cg` (nu) | la racine est ouverte ; `openGui` vérifie lui-même le niveau 2 | tout le monde — les non-ops reçoivent une aide, les ops un avis |
+| `gui` | niveau 2 | opérateurs |
 | `wand`, `pos1`, `pos2`, `create`, `delete`, `list`, `info` | niveau 2 | opérateurs |
 | `flag`, `addmember`, `removemember` | niveau 2 | opérateurs |
 | `group create`, `group delete`, `group add` | niveau 2 | opérateurs |
@@ -69,7 +70,8 @@ Il n'y a plus d'interface d'administration en jeu. Elle a été supprimée
 (`CheeseGuardScreen`, `EventEditorScreen`) quand l'administration est passée sur
 CheeseDash, et le littéral `gui` est tout ce qu'il en reste.
 
-Pour un joueur sous le niveau 2, la même commande affiche l'aide destinée aux joueurs :
+Pour un joueur sous le niveau 2, `/cg` seul affiche l'aide destinée aux joueurs (`/cg gui`
+est lui-même protégé au niveau 2, donc un non-op reçoit *Unknown or incomplete command*) :
 
 ```text
 ═══ CheeseGuard ═══
@@ -130,8 +132,11 @@ Position 2 : 142, 90, -276
 Les deux coins sont stockés par joueur dans `SelectionManager`, indexés par UUID, et
 uniquement en mémoire : un redémarrage efface toutes les sélections en cours.
 
-Une sélection n'est utilisable qu'une fois les **deux** coins posés, et dans le même
-monde. `pos1` et `pos2` enregistrent l'identifiant du monde avec la position.
+Une sélection n'est utilisable qu'une fois les **deux** coins posés. `pos1` et `pos2`
+enregistrent l'identifiant du monde avec la position, mais une sélection ne garde qu'un
+seul identifiant de monde, écrasé par le dernier coin posé ; rien ne vérifie que les deux
+coins ont été marqués dans le même monde, et la zone est créée dans le monde du dernier
+coin.
 
 ### `/cg create`
 
@@ -151,7 +156,8 @@ peuvent produire le même identifiant, et rien ne le vérifie — le second `cre
 première entrée de `regions.json`.
 
 La boîte est normalisée (min/max par axe), l'ordre dans lequel tu as marqué les coins n'a
-donc pas d'importance. Le joueur créateur devient le premier membre de la zone.
+donc pas d'importance. Le joueur créateur devient le **propriétaire** de la zone (pas une
+entrée de sa liste de membres, qui part vide — d'où `Membres : 0` dans `/cg info`).
 
 ```mcfunction
 /cg create Market Square
@@ -187,8 +193,8 @@ Zone supprimée : market_square
 |---|---|
 | `Zone introuvable : <id>` | aucune zone avec cet identifiant |
 
-La suppression écrit `regions.json` immédiatement. Elle ne retire pas la zone des groupes
-qui la référençaient : un groupe peut donc garder un identifiant de zone fantôme — voir
+La suppression écrit `regions.json` immédiatement, et retire aussi l'identifiant de la zone
+de la liste de chaque groupe (`RegionStorage.removeRegion`) — voir
 [les groupes](groups.fr.md).
 
 ---
@@ -208,7 +214,7 @@ abrégé.
 Zones (3)
 • Market Square [market_square] – Overworld
 • Prison [prison] – Overworld
-• Boss Arena [boss_arena] – minecraft:the_nether
+• Boss Arena [boss_arena] – Nether
 ```
 
 La colonne monde passe par un helper qui ne reconnaît que les trois mondes vanilla par
@@ -238,7 +244,7 @@ ID : market_square | Overworld
 Min : 118,64,-302
 Max : 142,90,-276
 Groupe : aucun
-Priorité : 0 | Membres : 1
+Priorité : 0 | Membres : 0
 ```
 
 La ligne `Groupe :` affiche la chaîne littérale `aucun` quand la zone n'appartient à aucun
@@ -311,7 +317,8 @@ Niveau 2.
 | `value` | mot unique | oui | `true`, `false`, `inherit`, `null` | — |
 
 `inherit` et `null` (sans distinction de casse) effacent le flag : la zone retombe alors
-sur son groupe, puis sur le défaut du flag lui-même. Toute autre valeur passe par
+sur son groupe, puis sur les flags refusés de la dimension, et à défaut l'action est
+autorisée. Toute autre valeur passe par
 `Boolean.parseBoolean`, ce qui veut dire que chaque valeur non reconnue — `yes`, `1`,
 `allow`, une faute de frappe — est lue comme `false`. Aucune validation, aucun
 avertissement. C'est de loin la façon la plus facile d'interdire quelque chose par
@@ -439,10 +446,10 @@ première correspondance.
 ```
 
 ```text
-Steve retiré.
+steve retiré.
 ```
 
-Le message de succès est envoyé **que quelque chose ait été retiré ou non** : le handler
+Le nom affiché est celui que tu as tapé, pas le nom stocké. Le message de succès est envoyé **que quelque chose ait été retiré ou non** : le handler
 signale la réussite sans condition après la recherche. Lance `/cg info <id>` et compare le
 nombre de membres si tu as besoin d'en être sûr. Seul `Zone introuvable.` est un vrai
 échec ici.
@@ -496,8 +503,9 @@ Groupe supprimé : public_areas
 ```
 
 La confirmation est inconditionnelle — supprimer un groupe qui n'a jamais existé signale
-une réussite. Les zones qui pointaient vers le groupe gardent leur `groupId` et finissent
-par référencer un groupe disparu. Réaffecte-les avant de supprimer.
+une réussite. Les zones qui pointaient vers le groupe voient leur `groupId` effacé
+(`RegionStorage.removeGroup`) : elles retombent sur leurs propres flags et les défauts des
+flags.
 
 ### `/cg group add`
 
@@ -527,9 +535,11 @@ dashboard.
 
 ## Les états de zone sauvegardés
 
-Un *état* est une copie capturée de chaque bloc (et un décompte d'entités) à l'intérieur
-d'une zone, sauvegardée sous `config/cheeseguard_states/<zoneId>/`. Réappliquer un état
-reconstruit la zone, éventuellement sous forme d'animation. Les remises à zéro d'arène et
+Un *état* est une copie capturée de chaque bloc non-air (avec les données de block entity)
+et de chaque entité non joueur à l'intérieur d'une zone, sauvegardée sous
+`config/cheeseguard_states/<zoneId>/`. Réappliquer un état reconstruit la zone,
+éventuellement sous forme d'animation : les entités non joueurs présentes dans la boîte
+sont supprimées et celles capturées sont recréées. Les remises à zéro d'arène et
 les décorations saisonnières reposent dessus.
 
 Tout le sous-arbre `state` exige le **niveau 2** et, contrairement au reste de cette page,
@@ -570,10 +580,12 @@ La capture parcourt toute la boîte, son coût grandit donc avec le volume. Une 
 
 ```text
 États de la zone 'boss_arena' :
-  a1b2c3d4 — Pristine (18432 blocs, 3 entités)
+  1 — Pristine (18432 blocs, 3 entités)
 ```
 
-La première colonne est l'identifiant d'état que tu passes à `apply` et `delete`.
+La première colonne est l'identifiant d'état que tu passes à `apply` et `delete`. Les
+identifiants d'état sont des entiers séquentiels par zone (`1`, `2`, …), tirés du compteur
+`nextId` du fichier `index.json` de la zone.
 
 | Message | Cause |
 |---|---|
@@ -586,7 +598,7 @@ La première colonne est l'identifiant d'état que tu passes à `apply` et `dele
 ```
 
 ```text
-État 'a1b2c3d4' supprimé de la zone 'boss_arena'
+État '1' supprimé de la zone 'boss_arena'
 ```
 
 | Message | Cause |
@@ -635,24 +647,25 @@ Une `direction` ou une `particle` non reconnue n'est **pas** une erreur : toutes
 passent par un `fromString` qui retombe sur le défaut (`bottom_up`, `cloud`) pour tout ce
 qu'il ne connaît pas. Une faute de frappe te donne silencieusement l'animation par défaut.
 
-Le monde utilisé pour la reconstruction est celui de la **source de la commande**, et c'est
-ce qui fait fonctionner `state apply` dans une dimension par joueur : la même définition de
+Le monde utilisé pour la reconstruction est celui de la **source de la commande** *quand ce
+monde est une copie par joueur du monde de la zone* ; dans tous les autres cas, c'est le
+monde de la zone elle-même. C'est ce qui fait fonctionner `state apply` dans une dimension par joueur : la même définition de
 zone s'applique dans la copie du monde où se tient l'appelant.
 
 ```mcfunction
-/cg state apply boss_arena a1b2c3d4
+/cg state apply boss_arena 1
 ```
 
 ```text
-État 'a1b2c3d4' appliqué à la zone 'boss_arena'
+État '1' appliqué à la zone 'boss_arena'
 ```
 
 ```mcfunction
-/cg state apply boss_arena a1b2c3d4 true cascade_from_bottom 4 sparkle true
+/cg state apply boss_arena 1 true cascade_from_bottom 4 sparkle true
 ```
 
 ```text
-Animation de l'état 'a1b2c3d4' sur la zone 'boss_arena'...
+Animation de l'état '1' sur la zone 'boss_arena'...
 ```
 
 Une application animée rend la main immédiatement et s'exécute sur les ticks suivants : la
@@ -660,7 +673,7 @@ ligne de retour signifie « démarré », pas « terminé ».
 
 | Message | Cause |
 |---|---|
-| `Erreur : <détail>` | le canal d'erreur unique de cette sous-commande — zone inconnue, état inconnu, fichier illisible sur le disque. Le détail vient de `ZoneStateManager.applyState` |
+| `Erreur : <détail>` | le canal d'erreur unique de cette sous-commande — `Animation already running on this zone`, `Zone not found`, `World not loaded`, `State file not found`, `Failed to load state: …`. Le détail vient de `ZoneStateManager.applyState` et reste toujours en anglais |
 
 ---
 
@@ -684,9 +697,13 @@ affiche le prix et une invite cliquable ; avec `confirm`, elle exécute la vente
 ```
 
 ```text
-La zone plot_14 est en vente pour 2500.
-[Cliquez pour acheter]
+La zone Plot 14 est en vente pour 2500 fromage.
+ [Cliquez pour acheter]
 ```
+
+L'invite affiche le nom de la zone et le prix formaté par `SaleManager.formatPrice` selon
+la monnaie de la zone (`2500 fromage` ; un prix `NUMISMATIC` de 2500 s'affiche
+`25 silver`).
 
 ```mcfunction
 /cg buy plot_14 confirm
@@ -701,20 +718,24 @@ Vous êtes maintenant propriétaire de Plot 14 !
 | `Zone introuvable.` | aucune zone avec cet identifiant |
 | `Cette zone n'est pas en vente.` | la zone n'a pas de configuration de vente, ou elle est désactivée |
 | `Cette zone a déjà été vendue.` | la configuration de vente est marquée vendue |
-| `Vous ne pouvez pas vous offrir cette zone. Prix : <prix>` | le solde du portefeuille est sous le prix |
-| `Vous possédez déjà le nombre maximum de zones avec le tag '<tag>'.` | le plafond de possession par tag de `tag_configs.json` est atteint |
+| `You have reached the ownership limit for tag: <tag>` | le plafond de possession par tag de `config/cheeseguard/tag_configs.json` est atteint (vérifié en premier) |
+| `You cannot afford this zone (<prix>)` | l'acheteur ne peut pas payer le prix dans la monnaie de la zone |
+| `Failed to deduct fromage payment` / `Failed to deduct items from inventory` / `Unknown currency: <c>` | l'étape de paiement a échoué |
 
-Un achat réussi ajoute l'acheteur comme propriétaire, marque la vente comme conclue et
-persiste `regions.json` et la configuration des tags. La monnaie vient du portefeuille que
-`SaleManager` trouve — voir [zones et flags](zones-and-flags.fr.md) pour le modèle de vente
-et le format du panneau.
+Un achat réussi fait de l'acheteur le propriétaire (l'ancien propriétaire est rétrogradé
+en membre), marque la vente comme conclue, enregistre l'acheteur et sauvegarde
+`regions.json`. Il casse aussi le panneau de vente que l'acheteur a cliqué dans les 60
+dernières secondes, s'il y en a un, et rafraîchit l'hologramme de vente. La configuration
+des tags est seulement lue, jamais écrite. La monnaie est celle définie dans la
+configuration de vente de la zone (`NUMISMATIC`, `FROMAGE` ou `ITEMS`) — voir
+[zones et flags](zones-and-flags.fr.md) pour le modèle de vente et le format du panneau.
 
-Les chaînes d'échec *Vous ne pouvez pas vous offrir* et *nombre maximum de zones* sont
-renvoyées par `SaleManager.processPurchase` comme une chaîne déjà formatée et affichées
+Les chaînes d'échec de l'étape de confirmation (les trois dernières lignes) sont renvoyées
+par `SaleManager.processPurchase` comme des chaînes anglaises codées en dur et affichées
 avec `Text.literal` : elles ne sont donc **pas** traduites, même si les fichiers de langue
-contiennent les clés correspondantes. Elles s'affichent dans la langue du serveur, pas
-dans celle du client. Tous les autres messages de cette page passent par
-`Text.translatable` et respectent la langue du client.
+contiennent des clés `cheeseguard.sale.cannotAfford` et `cheeseguard.sale.ownershipLimit`
+au libellé différent. Elles s'affichent toujours en anglais. Tous les autres messages de
+cette page passent par `Text.translatable` et respectent la langue du client.
 
 ---
 

@@ -49,13 +49,11 @@ Three consequences worth stating plainly:
 `create` slugifies the name with the same rule zones use —
 `name.toLowerCase().replaceAll("[^a-z0-9_-]", "_")` — so `Zone PvE` becomes `zone_pve`.
 It refuses an id that already exists. `add` sets the zone's `groupId` and appends the zone
-id to the group's list, in one step; it reports `Group or zone not found` if either side
-is missing.
+id to the group's list, in one step; it reports `Zone or group not found.` if either side
+is missing. It does **not** take the zone out of its previous group's list.
 
-> ⚠️ None of the three carries a `requires(permissionLevel)` clause, so every player can
-> run them, including `delete`. Gate the `cg` command in your permissions mod if your
-> server has untrusted players. The same gap affects `/cg flag` and the member commands —
-> see [zones and flags](zones-and-flags.md#members-and-roles).
+All three require permission level 2: the `requires` clause sits on the `group` node
+itself, so it covers every subcommand.
 
 `/cg group delete` calls `removeGroup()` without checking that the group exists, so
 deleting a group that is not there reports success and does nothing. Harmless, but do not
@@ -90,7 +88,7 @@ write path updates both:
 | `PUT /zones/:id` with `groupId` | Same two-sided update, from the zone's side. An empty string means `null` |
 | `DELETE /zones/:id` | Removes the zone id from its group's list before deleting the zone |
 | `DELETE /groups/:id` | Clears `groupId` on every zone that pointed at the group |
-| `/cg group add` | Sets both sides |
+| `/cg group add` | Sets `groupId` and appends to this group's list, but leaves the zone id in its previous group's list |
 
 Flag resolution reads only **one** of the two sides: `isAllowed()` goes from the zone to
 `region.getGroupId()` and looks the group up by id. A zone listed in a group's
@@ -99,7 +97,10 @@ up in the group's zone listing, which skips ids that no longer resolve to a zone
 group's flags seem to be ignored by one zone, check that zone's `groupId` first.
 
 `/cg group add` and the JSON file are the two ways to get into that inconsistent state.
-The command does keep both sides in step; a hand edit may not.
+Moving a zone from one group to another with the command leaves it listed in the old
+group too (harmless for flags, since `groupId` points at the new one, but visible in the
+old group's zone listing); a hand edit can break either side. The dashboard routes clean
+up the old group.
 
 ---
 
@@ -230,7 +231,8 @@ as booleans. The four requirement lists are written only when non-empty.
 
 Groups are deserialized **before** zones, so a zone's `group` reference always finds its
 target during load. Only `name` is read without a `has()` guard, so a hand-edited group
-missing its name aborts the whole load — zones included. Back the file up before editing.
+missing its name aborts the load: the groups read before it survive, but that group, every
+group after it and every zone are lost. Back the file up before editing.
 
 `removeGroup()` sweeps every zone whose `groupId` matched and sets it to `null`, then
 saves. Deleting a group never deletes a zone, and the zones keep whatever explicit flags

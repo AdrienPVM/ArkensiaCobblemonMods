@@ -53,8 +53,9 @@ Position 1 set: 118, 64, -302
 Position 2 set: 142, 90, -276
 ```
 
-Both corners have to be in the same world, and the selection lives in memory only — a
-restart clears it.
+Mark both corners in the same world: nothing checks it, and the zone is created in the
+world of whichever corner you set last. The selection lives in memory only — a restart
+clears it.
 
 ## 3. Create the zone
 
@@ -82,10 +83,11 @@ ID: market_square | Overworld
 Min: 118,64,-302
 Max: 142,90,-276
 Group: aucun
-Priority: 0 | Members: 1
+Priority: 0 | Members: 0
 ```
 
-`Members: 1` is you — the creator is added automatically. `Group: aucun` is the hardcoded
+`Members: 0` is expected: you are the zone's **owner**, which is stored apart from the
+member list. `Group: aucun` is the hardcoded
 fallback for "no group"; you will change that in step 7.
 
 This write created `config/cheeseguard/regions.json`.
@@ -126,9 +128,11 @@ Flag block-break = false
 /cg flag market_square pvp false
 ```
 
-Now log in as a player who is **not** a member, or ask someone to, and try to break a
-block inside the box. Nothing happens. You, as a member, can still build: `block-break`
-is one of the flags where members are exempt — the classic protection behaviour.
+Now log in as a player who is **neither a member nor an operator**, or ask someone to, and
+try to break a block inside the box. Nothing happens. You can still build: `block-break`
+is one of the flags where members and the owner are exempt — the classic protection
+behaviour. Operators (level 2), however, bypass every member-exempt flag everywhere
+(`RegionManager.isAllowed`), so testing with your own op account proves nothing.
 
 ⚠️ Two things to get right here. The value must be exactly `true`, `false` or `inherit`:
 anything else, including `yes` and `1`, is read as `false` with a confirmation message
@@ -153,7 +157,7 @@ Steve added.
 ```
 
 Steve can now break and place inside the zone. Verify with `/cg info market_square` —
-the member count goes to 2.
+the member count goes to 1.
 
 To remove them, `/cg removemember market_square Steve`. Be aware that this command
 reports success whether or not it removed anything, so always re-check the count.
@@ -204,7 +208,7 @@ Group flags themselves are set from the dashboard, not from a command — there 
 and set `block-break` and `block-place` to deny there. Both zones follow.
 
 Check your work with `/cg info market_square`: the `Group:` line now reads
-`Public Areas`.
+`public_areas` (the group's id, not its display name).
 
 The full inheritance and priority model, including what happens when two zones overlap, is
 in [groups](groups.md).
@@ -218,7 +222,7 @@ A zone state is a snapshot of every block inside the box. This is how arena rese
 ```
 
 ```text
-State 'Pristine' captured (18432 blocks, 3 entities)
+State 'Pristine' captured (9620 blocks, 3 entities)
 ```
 
 ⚠️ Capture walks every block on the server thread. A 20×10×20 box is 4 000 reads and
@@ -233,28 +237,28 @@ List what you have:
 
 ```text
 States for zone 'market_square':
-  a1b2c3d4 — Pristine (18432 blocks, 3 entities)
+  1 — Pristine (9620 blocks, 3 entities)
 ```
 
 The first column is the state id. Now break a few blocks inside the zone, then put it
 back:
 
 ```mcfunction
-/cg state apply market_square a1b2c3d4
+/cg state apply market_square 1
 ```
 
 ```text
-State 'a1b2c3d4' applied to zone 'market_square'
+State '1' applied to zone 'market_square'
 ```
 
 The blocks you broke are back. Try it with the animation on:
 
 ```mcfunction
-/cg state apply market_square a1b2c3d4 true cascade_from_bottom 4 sparkle
+/cg state apply market_square 1 true cascade_from_bottom 4 sparkle
 ```
 
 ```text
-Animating state 'a1b2c3d4' on zone 'market_square'...
+Animating state '1' on zone 'market_square'...
 ```
 
 The feedback means "started". The rebuild runs over the following ticks. All fourteen
@@ -314,7 +318,7 @@ Check and release:
 
 ```text
 Active prisoners (1)
-• Steve — 9m47s — testing the prison
+• Steve — 9m — testing the prison
 ```
 
 ```mcfunction

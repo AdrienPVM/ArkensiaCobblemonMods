@@ -70,18 +70,21 @@ pourquoi retirer une entrée exige les trois valeurs.
 2. Développer l'ensemble en chunks concernés, puis en fichiers de région, puis filtrer sur
    ceux qui existent réellement.
 3. **Créer une sauvegarde vérifiée.** Chaque fichier de région est copié dans
-   `config/cheeseguard/backups/<ensemble>-<horodatage>/`, et la taille de la copie est
+   `config/cheeseguard/backups/<ensemble>-<yyyy-MM-dd_HH-mm-ss>/` (les caractères hors de
+   `[a-zA-Z0-9_-]` dans le nom de l'ensemble deviennent `_`), et la taille de la copie est
    comparée à celle de la source. Toute différence supprime le dossier partiel et lève une
    exception.
-4. Seulement si la sauvegarde a abouti, supprimer les fichiers de région.
-5. Écrire un `manifest.json` dans le dossier de sauvegarde, avec les métadonnées nécessaires à
-   une restauration à la main.
-6. Faire la rotation des sauvegardes, en conservant les 5 dossiers les plus récents.
+4. Écrire un `manifest.json` dans le dossier de sauvegarde, avec les métadonnées nécessaires à
+   une restauration à la main. C'est ce qui clôt l'étape de sauvegarde, avant toute
+   suppression.
+5. Seulement si la sauvegarde a abouti, supprimer les fichiers de région.
+6. Faire la rotation des sauvegardes, en conservant les 5 dossiers de sauvegarde modifiés le
+   plus récemment, tous ensembles confondus.
 
 Si la sauvegarde échoue, **rien n'est supprimé** :
 
 ```text
-[CG] ABORTING chunk reset 'spawn_ring': backup failed — size mismatch for r.0.0.mca: source=4194304B, backup=2097152B
+[CG] ABORTING chunk reset 'spawn_ring': backup failed — Integrity check failed for r.0.0.mca: source=4194304B, backup=2097152B
 ```
 
 La réponse est le `DeletionResult` :
@@ -90,7 +93,7 @@ La réponse est le `DeletionResult` :
 {
   "setName": "spawn_ring",
   "status": "SUCCESS",
-  "backupDir": "spawn_ring-20261029-040000",
+  "backupDir": "spawn_ring-2026-10-29_04-00-00",
   "totalChunks": 225,
   "totalRegions": 4,
   "deleted": 4,
@@ -126,7 +129,7 @@ Un ensemble vide est refusé par `400 {"error":"Chunk set is empty"}`, ce qui é
 ## Planification
 
 Avec `resetTrigger: "SCHEDULED"`, `CheeseGuardMod.tickChunkAutoReset()` confronte chaque
-ensemble à l'horloge. Les conditions, dans l'ordre : l'ensemble est planifié, il n'est pas
+ensemble à l'horloge, tous les 600 ticks (environ 30 secondes). Les conditions, dans l'ordre : l'ensemble est planifié, il n'est pas
 vide, l'heure courante égale `resetHour`, la minute courante est à moins de 1 de
 `resetMinute`, le jour courant figure dans `resetDays` (ou la liste est vide), et la dernière
 réinitialisation automatique date de plus de 90 secondes.
@@ -147,11 +150,17 @@ texte traduit, et consigne :
 
 ```text
 [CG] Auto-reset triggered for chunk set: spawn_ring
-[CG] Auto-reset completed for 'spawn_ring' (dim: minecraft:overworld): 4 deleted, 0 failed, backup: spawn_ring-20261029-060000
+[CG] Auto-reset completed for 'spawn_ring' (dim: minecraft:overworld): 4 deleted, 0 failed, backup: spawn_ring-2026-10-29_06-00-00
 ```
 
-`PUT /chunks/sets/:name/schedule` la configure. `trigger` doit valoir `MANUAL` ou
-`SCHEDULED` ; toute autre valeur donne `400`. `hour` est borné à 0–23 et `minute` à 0–59 :
+Quand CheeseDash est installé, elle envoie aussi une notification Discord
+`SCHEDULED_TASK_FIRED`. Un résultat `BACKUP_FAILED`, `NO_REGIONS` ou `NO_FILES_FOUND`
+n'envoie rien aux joueurs et consigne
+`[CG] Auto-reset failed for '<ensemble>': <statut> — <erreur>`.
+
+`PUT /chunks/sets/:name/schedule` la configure. `trigger` doit valoir exactement `MANUAL` ou
+`SCHEDULED` (sensible à la casse) ; toute autre valeur donne `400`, et un `trigger` absent
+repasse en `MANUAL`. Le corps peut aussi porter `dimension`, `hour`, `minute` et `days`. `hour` est borné à 0–23 et `minute` à 0–59 :
 les valeurs hors plage sont donc corrigées sans un mot, pas refusées.
 
 ## Suggestions
@@ -164,10 +173,9 @@ réinitialiser ». Les joueurs en déposent une avec :
 ```
 
 La commande ne prend aucun argument et est **ouverte à tous les joueurs**, pas seulement aux
-opérateurs. Elle est enregistrée comme commande autonome plutôt que sous `/cheeseguard`, et
-c'est volontaire : le commentaire du code explique que le nœud racine du mod `chunkstoclear`
-exige le niveau opérateur, et imbriquer celle-ci sous une racine gardée aurait emporté la
-permission avec elle.
+opérateurs. Elle est enregistrée comme commande autonome plutôt que sous `/cg`, et c'est
+volontaire : le commentaire du code explique que cela évite d'écraser le verrou de
+permission du mod `chunkstoclear`, dont le nœud racine exige le niveau opérateur.
 
 Ce que fait la commande :
 
@@ -219,6 +227,19 @@ sauvegardés, et la suggestion est retirée dans la même tâche du thread serve
 `DELETE /chunks/suggestions/:id` en écarte une sans y donner suite. Le joueur n'est notifié
 dans aucun des deux cas.
 
+## Avertissements à l'entrée
+
+Tous les 40 ticks (2 secondes), le fichier de région où se trouve chaque joueur est comparé
+aux régions couvertes par tous les ensembles de chunks de sa dimension. Y entrer affiche, en
+doré :
+
+```text
+Vous entrez dans une région du set "spawn_ring" pouvant être régénérée par l'administrateur. Ne construisez pas votre base ici !
+```
+
+et en sortir affiche `Vous quittez la zone régénérable "spawn_ring".` en gris. Aucun
+réglage ne désactive ce message ; un ensemble qui a des entrées est toujours annoncé.
+
 ## Autorisation
 
 `ChunksApi` ne contient aucun appel à `WebDashboard.requireWrite` ni à `requireAdmin`. Les
@@ -244,8 +265,9 @@ Les détails des routes, les corps et les codes de statut sont dans
   région ; redémarre après une réinitialisation.
 - Les entrées de `resetDays` ne sont pas validées contre de vrais noms de jours.
 - Le planificateur suit le fuseau horaire de la machine hôte.
-- Les sauvegardes sont plafonnées à 5 dossiers et tournent silencieusement : un ensemble
-  réinitialisé chaque semaine conserve environ cinq semaines d'historique, pas plus.
+- Les sauvegardes sont plafonnées à 5 dossiers **tous ensembles confondus** et tournent
+  silencieusement : un ensemble unique réinitialisé chaque semaine conserve environ cinq
+  semaines d'historique, et plusieurs ensembles se partagent ces cinq places.
 
 ---
 

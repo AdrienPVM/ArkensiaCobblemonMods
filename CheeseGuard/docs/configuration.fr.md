@@ -33,7 +33,7 @@ serveur arrêté, et garde une copie.
 | `config/cheeseguard_prophunt_icons.json` | `PropHuntIconStorage` | la correspondance clé d'icône → `custom_model_data` | non |
 | `config/cheeseguard_pending_reverts.json` | `CobbleShiftHook` | les transformations CobbleShift encore dues à un retour après un plantage | non |
 
-Et cinq dossiers :
+Et neuf dossiers :
 
 | Chemin | Contenu |
 |---|---|
@@ -101,9 +101,11 @@ réécrite dès que le dashboard la modifie. Un fichier absent laisse chaque val
 
 La fenêtre est semi-ouverte : `8`–`22` autorise un lancement à 21 h 59 et refuse celui de
 22 h 00. Un début supérieur à la fin passe par minuit : `22`–`6` est donc une fenêtre de
-nuit. Mettre les deux à la même heure ferme complètement la fenêtre — chaque lancement est
-refusé, parce qu'aucune des deux branches de la comparaison ne peut être vraie. Si tu ne
-veux pas de fenêtre, mets `timeWindowEnabled` à `false` plutôt que d'égaliser les heures.
+nuit. Mettre les deux à la même heure ne ferme **pas** la fenêtre : des heures égales
+passent par la branche « passage de minuit » (`hour >= start || hour < end`), vraie à
+toute heure, donc chaque lancement est autorisé. Il n'existe aucun moyen de fermer
+complètement la fenêtre, sauf à refuser le lancement par les joueurs sur les événements
+eux-mêmes (`playerLaunchable`).
 
 Les deux limites sont des fenêtres glissantes sur les horodatages de lancement enregistrés,
 pas des compartiments de calendrier : avec `playerLimitCount: 2` et la période `DAY`, un
@@ -139,9 +141,9 @@ Des plafonds sur les blocs de pâturage Cobblemon, appliqués au moment de la po
 | `maxPerChunk` | entier | `1` | pâturages autorisés dans un chunk, tous propriétaires confondus |
 | `maxPerChunkPerPlayer` | entier | `1` | pâturages qu'un joueur peut posséder dans un chunk |
 
-Les deux sont bornés à 0 et n'ont pas de maximum. **`0` interdit complètement la pose** —
-ce n'est pas une valeur sentinelle pour « illimité ». Il n'existe pas de valeur illimitée ;
-utilise un grand nombre.
+Les deux sont bornés à 0 et n'ont pas de maximum. **`0` désactive ce plafond** — il veut
+dire « illimité », pas « interdit » (`PastureLimitsManager` ne vérifie qu'un plafond
+supérieur à 0). Avec les deux à `0`, CheeseGuard ne limite plus du tout les pâturages.
 
 Les deux sont vérifiés indépendamment : le plafond effectif pour un joueur seul est donc le
 plus petit des deux. `maxPerChunk: 4` avec `maxPerChunkPerPlayer: 1` veut dire que quatre
@@ -149,7 +151,8 @@ joueurs peuvent en poser un chacun.
 
 Les modifications faites avec `/cg pasture chunk` ou `/cg pasture player` réécrivent le
 fichier aussitôt et prennent effet à la prochaine pose. Une édition à la main exige un
-redémarrage, puisque le fichier n'est lu qu'au démarrage du serveur.
+redémarrage, puisque le fichier n'est lu qu'au démarrage du serveur. Un fichier absent est
+créé avec les valeurs par défaut lors de ce premier chargement.
 
 ```json
 {
@@ -207,14 +210,13 @@ est la somme sur les *entrées* : un palier de poids 100 avec dix espèces a don
 plus de chances d'être tiré qu'un palier de poids 100 avec une seule espèce. Pour rendre un
 palier plus rare, baisse son poids ou réduis sa liste d'espèces.
 
-`points` et `weight` sont relus depuis la **première** entrée de chaque palier quand le
-fichier est réécrit : si tu l'édites à la main pour que les entrées d'un même palier
-diffèrent, une sauvegarde ultérieure par le mod les aplatira sur les valeurs de la
-première.
+Le mod n'écrit ce fichier que lorsqu'il est absent (les valeurs par défaut intégrées sont
+sauvegardées lors de ce premier chargement) ; il ne réécrit jamais un fichier que tu as
+édité.
 
-La table est rechargée par `PokemonFishingTable.reload`, que le dashboard appelle — une
-édition à la main n'exige donc pas forcément un redémarrage complet si tu recharges depuis
-là. Un fichier mal formé journalise
+La table est chargée par `PokemonFishingTable.reload`, que seul `EventManager.init` appelle,
+au démarrage du serveur. Rien dans le dashboard ne la recharge : une édition à la main exige
+donc un redémarrage. Un fichier mal formé journalise
 `Failed to load fish pokemon table` et retombe sur les valeurs par défaut intégrées : une
 erreur de syntaxe te rend donc silencieusement la table d'origine.
 
@@ -237,10 +239,11 @@ Deux objets de premier niveau, `regions` et `groups`, chacun indexé par identif
       "world": "minecraft:overworld",
       "minX": 118, "minY": 64, "minZ": -302,
       "maxX": 142, "maxY": 90, "maxZ": -276,
+      "group": "public_areas",
       "priority": 0,
-      "groupId": null,
-      "flags": { "block-break": false, "pvp": false },
-      "members": [ { "uuid": "…", "name": "RoiCheese" } ]
+      "owner": { "uuid": "…", "name": "RoiCheese", "role": "OWNER" },
+      "members": [ { "uuid": "…", "name": "Steve", "role": "MEMBER" } ],
+      "flags": { "block-break": false, "pvp": false }
     }
   },
   "groups": {
@@ -248,6 +251,12 @@ Deux objets de premier niveau, `regions` et `groups`, chacun indexé par identif
   }
 }
 ```
+
+L'exemple est abrégé : chaque zone porte aussi ses messages d'entrée, de sortie et de
+protection, sa couleur de particules et, quand ils sont définis, `parent`, ses tags, ses
+exigences de progrès et de quêtes, ses commandes d'entrée et de sortie et un `saleConfig`.
+La clé `group` est omise quand la zone n'a pas de groupe, et le propriétaire est stocké à
+part de `members`.
 
 Un flag absent de l'objet `flags` est *hérité*, ce qui n'est pas la même chose que `false`.
 La sémantique complète, la résolution par priorité et les champs de vente sont dans
@@ -309,7 +318,8 @@ chaîne vide ne l'effacera pas — le setter conserve alors la valeur précéden
 ### `config/cheeseguard/tag_configs.json`
 
 Les plafonds de possession par tag consultés par `/cg buy` : combien de zones portant un
-tag donné un joueur peut posséder. Écrit quand un achat aboutit.
+tag donné un joueur peut posséder. Écrit quand un tag est créé, modifié ou supprimé depuis
+le dashboard ; un achat se contente de le lire.
 
 ### `config/cheeseguard_scores.json`
 
@@ -338,9 +348,12 @@ qu'aucun joueur n'est encore transformé.
 - **Les niveaux de permission.** Ils sont compilés dans l'arbre Brigadier. Tu ne peux pas
   changer le niveau de `/cg flag` depuis un fichier ; voir
   [le tableau des gardes de commande](commands.fr.md#niveaux-de-permission).
-- **Les défauts des flags.** Le défaut de chaque flag, et le fait que les membres en soient
-  exemptés ou non, sont des champs de l'énumération `Flag`. Les changer suppose de
-  recompiler.
+- **Les défauts des flags.** Un flag qu'aucune zone, aucun groupe ni aucune dimension ne
+  pose est toujours *autorisé* — il n'existe pas de valeur par défaut propre à chaque flag.
+  Le fait que les membres soient exemptés ou non d'un flag est le champ `memberExempt` de
+  l'énumération `Flag`. Changer l'un ou l'autre suppose de recompiler. (Ce qui se rapproche
+  le plus d'un défaut configurable, ce sont les `deniedFlags` d'une dimension, dans
+  `cheeseguard_dimensions.json`.)
 - **Les ports.** CheeseGuard ne sert aucun HTTP en propre. Ses routes dashboard tournent
   dans CheeseDash, sur le port de CheeseDash — configuré dans `config/cheesedash.json`.
 - **La bascule du hot potato.** `HotPotatoHandler` la garde dans un champ statique. Elle

@@ -120,9 +120,12 @@ Toute exception qui s'échappe d'un gestionnaire est rattrapée par le routeur e
 {"error":"Internal server error","detail":"<message dont les guillemets doubles sont remplacés par des apostrophes>"}
 ```
 
-Les API attrapent d'abord leurs propres exceptions, généralement avec la cause du thread
-serveur dépliée : la plupart des erreurs arrivent donc en `500` portant le vrai message
-plutôt que cette enveloppe.
+Les API attrapent d'abord leurs propres exceptions : la plupart des erreurs arrivent donc en
+`500` avec un champ `error` plutôt que cette enveloppe. Seules `ChunksApi` et `RacesApi`
+déplient la cause du thread serveur ; les routes des zones, groupes, dimensions, événements
+et joueurs renvoient le message de l'`ExecutionException` qui l'enveloppe, si bien qu'un
+échec dans la tâche du thread serveur se lit `java.lang.RuntimeException: <message>` (ou le
+nom de l'exception levée). Les messages cités sur cette page sont donnés sans ce préfixe.
 
 ### `GET /` et `GET /status`
 
@@ -146,7 +149,7 @@ pendant le démarrage peut donc renvoyer un objet partiel, voire `{}`.
 | Méthode | Chemin | Corps / paramètres | Réponse | Statuts | Rôle |
 |---|---|---|---|---|---|
 | `GET` | `/zones` | `?world=<id>` filtre par monde | tableau de résumés de zones | `200` | n'importe lequel |
-| `POST` | `/zones` | `{name, playerName?, id?, ...}` | la zone créée | `200` `400` `404` `409` | `OPERATOR` (cœur) |
+| `POST` | `/zones` | `{name, playerName?}` | la zone créée | `200` `400` `404` `409` `500` | `OPERATOR` (cœur) |
 | `GET` | `/zones/:id` | — | détail de la zone | `200` `400` `404` | n'importe lequel |
 | `PUT` | `/zones/:id` | champs partiels de zone | détail de la zone | `200` `400` `404` `500` | `OPERATOR` (cœur) |
 | `DELETE` | `/zones/:id` | — | `{"deleted":true}` | `200` `404` `409` | `OPERATOR` (cœur) |
@@ -168,7 +171,7 @@ pendant le démarrage peut donc renvoyer un objet partiel, voire `{}`.
 | `POST` | `/zones/:id/sale/sign` | `?player=<nom>` | `{...}` | `200` `400` `404` | `OPERATOR` (cœur) |
 | `POST` | `/zones/:id/sale/relist` | — | `{...}` | `200` `400` `404` `500` | `OPERATOR` (cœur) |
 | `GET` | `/zones/:id/members` | — | tableau de membres | `200` `404` | n'importe lequel |
-| `POST` | `/zones/:id/members` | `{playerName, role?}` | `{...}` | `200` `400` `404` `409` `500` | `OPERATOR` (cœur) |
+| `POST` | `/zones/:id/members` | `{playerName}` (un éventuel `role` est ignoré) | `{...}` | `200` `400` `404` `409` `500` | `OPERATOR` (cœur) |
 | `DELETE` | `/zones/:id/members/:uuid` | — | `{...}` | `200` `400` `404` `500` | `OPERATOR` (cœur) |
 | `PUT` | `/zones/:id/owner` | `{playerName}` | `{...}` | `200` `400` `404` `500` | `OPERATOR` (cœur) |
 | `DELETE` | `/zones/:id/owner` | — | `{...}` | `200` `400` `404` `500` | `OPERATOR` (cœur) |
@@ -194,11 +197,15 @@ comme `null`.
 curl -X PUT http://localhost:44311/api/v1/cheeseguard/zones/arena \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"priority":5,"flags":{"pvp":"ALLOW","build":"DENY"}}'
+  -d '{"priority":5,"flags":{"pvp":"ALLOW","block-break":"DENY"}}'
 ```
 
-`DELETE /zones/:id` répond `409` au lieu de supprimer en cascade lorsque la zone a des
-enfants.
+`DELETE /zones/:id` répond `409` quand la zone est la zone de prison configurée et contient
+encore des prisonniers. Il ne regarde pas les zones enfants : celles dont le `parentId`
+pointe vers la zone supprimée gardent cet identifiant orphelin.
+
+`PUT /zones/tag-configs/:tagId` remplace la configuration entière : un `label` ou une
+`color` omis devient vide, et un `ownershipLimit` omis devient `0` (illimité).
 
 `DELETE /zones/:id/members/:uuid` refuse de retirer le propriétaire :
 `400 Cannot remove owner via members endpoint. Use DELETE /zones/:id/owner instead.`
@@ -247,7 +254,7 @@ en un même identifiant, et le second est alors refusé.
 | `POST` | `/dimensions/:id/snapshot` | — | résultat | `200` `404` `500` | `OPERATOR` (cœur) |
 | `POST` | `/dimensions/:id/reset` | — | résultat | `200` `404` `500` | `OPERATOR` (cœur) |
 | `POST` | `/dimensions/:id/toggle` | `{key}` | détail de la dimension | `200` `400` `404` `500` | `OPERATOR` (cœur) |
-| `PUT` | `/dimensions/:id/snapshot/config` | `{trigger, hour?, minute?}` | config | `200` `400` `404` `500` | `OPERATOR` (cœur) |
+| `PUT` | `/dimensions/:id/snapshot/config` | `{trigger, hour?}` | `{trigger, hour, updated}` | `200` `400` `404` `500` | `OPERATOR` (cœur) |
 | `POST` | `/dimensions/:id/whitelist` | `{playerName}` | `{...}` | `200` `400` `404` `500` | `OPERATOR` (cœur) |
 | `DELETE` | `/dimensions/:id/whitelist/:uuid` | — | `{...}` | `200` `400` `404` | `OPERATOR` (cœur) |
 | `POST` | `/dimensions/:id/builders` | `{playerName}` | `{...}` | `200` `400` `404` `500` | `OPERATOR` (cœur) |
@@ -275,9 +282,10 @@ que par des setters sur l'objet renvoyé.
 `POST /dimensions/:id/toggle` bascule un seul booléen, nommé par `key`. Clés acceptées :
 `pvp`, `mobSpawning`, `keepInventory`, `clearInventory`, `constructionMode`, `perPlayerMode`,
 `commandBlocks`, `enderChest`, `generateStructures`, `cobblemonBlocked`, `enabled`,
-`timeLocked`, `weatherLocked`, `allowHome`, `raidDensEnabled`, `borderEnabled`. Une `key`
-absente donne `400` ; une clé **non reconnue** traverse le `switch` sans rien changer et répond
-pourtant `200` avec le détail inchangé. Vérifie le champ que tu voulais basculer.
+`timeLocked`, `weatherLocked`, `allowHome`, `raidDensEnabled`, `borderEnabled`, plus
+`flag.<flagId>` pour un drapeau refusé au niveau de la dimension. Une `key` absente donne
+`400` ; toute autre clé donne
+`500 {"error":"java.lang.RuntimeException: Unknown toggle key: <key>"}`.
 
 Les routes par joueur adressent une sous-dimension par les 8 premiers caractères hexadécimaux
 de l'UUID du propriétaire, validés contre `[0-9a-f]{8}`. Un identifiant qui ne se résout pas
@@ -331,7 +339,8 @@ nouvel événement. Pour charger un template *pour de vrai*, utilise
 `PUT /events/:id` est une modification partielle, sauf pour `kitEntryCommands`,
 `kitExitCommands`, `blacklistItems` et `acts`, qui sont vidés puis remplis quand ils sont
 présents. Une valeur d'énumération invalide lève une exception dans la tâche du thread
-serveur, ressort en `500`, et laisse l'événement partiellement modifié et sauvegardé.
+serveur, ressort en `500`, et laisse l'événement partiellement modifié en mémoire — non
+sauvegardé par cette requête, mais écrit à la sauvegarde suivante.
 
 `POST /events/:id/start` refuse un événement déjà en cours
 (`500 {"error":"Event already running"}`) ; `stop` refuse un événement qui ne tourne pas
@@ -356,7 +365,8 @@ caractères : `400 {"error":"Invalid key"}`. Le corps d'envoi accepte soit une c
 nue, soit une URI complète `data:image/png;base64,...` — tout ce qui précède la première
 virgule est retiré. Un `GET` sur une icône renvoie du `image/png` avec
 `Cache-Control: public, max-age=60`, pas du JSON. Une méthode non prise en charge sur une clé
-d'icône répond `405 {"error":"Method not allowed"}`, le seul `405` de tout le module.
+d'icône répond `405 {"error":"Method not allowed"}` — l'un des deux `405` du module, l'autre
+étant `/races/:eventId/track`.
 
 ---
 
@@ -431,7 +441,7 @@ l'égalité d'une entrée porte sur ce triplet. Se tromper de rayon donne
 | Méthode | Chemin | Corps | Réponse | Statuts | Rôle |
 |---|---|---|---|---|---|
 | `POST` | `/races/scan` | `{zoneId, blockMappings, eventId?}` | un `ScanResult` | `200` `400` `500` | `OPERATOR` (`requireWrite`) |
-| `POST` | `/races/heightmap` | `{zoneId}` | `{width, depth, minX, minZ, image}` | `200` `400` `500` | `OPERATOR` (cœur) |
+| `POST` | `/races/heightmap` | `{zoneId}` | `{width, height, minX, minZ, image}` | `200` `400` `500` | `OPERATOR` (cœur) |
 | `GET` | `/races/:eventId/track` | — | la config du circuit | `200` `400` | n'importe lequel |
 | `PUT` | `/races/:eventId/track` | réglages partiels | la config du circuit | `200` `400` | `OPERATOR` (`requireWrite`) |
 | `DELETE` | `/races/:eventId/track` | — | `{"ok":true}` | `200` `400` | `OPERATOR` (`requireWrite`) |

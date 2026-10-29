@@ -29,9 +29,9 @@ death · dimension · inventory · visibility · redstone · stats · logic
 ```
 
 A block's `track` value is cosmetic. Moving a `POTION` block onto the `weather` row changes
-nothing about what it does. The only place the track matters functionally is in
-`EventAct.fromLegacyPhase()`, which picks a track per effect type when migrating an old
-phase-based event.
+nothing about what it does. The only code that derives a track from an effect type is
+`EventAct.fromLegacyPhase()`, and nothing calls that method (see
+[legacy phases](#legacy-phases)).
 
 **A block** (`data/TimelineBlock.java`) is one effect, placed in time:
 
@@ -93,10 +93,17 @@ A duration block with a repeat and a condition:
 
 - **Instant block** (`duration == 0`): fires once, the first tick where
   `elapsed >= start`. With `repeat > 0` it then re-fires every `repeat` seconds, for as long
-  as the act lasts.
+  as the act lasts — and on that first tick it actually fires **twice**, because the
+  one-shot firing and the first repeat both trigger (the repeat clock starts at
+  `start - repeat`).
 - **Duration block**: on the first tick inside `[start, start+duration)` it runs its *start*
   handler; then its *tick* handler every second, or every `repeat` seconds if `repeat > 0`;
   then its *end* handler on the first tick at or after `start+duration`.
+
+The act's first tick is second 1, not 0: `elapsed` is incremented before the blocks are
+evaluated, so a block at `start: 0` and one at `start: 1` fire on the same tick. The block's
+condition is checked before anything else, every second; while it is false the block is
+skipped entirely, end handler included.
 
 Three consequences worth knowing. A block whose `start` is beyond the act's duration never
 fires. A duration block's end handler is what undoes a `MULTIPLIER` or a `FLAG_OVERRIDE`, so
@@ -138,11 +145,12 @@ mixed field both can be true at the same time.
 |---|---|
 | `DURATION` | `actElapsedSeconds >= durationSeconds` |
 | `CONDITION` | the configured `transitionCondition` is satisfied |
-| `MANUAL` | never automatically — an admin has to move it on |
+| `MANUAL` | never: `TimelineExecutor.advanceAct()` exists but no command or route calls it |
 
 When the **last** act finishes, the executor sets `signalEnd` on the event and
-`EventManager` takes it to `ENDING` on its next tick. An event made only of `MANUAL` acts
-therefore runs until something stops it.
+`EventManager` takes it to `ENDING` on its next tick. A `MANUAL` act therefore never ends on
+its own: the event stays in it until it is stopped (`POST /events/:id/stop`) or a victory
+condition ends it.
 
 Transition conditions:
 
@@ -201,7 +209,7 @@ of the effect. The default of 1200 ticks (60 s) against a 1 s tick is deliberate
 
 | Type | Mode | Properties | Behaviour |
 |---|---|---|---|
-| `COMMAND` | instant / duration-start + tick | `command`, `target` (`all`/`zone`/`random`/`team`) | run from the console with level 4 |
+| `COMMAND` | instant / duration-start + tick | `command`, `target` | run from the console source (level 4) once **per targeted player**, with `{player}`, `{uuid}`, `{x}`, `{y}`, `{z}` substituted |
 | `COMMAND_PLAYER` | instant | `command`, `target` | run as each targeted player |
 | `WEIGHTED_RANDOM_COMMAND` | instant | `cmd0`, `weight0`, `cmd1`, `weight1`, … , `target` | picks one command by weight |
 | `CONDITIONAL_BRANCH` | — | — | **not implemented** |
@@ -210,7 +218,13 @@ The weighted-random block reads `cmd0`, `cmd1`, … until a key is missing, with
 defaulting to 1. A gap in the numbering silently truncates the list.
 
 `COMMAND` on a duration block fires at *start* **and** on every tick. A block with
-`duration: 60` and no `repeat` runs its command 61 times. Use `duration: 0` for a one-shot.
+`duration: 60` and no `repeat` runs its command 61 times per targeted player (60 if it starts
+at second 0, since the first tick is second 1). Use `duration: 0` for a one-shot.
+
+`target`, wherever a block reads it, accepts `all` (the default), `role` (players whose
+`role` state flag equals the block's `targetRole` property) and `random` (each player
+independently, with a 50 % chance). Any other value — `zone` and `team` included — means
+everyone. The player list is every online member of the event, **spectators included**.
 
 ### Zones
 
@@ -224,8 +238,8 @@ defaulting to 1. A gap in the numbering silently truncates the list.
 | `ZONE_MOVE` | — | — | **not implemented** |
 | `FLAG_OVERRIDE` | instant / duration start+end | `flagId`, `targetZone`, `flagValue` | forces a zone flag for the block's duration and restores it at the end |
 
-`ZONE_SHRINK` reads two spellings of its centre (`zoneCenterX` and `cx`) because the legacy
-migration writes one and the editor writes the other. Border particles are drawn from a
+`ZONE_SHRINK` reads two spellings of its centre (`zoneCenterX`, and the older `cx`) for
+backward compatibility with blocks saved under the old keys. Border particles are drawn from a
 separate 3-tick loop in `EventManager`, not from the block's own tick, which is why the
 border looks smooth while damage is applied once per second.
 
@@ -234,7 +248,7 @@ border looks smooth while damage is applied once per second.
 | Type | Mode | Properties | Behaviour |
 |---|---|---|---|
 | `ENTITY_SPAWN` | instant | `command` | runs a spawn command from the console |
-| `POKEMON_SPAWN` | instant | `species`, `level` (50), `x`, `y` (64), `z`, `world` | spawns through the Cobblemon hook |
+| `POKEMON_SPAWN` | instant | `species`, `level` (50), `x`, `y` (64), `z`, `world` | runs Cobblemon's `pokespawn <species> level=<n> pos=<x> <y> <z>` in that world; does nothing without Cobblemon |
 | `SPAWN_ITEM_AT_POS` | instant | `itemId` (`minecraft:diamond`), `x`, `y` (64), `z` | drops an item entity |
 | `SPAWN_STRUCTURE` | duration-start | `structureName`, `x`, `y` (64), `z` | places a structure |
 | `SET_BLOCK_AT_POS` | instant | `blockId` (`minecraft:air`), `bx`, `by` (64), `bz`, `world` | one `setblock` |
@@ -250,7 +264,7 @@ border looks smooth while damage is applied once per second.
 | `FREEZE_PLAYERS` | instant / duration start+end | — | participants cannot move; enforced every tick and released at the end |
 | `UNFREEZE_PLAYERS` | instant | — | releases everyone |
 | `GIVE_ITEM_TO_PLAYER` | instant | `itemId` (`minecraft:diamond`), `count` (1), `target` | |
-| `TAKE_ITEM_FROM_PLAYER` | instant | `itemId`, `count`, `target` | |
+| `TAKE_ITEM_FROM_PLAYER` | instant | `itemId`, `target` | runs `clear <player> <itemId>`: removes every matching item, there is no count |
 | `TELEPORT_PLAYER_TO_PLAYER` | instant | `targetRole` | teleports players onto the holder of a role |
 | `ITEM_DROP` | — | — | **not implemented** in the timeline (legacy phase path only) |
 | `SET_PLAYER_HEALTH` | — | — | **not implemented** |
@@ -285,7 +299,7 @@ Vote options, like weighted commands, are read as `opt0`, `opt1`, … until a ke
 
 | Type | Mode | Properties | Behaviour |
 |---|---|---|---|
-| `MULTIPLIER` | duration start+end | `multType` (`score`), `multValue` (2.0) | sets a multiplier while active, clears it at the end |
+| `MULTIPLIER` | duration start+end | `multType` (`score`), `multValue` (2.0) | stores a multiplier on the event while active and clears it at the end — but nothing reads it, so scores are unchanged (see [Events](events.md#scores)) |
 | `DEATH_BEHAVIOR_OVERRIDE` | instant | `behavior` (`RESPAWN_EVENT`) | replaces the event's death behaviour for the rest of the run |
 
 ### Cross-mod effects
@@ -305,7 +319,7 @@ resolves its target class once at server start and logs the outcome:
 | `TRANSFORM_ALL` | CobbleShift | `transformSpecies` (`pikachu`) | `[CG-TL] TRANSFORM_ALL: CobbleShift not available` at **warn**, block does nothing |
 | `TRANSFORM_RANDOM` | CobbleShift | `transformSpeciesList` (`pikachu,charizard,mewtwo`), `allowDuplicates` (true) | same, with the type name in the message |
 | `TRANSFORM_BY_TEAM` | CobbleShift | `transformTeamMap` (a JSON object as a string) | same |
-| `TRANSFORM_REVERT_ALL` | CobbleShift | — | `CobbleShiftHook.revertAll()` catches and logs at debug; nothing happens |
+| `TRANSFORM_REVERT_ALL` | CobbleShift | — | `CobbleShiftHook.revertAll()` returns silently; nothing happens |
 | `KART_START_ALL` | CheeseKart | `kartPresetId` (`rally`), `kartSpeciesOverride` (empty) | `[CG] Cannot start karts — CheeseKart not available` at warn |
 | `KART_STOP_ALL` | CheeseKart | — | returns silently |
 | `DUNGEON_OPEN` | CobblemonDungeons | `dungeonId`, `dungeonTier` (1) | `[CG-TL] DUNGEON_OPEN: CobblemonDungeons not available` at warn |
@@ -316,8 +330,9 @@ The type is spelled **`TRANSFORM_REVERT_ALL`**, not `REVERT_ALL`. Some older not
 short name; the enum constant and the stored `effectType` value are the long one.
 
 `TRANSFORM_BY_TEAM` does not read teams from any team system. It splits the participant
-list into blocks of `event.teamSize` by their position in the collection, and maps block
-index 0, 1, 2 … onto the keys of `transformTeamMap`. Participant order comes from a
+list into blocks of `event.teamSize` by their position in the collection, and looks up block
+index 0, 1, 2 … as the **string keys** `"0"`, `"1"`, `"2"` … of `transformTeamMap`
+(`{"0":"charizard","1":"blastoise"}`); a block with no matching key is not transformed. Participant order comes from a
 `HashMap`'s values, so it is not stable between runs. Treat team assignment here as
 arbitrary-but-balanced, not as "the red team becomes Charizard".
 
@@ -341,18 +356,16 @@ cosmetics unless you have read the mini-game's code.
 
 ## Legacy phases
 
-Before acts, an event had `phases`, each with a flat list of `EventEffect` objects.
-`useActSystem` selects which structure is used; events loaded from an old config are
-migrated by `EventAct.fromLegacyPhase()`, which creates one act per phase and turns each
-effect into a block with `start: 0` and `duration` equal to the phase length.
+Before acts, an event had `phases`, each with a flat list of `EventEffect` objects. What
+decides which structure runs is whether `acts` is empty: an event with at least one act runs
+the timeline, an event with none runs its phases on the legacy path (`useActSystem` is
+stored but not consulted for that). Nothing converts one into the other.
+`ServerEvent.migrateToActSystem()` and `EventAct.fromLegacyPhase()` — one act per phase,
+each effect turned into a block with `start: 0` and `duration` equal to the phase length —
+exist in the code but have no caller.
 
-The migration is mechanical. Everything in a phase starts simultaneously at the top of the
-act, which is almost never the timing the phase actually had. Open any migrated event in the
-editor and re-space the blocks before running it.
-
-`PARTICLE` and `ITEM_DROP` are the two effects that still work on the legacy phase path but
-have no handler in `TimelineExecutor` — migrating an event that used them silently loses
-them.
+`PARTICLE` and `ITEM_DROP` are the two effects that work on the legacy phase path but have no
+handler in `TimelineExecutor`. Rebuilding a phase-based event as acts loses them.
 
 ---
 

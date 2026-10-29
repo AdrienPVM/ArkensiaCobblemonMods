@@ -53,13 +53,11 @@ Trois conséquences qui méritent d'être dites franchement :
 `name.toLowerCase().replaceAll("[^a-z0-9_-]", "_")` — donc `Zone PvE` devient `zone_pve`.
 Elle refuse un identifiant qui existe déjà. `add` pose le `groupId` de la zone et ajoute
 l'identifiant de la zone à la liste du groupe, en une seule opération ; elle signale
-`Groupe ou zone introuvable` s'il manque l'un des deux côtés.
+`Zone ou groupe introuvable.` s'il manque l'un des deux côtés. Elle ne retire **pas** la
+zone de la liste de son ancien groupe.
 
-> ⚠️ Aucune des trois ne porte de clause `requires(permissionLevel)`, donc tous les joueurs
-> peuvent les lancer, `delete` incluse. Verrouille la commande `cg` dans ton mod de
-> permissions si ton serveur accueille des joueurs non fiables. La même faille touche
-> `/cg flag` et les commandes de membres — voir
-> [zones et drapeaux](zones-and-flags.fr.md#membres-et-rôles).
+Les trois exigent le niveau de permission 2 : la clause `requires` est posée sur le nœud
+`group` lui-même, donc elle couvre toutes les sous-commandes.
 
 `/cg group delete` appelle `removeGroup()` sans vérifier que le groupe existe, donc
 supprimer un groupe qui n'est pas là annonce un succès et ne fait rien. Sans danger, mais
@@ -94,7 +92,7 @@ s'accorder, donc chaque voie d'écriture met les deux à jour :
 | `PUT /zones/:id` avec `groupId` | La même mise à jour des deux côtés, depuis la zone. Une chaîne vide vaut `null` |
 | `DELETE /zones/:id` | Retire l'identifiant de la zone de la liste de son groupe avant de supprimer la zone |
 | `DELETE /groups/:id` | Efface `groupId` sur chaque zone qui pointait vers le groupe |
-| `/cg group add` | Pose les deux côtés |
+| `/cg group add` | Pose `groupId` et ajoute la zone à la liste de ce groupe, mais la laisse dans la liste de son ancien groupe |
 
 La résolution des drapeaux ne lit qu'**un** des deux côtés : `isAllowed()` part de la zone,
 passe par `region.getGroupId()` et cherche le groupe par son identifiant. Une zone listée
@@ -103,8 +101,11 @@ dans les `regionIds` d'un groupe mais dont le `groupId` propre est nul ou périm
 identifiants ne correspondant plus à une zone. Si les drapeaux d'un groupe semblent ignorés
 par une zone, vérifie d'abord le `groupId` de cette zone.
 
-`/cg group add` et le fichier JSON sont les deux moyens d'arriver à cet état incohérent. La
-commande, elle, maintient bien les deux côtés en phase ; une édition à la main, non.
+`/cg group add` et le fichier JSON sont les deux moyens d'arriver à cet état incohérent.
+Déplacer une zone d'un groupe à un autre avec la commande la laisse aussi listée dans
+l'ancien groupe (sans effet sur les drapeaux, puisque `groupId` pointe vers le nouveau,
+mais visible dans la liste des zones de l'ancien groupe) ; une édition à la main peut
+casser l'un ou l'autre côté. Les routes du dashboard, elles, nettoient l'ancien groupe.
 
 ---
 
@@ -243,8 +244,9 @@ ne sont écrites que lorsqu'elles ne sont pas vides.
 
 Les groupes sont désérialisés **avant** les zones, donc la référence `group` d'une zone
 trouve toujours sa cible au chargement. Seul `name` est lu sans garde `has()`, donc un
-groupe édité à la main auquel il manque son nom avorte tout le chargement — zones
-incluses. Sauvegarde le fichier avant de l'éditer.
+groupe édité à la main auquel il manque son nom fait avorter le chargement : les groupes
+lus avant lui survivent, mais ce groupe, tous ceux qui le suivent et toutes les zones sont
+perdus. Sauvegarde le fichier avant de l'éditer.
 
 `removeGroup()` balaye chaque zone dont le `groupId` correspondait et le met à `null`, puis
 sauvegarde. Supprimer un groupe ne supprime jamais une zone, et les zones gardent les

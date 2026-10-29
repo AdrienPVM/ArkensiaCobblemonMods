@@ -134,7 +134,7 @@ compte et qu'il résulte de corrections successives :
 ### Résistance aux crashs
 
 Quand `saveInventory` est actif, l'inventaire de chaque participant est écrit sur le disque
-en NBT à son entrée, et pas seulement gardé en mémoire. Si le serveur meurt en cours
+en NBT, dans `config/cheeseguard_pending_inv/<uuid>.nbt`, à son entrée, et pas seulement gardé en mémoire. Si le serveur meurt en cours
 d'événement, la restauration est rejouée à la prochaine connexion du joueur :
 `tickPendingRestores()` réessaie toutes les 3 secondes tant qu'il reste quelque chose en
 attente. Les spectateurs victimes d'un crash reçoivent un enregistrement allégé qui ne
@@ -152,7 +152,11 @@ aussi du helper du dashboard : `EventsApi.getParticipants()` renvoie une **`Map`
 
 Les rôles sont `PARTICIPANT` et `SPECTATOR`. L'inscription n'est acceptée que pendant
 `ANNOUNCED`, `COUNTDOWN` ou `ACTIVE` — `joinEvent()` renvoie `false` en dehors de ces trois
-états, et l'API traduit cela en `500` avec `Failed to add participant`.
+états (ou si le joueur est déjà inscrit), et l'API traduit cela en `500` avec
+`java.lang.RuntimeException: Failed to add participant`. L'API exige aussi que le joueur soit
+connecté. Une inscription `PARTICIPANT` devient sans prévenir une inscription `SPECTATOR`
+quand `maxParticipants` est atteint, et quand un événement mini-jeu est déjà `ACTIVE` (les
+rôles sont attribués au départ) ; le joueur en est averti dans le chat.
 
 Les spectateurs sont protégés de deux petites façons faciles à rater : tout ce qui chevauche
 un spectateur est démonté une fois par seconde, et le mode de jeu d'origine d'un spectateur
@@ -177,12 +181,18 @@ accepte n'importe quoi de cette catégorie. La détection se fait par des mixins
 les autres — c'est pourquoi le score fonctionne sur les actions vanilla sans aucune
 plomberie de commandes.
 
-**Les multiplicateurs de chronologie.** Un bloc `MULTIPLIER` augmente ou réduit les points
-accordés pour un type de score pendant qu'il est actif. Voir [Chronologie](timeline.fr.md).
+**Les multiplicateurs.** `EventManager.addScore()` multiplie les points par les effets
+`MULTIPLIER` de type `score` de la **phase historique** en cours. Un bloc `MULTIPLIER` de la
+chronologie ne fait que stocker sa valeur sur l'événement (`setActiveMultiplier`), et rien ne
+la relit : dans le système d'actes, il n'a donc aucun effet sur les scores. Voir
+[Chronologie](timeline.fr.md).
 
-**L'ajustement direct.** `POST /events/:id/score` avec une `operation` à `add`, `subtract` ou
-`set`. C'est la main de l'administrateur, et c'est aussi par là qu'un mod externe injecte des
-points via `EventScoreHook`.
+**L'ajustement direct.** `POST /events/:id/score` avec `playerName`, `amount` et une
+`operation` à `add` (par défaut), `subtract` ou `set`. C'est la main de l'administrateur : il
+écrit directement le score du participant, donc aucun multiplicateur ne s'applique, et il
+fonctionne dans n'importe quel état. `EventScoreHook` est autre chose — l'utilitaire
+qu'appellent les mixins de détection pour appliquer les déclencheurs de score
+correspondants de chaque événement `ACTIVE`.
 
 `victoryCondition` décide à quoi sert le score :
 
@@ -202,7 +212,7 @@ table en direct.
 ## Annonces
 
 `announceEvent()` fait passer l'événement en `ANNOUNCED` et diffuse `announceMessage` dans la
-couleur `announceColor`. De là jusqu'à la fin du décompte, les joueurs peuvent rejoindre. La
+couleur `announceColor`. De là jusqu'à la fin de l'événement, les joueurs peuvent rejoindre. La
 bossbar, si `bossbarEnabled` est actif, est mise à jour chaque seconde pour tout événement
 qui n'est pas en `IDLE`, et `discordNotify` envoie aussi l'annonce via
 `logic/DiscordWebhook.java`.
@@ -228,7 +238,7 @@ Pas `config/templates/`. Le dossier est créé à la première sauvegarde.
 `EventTemplate.save()` sérialise l'événement, retire `lastRun`, et ajoute `templateName`,
 `templateCreated` et `templateSource`. Le nom de fichier est le nom du template en minuscules
 avec tout caractère hors de `[a-zA-Z0-9_-]` remplacé par `_` : `Tournoi d'été #2` devient donc
-`tournoi_d_t__2.json`, et deux noms différents peuvent se retrouver sur le même fichier.
+`tournoi_d__t___2.json`, et deux noms différents peuvent se retrouver sur le même fichier.
 Garde des noms de template simples.
 
 `EventTemplate.load()` lit le fichier, attribue un **nouvel** identifiant de la forme
@@ -271,26 +281,38 @@ La référence complète, avec les corps et les codes de statut, est dans
 
 `PUT /events/:id` est une modification partielle, pas un remplacement : seules les clés
 présentes dans le corps sont appliquées. Envoyer `{"countdownSeconds": 5}` change le décompte
-et rien d'autre. Quatre champs de liste font exception — `kitEntryCommands`,
-`kitExitCommands`, `blacklistItems` et `acts` sont *vidés puis remplis* quand ils sont
-présents, si bien qu'envoyer un tableau vide supprime leur contenu.
+et rien d'autre. Les champs de liste font exception — `scopeZoneIds`,
+`tpParticipantZoneIds`, `tpSpectatorZoneIds`, `kitEntryCommands`, `kitExitCommands`,
+`blacklistItems` et `acts` sont *remplacés* quand ils sont présents, si bien qu'envoyer un
+tableau vide supprime leur contenu.
+
+La route ne lit qu'un ensemble fixe de clés. Plusieurs champs du modèle n'y ont aucun
+setter — `scheduledDelayMinutes`, `recurringIntervalMinutes`, `lunarEventId`,
+`triggerZoneId`, `scoreTriggers`, `rewards`, `chainEventId`, `exclusionPriority`,
+`endOnAllDead`, `blacklistEnchants`, `blacklistPokemon`, les trois couleurs de message — et
+le dashboard ne peut donc pas les modifier. Ils viennent du fichier JSON (édité serveur
+arrêté) ou d'un template.
 
 Une valeur d'énumération invalide dans un corps de `PUT` — `"mode": "MINIGAMES"`, par exemple
 — lève une exception dans la tâche du thread serveur et ressort en `500` portant le message
-de l'`IllegalArgumentException`. L'événement reste partiellement modifié, car les setters
-précédant celui qui a échoué ont déjà tourné. Valide les énumérations côté client.
+enveloppé, `java.lang.IllegalArgumentException: No enum constant …`. L'événement reste
+partiellement modifié en mémoire, car les setters précédant celui qui a échoué ont déjà
+tourné ; le `save()` de fin de tâche est sauté, mais l'état à moitié modifié est écrit à la
+sauvegarde suivante. Valide les énumérations côté client.
 
 ## Limites connues
 
 - Les identifiants d'événements issus de templates ne sont pas à l'épreuve des collisions
   (voir plus haut).
-- Un `PUT` qui échoue en milieu de course laisse l'événement à moitié modifié, et sauvegardé.
+- Un `PUT` qui échoue en milieu de course laisse l'événement à moitié modifié en mémoire, et
+  la sauvegarde suivante le rend persistant.
 - `QUEUE` et `CLEANUP` existent dans l'énumération d'états mais ne sont jamais affectés.
-- `phases` est la structure historique, remplacée par `acts`. Les anciens événements sont
-  migrés par `EventAct.fromLegacyPhase()` au chargement, qui répartit chaque effet de phase en
-  bloc de chronologie démarrant à la seconde 0 de l'acte. La correspondance est mécanique et
-  produit rarement le minutage que tu aurais choisi à la main — revois tout événement migré
-  avant de le lancer.
+- `phases` est la structure historique, remplacée par `acts`. Rien ne migre les anciens
+  événements : `ServerEvent.migrateToActSystem()` (bâtie sur `EventAct.fromLegacyPhase()`)
+  existe mais n'a aucun appelant. Un événement dont la liste `acts` est vide exécute tout
+  simplement ses `phases` par le chemin historique — et `POST /events` crée chaque nouvel
+  événement avec une phase historique de 300 secondes, `Phase 1`, tant qu'aucun acte n'est
+  ajouté.
 
 ---
 

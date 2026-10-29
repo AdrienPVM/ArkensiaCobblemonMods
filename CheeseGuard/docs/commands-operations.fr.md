@@ -44,8 +44,11 @@ Sans argument, la commande parcourt la liste des événements et rejoint le **pr
 `cheeseguard_events.json`, pas une priorité : avec deux événements en cours, tu ne peux pas
 prédire lequel tu obtiens. Passe l'identifiant quand cela compte.
 
-Tu rejoins comme `PARTICIPANT`. L'inscription sauvegarde d'abord ton inventaire et ta
-position, afin que le départ puisse te les rendre.
+Tu rejoins comme `PARTICIPANT` — ou comme `SPECTATOR` si l'événement est déjà plein, ou
+s'il s'agit d'un mini-jeu actif (un message te le signale). L'inscription enregistre ta
+position afin que le départ puisse te la rendre ; ton inventaire n'est sauvegardé que si
+l'événement a `saveInventory` activé, et seulement au démarrage de l'événement (ou tout de
+suite, pour une inscription tardive dans un événement `ACTIVE`).
 
 ```text
 Inscrit à l'événement : Spleef Night
@@ -53,9 +56,9 @@ Inscrit à l'événement : Spleef Night
 
 | Message | Cause |
 |---|---|
-| `Aucun événement disponible à rejoindre` | rien n'est en cours, ou tu participes déjà à tous les événements en cours |
+| `Aucun événement disponible à rejoindre` | aucun événement en cours ne t'a accepté — rien n'est en cours, tu participes déjà à chacun, ou chacun est dans un état qui refuse les inscriptions |
 | `Événement introuvable` | l'identifiant ne correspond à aucun événement |
-| `Impossible de rejoindre cet événement` | `EventManager.joinEvent` a refusé — l'événement a dépassé sa phase de file d'attente, il est plein, ou les conditions d'inscription ne sont pas remplies |
+| `Impossible de rejoindre cet événement` | `EventManager.joinEvent` a refusé — l'événement n'est pas en `ANNOUNCED`, `COUNTDOWN` ou `ACTIVE` (donc `IDLE`, `QUEUE`, `ENDING` et `CLEANUP` refusent), ou tu y participes déjà. Un événement plein ne refuse pas : il te rétrograde en spectateur |
 
 ### `/cg event spectate`
 
@@ -86,8 +89,9 @@ Spectateur de : Spleef Night
 Aucune permission requise. Trois replis, essayés dans l'ordre, et c'est ce qui en fait la
 commande à utiliser quand un joueur est bloqué :
 
-1. Si tu participes à un événement, le quitter normalement — inventaire et position
-   restaurés, score conservé dans le relevé de l'événement.
+1. Si tu participes à un événement, le quitter normalement — inventaire (s'il avait été
+   sauvegardé) et position restaurés. Ton entrée de participant, et le score qu'elle
+   porte, est retirée de l'événement.
 2. Sinon, s'il existe une **restauration en attente** pour toi (le serveur a planté
    pendant que tu étais dans un événement, et l'instantané de ton inventaire a survécu
    dans `config/cheeseguard_pending_inv/`), l'appliquer maintenant et retirer l'item de
@@ -219,6 +223,11 @@ noté.
 Le minimum de 1 signifie qu'aucune commande ne permet de retirer des points. Passe par le
 dashboard pour les corrections.
 
+Les points réellement crédités sont multipliés par tout effet `MULTIPLIER` de score de la
+phase en cours, et une cible inscrite comme **spectateur** ne reçoit rien — pourtant la
+commande affiche `+<amount> pts` dans les deux cas, puisqu'elle imprime le montant brut
+dès qu'elle a trouvé la cible dans l'événement.
+
 ```mcfunction
 /cg event score add Steve 50
 ```
@@ -241,8 +250,11 @@ dashboard pour les corrections.
 
 **Niveau 2.** Un mécanisme plus léger que
 [les états de zone sauvegardés](commands.fr.md#les-états-de-zone-sauvegardés) : un fichier
-NBT par snapshot dans `config/cheeseguard_snapshots/<snapId>.nbt`, les blocs seulement,
-sans animation et sans index par zone.
+NBT par snapshot dans `config/cheeseguard_snapshots/<snapId>.nbt`, les blocs non-air
+seulement, sans animation et sans index par zone. Seul l'**identifiant** de chaque bloc est
+écrit sur le disque : un snapshot rechargé restaure donc chaque bloc dans son état par
+défaut — orientation des escaliers, moitiés de dalles, contenu des coffres, etc. sont
+perdus.
 
 ```mcfunction
 /cg event snapshot save arena_clean boss_arena
@@ -262,7 +274,7 @@ Snapshot 'arena_clean' : 18432 blocs
 
 | Message | Cause |
 |---|---|
-| `Aucun bloc dans la zone <id>` | la capture n'a rien trouvé — généralement un mauvais identifiant de zone, puisqu'une boîte vide capture quand même de l'air |
+| `Aucun bloc dans la zone <id>` | la capture n'a rien trouvé — un mauvais identifiant de zone, un monde non chargé, ou une boîte qui ne contient que de l'air (l'air est ignoré) |
 | `Snapshot introuvable : <id>` | aucun fichier avec cet identifiant |
 
 `restore` ne prend pas d'argument de zone : le snapshot se souvient de la région d'où il
@@ -303,8 +315,11 @@ Template sauvegardé : Spleef Standard
 ```
 
 ```text
-  📄 spleef_standard
+  📄 Spleef Standard
 ```
+
+`list` affiche le `templateName` stocké dans chaque fichier (à défaut, le nom du fichier),
+trié par ordre alphabétique.
 
 | Message | Cause |
 |---|---|
@@ -467,7 +482,7 @@ Spawn défini à 118.5, 64.0, -302.5 dans Boss Arena
 
 | Message | Cause |
 |---|---|
-| `Dimension introuvable dans la config : <worldId>` | le monde où tu es n'est pas géré par CheeseGuard. Les mondes vanilla ne le sont pas, sauf si tu les as ajoutés |
+| `Dimension introuvable dans la config : <worldId>` | le monde où tu es n'a pas de configuration de dimension CheeseGuard. Rare en pratique : `DimensionManager` enregistre d'office chaque monde chargé comme dimension intégrée — les mondes vanilla au démarrage, les suivants à leur chargement — donc `/cg setspawn` fonctionne aussi dans l'Overworld |
 
 Cela définit le point d'apparition *CheeseGuard* de la dimension, utilisé quand le mod y
 téléporte un joueur. Cela ne touche pas au spawn vanilla du monde.
@@ -490,8 +505,8 @@ poignée de joueurs rende un chunk impossible à charger.
 | `max` | entier | oui | 0 ou plus | les deux limites valent `1` par défaut |
 
 `limits` affiche le couple actuel. `chunk` fixe le total par chunk ; `player` fixe le total
-par chunk **et par joueur**. `0` signifie qu'aucun pâturage ne peut être placé, pas
-« illimité ».
+par chunk **et par joueur**. `0` désactive cette limite (illimité), il n'interdit pas les
+pâturages ; avec les deux à `0`, CheeseGuard ne limite plus du tout les pâturages.
 
 ```text
 Pâturages — max par chunk : 1 | max par chunk/joueur : 1
@@ -519,7 +534,9 @@ effet à la prochaine tentative de pose. Sans redémarrage.
 ```
 
 **Niveau 2.** Restaure l'inventaire d'un joueur depuis l'archive que CheeseGuard écrit
-dans `config/cheeseguard_inv_archive/` quand un événement vide un inventaire. C'est
+dans `config/cheeseguard_inv_archive/` chaque fois qu'un événement sauvegarde l'inventaire
+d'un joueur (nom de fichier `<uuid8>_<yyyy-MM-dd_HH-mm-ss>_<playerName>.nbt` ; ces fichiers
+ne sont jamais nettoyés automatiquement). C'est
 l'outil de récupération pour la pire catégorie de bug que ce mod peut provoquer, d'où sa
 verbosité délibérée.
 
@@ -538,8 +555,8 @@ de s'en servir — les noms de fichiers sont longs.
 
 ```text
 Archives for Steve (UUID 00000000-0000-0000-0000-000000000000) — most recent first:
-  2026-10-28T19:04:11  inv_f81d4fae_2026-10-28T19-04-11.nbt
-  2026-10-27T21:40:02  inv_f81d4fae_2026-10-27T21-40-02.nbt
+  2026-10-28_19-04-11  f81d4fae_2026-10-28_19-04-11_Steve.nbt
+  2026-10-27_21-40-02  f81d4fae_2026-10-27_21-40-02_Steve.nbt
 ```
 
 Toute la sortie de cette sous-commande est en anglais : ses messages passent par
@@ -550,13 +567,13 @@ vérifier :
 
 ```text
 Resolved Steve → UUID 00000000-0000-0000-0000-000000000000
-Inventory restored online for Steve from inv_f81d4fae_2026-10-28T19-04-11.nbt
+Inventory restored online for Steve from f81d4fae_2026-10-28_19-04-11_Steve.nbt
 ```
 
 La cible est prévenue aussi :
 
 ```text
-Your inventory has been restored from a CheeseGuard archive (2026-10-28T19:04:11).
+Your inventory has been restored from a CheeseGuard archive (2026-10-28_19-04-11).
 ```
 
 Deux chemins, choisis automatiquement :
@@ -566,7 +583,7 @@ Deux chemins, choisis automatiquement :
   copie de sécurité à côté. Le retour nomme cette copie.
 
 ```text
-Offline inventory swap done for Steve from inv_f81d4fae_2026-10-28T19-04-11.nbt (safety copy: 00000000-....dat.bak)
+Offline inventory swap done for Steve from f81d4fae_2026-10-28_19-04-11_Steve.nbt (safety copy: 00000000-0000-0000-0000-000000000000.nbt.cgrestore-1761678251000.bak)
 ```
 
 Si un `filename` explicite appartient à un UUID différent de celui du joueur nommé, la
@@ -589,7 +606,7 @@ WARNING: archive UUID prefix 7d4448d9 does not match Steve (f81d4fae)
 Chaque application est journalisée en INFO avec l'auteur, la cible, l'archive et le mode :
 
 ```text
-[CG] /cg restoreinv: actor=RoiCheese target=Steve (00000000-...) archive=inv_f81d4fae_2026-10-28T19-04-11.nbt mode=online
+[CG] /cg restoreinv: actor=RoiCheese target=Steve (00000000-...) archive=f81d4fae_2026-10-28_19-04-11_Steve.nbt mode=online
 ```
 
 ---
@@ -709,7 +726,7 @@ Steve a été libéré de prison.
 
 ```text
 Prisonniers actifs (2)
-• Steve — 1h47m — griefing du marché
+• Steve — 1h 47m — griefing du marché
 • Alex — 12m — spam dans le chat
 ```
 
@@ -724,7 +741,7 @@ Une prison vide affiche l'en-tête avec `(0)` et rien d'autre.
 ```text
 Prison — Steve
 Raison : griefing du marché
-Temps restant : 1h47m
+Temps restant : 1h 47m
 Emprisonné par : RoiCheese
 ```
 

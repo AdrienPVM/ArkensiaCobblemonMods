@@ -91,9 +91,10 @@ Tout le reste renvoie `-1`, que l'API traduit en
 `{"error":"Duration is required and must be > 0"}` et la commande en
 `Durée invalide : %s (utilisez par exemple 30m, 2h, 7d).`
 
-L'analyseur n'a ni borne supérieure ni contrôle de débordement. `999999999d` produit un nombre
-qui dépasse ce que les millisecondes peuvent porter, et un `endsAt` absurde. Reste dans des
-durées raisonnables.
+L'analyseur n'a ni borne supérieure ni contrôle de débordement. `999999999d` tient encore
+(environ 2,7 millions d'années), mais `999999999999d` déborde l'arithmétique `long` et
+repart de l'autre côté : le résultat sort soit négatif (refusé comme invalide), soit avec
+une valeur arbitraire, et un `endsAt` absurde. Reste dans des durées raisonnables.
 
 ### Le joueur est déconnecté
 
@@ -101,15 +102,24 @@ durées raisonnables.
 serveur. Un joueur déconnecté qui s'est déjà connecté une fois peut donc être condamné par nom
 ou par UUID. Un nom que le serveur n'a jamais vu renvoie `404 Player not found`.
 
+Une peine prononcée contre un joueur **connecté** ne le téléporte pas aussitôt : il reçoit
+`⛓ Vous êtes en prison pour <durée>. Raison : <raison>` dans le chat, et la vérification de
+confinement suivante (dans la demi-seconde, voir plus bas) le ramène dans la cellule. Le
+message d'accueil n'est envoyé qu'à la connexion.
+
 Une peine prononcée contre un joueur absent prend effet à sa prochaine connexion :
 `ServerPlayConnectionEvents.JOIN` voit l'entrée active, le téléporte dans la cellule un tick
 après la fin de la connexion, et envoie le message d'accueil. Si la peine a expiré pendant son
 absence, le même gestionnaire le libère à la place et le téléporte au point de sortie.
 
-Pendant que le prisonnier est déconnecté, `PrisonDoppelgangerManager` fait apparaître un
-sosie dans la cellule avec son profil, pour que les autres joueurs voient qui purge une peine.
-Il est retiré à la libération, y compris une libération déclenchée par l'expiration ou par un
-administrateur alors que le joueur est toujours absent.
+Pendant que le prisonnier est déconnecté, `PrisonDoppelgangerManager` affiche un sosie dans
+la cellule avec son profil, pour que les autres joueurs voient qui purge une peine. Il
+apparaît quand un joueur emprisonné se déconnecte, et au démarrage du serveur pour chaque
+prisonnier absent que le cache utilisateur connaît (ces sosies de démarrage peuvent manquer
+de skin et s'afficher en Steve). Un joueur condamné alors qu'il est déjà déconnecté n'a donc
+pas de sosie avant le prochain redémarrage. Il est retiré à la reconnexion et à la
+libération, y compris une libération déclenchée par l'expiration ou par un administrateur
+alors que le joueur est toujours absent.
 
 ## À l'intérieur
 
@@ -139,8 +149,8 @@ Le confinement lui-même est un contrôle de présence, pas un mur. Toutes les 1
 fois par seconde), `onTick()` parcourt les joueurs connectés et, pour chaque prisonnier hors
 de la zone de prison, le téléporte au centre de la zone et affiche
 `⛓ Vous ne pouvez pas quitter la prison.` Le point d'atterrissage est choisi en balayant la
-colonne centrale de la zone vers le bas jusqu'au bloc solide le plus haut surmonté de deux
-blocs d'air, et `fallDistance` est remis à zéro ensuite.
+colonne centrale de la zone vers le bas jusqu'au bloc non vide (autre que de l'air) le plus
+haut surmonté de deux blocs d'air, et `fallDistance` est remis à zéro ensuite.
 
 Une demi-seconde suffit pour franchir quelques blocs : un prisonnier peut donc sortir
 brièvement d'une petite cellule avant d'être ramené. Prévois de la marge en construisant la
@@ -182,7 +192,11 @@ point de sortie et reçoit `✨ Votre peine est terminée. Vous êtes libre.`
 **La grâce.** `/prison release <player>`, ou
 `DELETE /api/v1/cheeseguard/prison/:uuid`. L'historique enregistre
 `releaseReason: "PARDONED"` et l'auteur. Le joueur voit
-`✨ Vous avez été gracié par un administrateur.`
+`✨ Vous avez été gracié par un administrateur.` Aucune des deux voies ne vérifie d'abord
+que le joueur est réellement emprisonné quand il est connecté : `/prison release` sur un
+joueur connecté qui n'est pas en prison répond quand même que le joueur a été libéré, et
+`DELETE` répond toujours `200 {"released":true}`. Seul `/prison release` sur un joueur
+déconnecté répond qu'il n'est pas en prison.
 
 **L'ajustement, qui peut raccourcir jusqu'à la libération.**
 `PUT /api/v1/cheeseguard/prison/:uuid` déplace `endsAt`. Il prend le premier de ces champs
@@ -240,8 +254,8 @@ soustraire-puis-restaurer : la version naïve, c'est le bug.
 
 ## Dashboard et WebSocket
 
-`PrisonApi` est la seule API de CheeseGuard qui appelle `WebDashboard.requireWrite(exchange)`
-correctement — `if (!WebDashboard.requireWrite(ex)) return;` sur chaque route qui modifie
+`PrisonApi` est l'une des deux API de CheeseGuard (avec `RacesApi`) qui appellent
+elles-mêmes `WebDashboard.requireWrite(exchange)` — `if (!WebDashboard.requireWrite(ex)) return;` sur chaque route qui modifie
 quelque chose. Les lectures acceptent tous les rôles, `READ_ONLY` compris. Les routes et les
 corps sont dans [API dashboard](dashboard.fr.md#prison).
 

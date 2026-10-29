@@ -89,9 +89,10 @@ Anything else returns `-1`, which the API turns into
 `{"error":"Duration is required and must be > 0"}` and the command into
 `Invalid duration: %s (try e.g. 30m, 2h, 7d).`
 
-The parser has no upper bound and no overflow check. `999999999d` parses to a number that
-exceeds what milliseconds can hold and produces a nonsensical `endsAt`. Keep sentences
-within reason.
+The parser has no upper bound and no overflow check. `999999999d` still fits (about 2.7
+million years), but `999999999999d` overflows `long` arithmetic and wraps around: the
+result comes out either negative (refused as invalid) or as an arbitrary value, with a
+nonsensical `endsAt`. Keep sentences within reason.
 
 ### The player is offline
 
@@ -99,16 +100,24 @@ within reason.
 offline player who has logged in before can therefore be sentenced by name or by UUID. A
 name the server has never seen returns `404 Player not found`.
 
+A sentence handed to an **online** player does not teleport them at once: they receive
+`⛓ You are in prison for <time>. Reason: <reason>` in chat, and the next containment check
+(within half a second, see below) pulls them into the cell. The welcome message is only sent
+on join.
+
 A sentence handed to an offline player takes effect at their next login:
 `ServerPlayConnectionEvents.JOIN` sees the active entry, teleports them into the cell one
 tick after the join completes, and sends the welcome message. If the sentence expired while
 they were away, the same handler releases them instead and teleports them to the release
 point.
 
-While the prisoner is offline, `PrisonDoppelgangerManager` spawns a stand-in in the cell
-with their profile, so other players can see who is serving time. It is despawned on
-release, including a release triggered by expiry or by an admin while the player is still
-offline.
+While the prisoner is offline, `PrisonDoppelgangerManager` shows a stand-in in the cell
+with their profile, so other players can see who is serving time. It is spawned when an
+imprisoned player disconnects, and at server start for every offline prisoner the user
+cache knows (those boot-time stand-ins may lack the skin and render as Steve). A player
+sentenced while already offline therefore gets no stand-in until the next restart. It is
+despawned on reconnection and on release, including a release triggered by expiry or by an
+admin while the player is still offline.
 
 ## Inside
 
@@ -137,8 +146,8 @@ Two mixins cover what callbacks cannot:
 Confinement itself is a containment check, not a wall. Every 10 ticks (twice a second)
 `onTick()` walks the online players, and for each prisoner outside the prison zone,
 teleports them back to the zone centre and sends `⛓ You cannot leave the prison.` The
-landing spot is chosen by scanning the zone's centre column downwards for the highest solid
-block with two air blocks above it, and `fallDistance` is zeroed afterwards.
+landing spot is chosen by scanning the zone's centre column downwards for the highest
+non-air block with two air blocks above it, and `fallDistance` is zeroed afterwards.
 
 Half a second is long enough to cross a few blocks, so a prisoner can briefly step outside
 a small cell before being pulled back. Build the cell with some margin.
@@ -177,7 +186,11 @@ point and told `✨ Your sentence is over. You are free.`
 
 **Pardon.** `/prison release <player>`, or `DELETE /api/v1/cheeseguard/prison/:uuid`.
 History records `releaseReason: "PARDONED"` plus who did it. The player sees
-`✨ You have been pardoned by an admin.`
+`✨ You have been pardoned by an admin.` Neither path checks first that the player is
+actually imprisoned when they are online: `/prison release` on an online player who is not
+in prison still answers `<player> has been released from prison.`, and `DELETE` always
+answers `200 {"released":true}`. Only `/prison release` on an offline player says
+`<player> is not in prison.`
 
 **Adjustment, which can shorten to the point of release.**
 `PUT /api/v1/cheeseguard/prison/:uuid` moves `endsAt`. It takes whichever of these it finds
@@ -232,8 +245,8 @@ version is the bug.
 
 ## Dashboard and WebSocket
 
-`PrisonApi` is the one CheeseGuard API that calls `WebDashboard.requireWrite(exchange)`
-correctly — `if (!WebDashboard.requireWrite(ex)) return;` on every mutating route. Reads
+`PrisonApi` is one of the two CheeseGuard APIs (with `RacesApi`) that call
+`WebDashboard.requireWrite(exchange)` themselves — `if (!WebDashboard.requireWrite(ex)) return;` on every mutating route. Reads
 accept any role, including `READ_ONLY`. Routes and bodies are in
 [Dashboard API](dashboard.md#prison).
 

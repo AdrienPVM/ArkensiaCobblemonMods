@@ -52,9 +52,12 @@ différent).
 **pas** connectés.
 
 La source est le `usercache.json` de vanilla, dans le dossier du serveur, lu et analysé à
-chaque requête. Le fichier est ordonné du plus ancien au plus récent : le gestionnaire le
-parcourt donc à l'envers et s'arrête après `n` entrées, en sautant quiconque correspond à un
-joueur connecté sans tenir compte de la casse. `n` est borné entre 1 et 100 et vaut 20 par
+chaque requête. Le gestionnaire parcourt le fichier à partir de sa **dernière** entrée, à
+rebours, et s'arrête après `n` entrées, en sautant quiconque correspond à un joueur connecté
+sans tenir compte de la casse. Vanilla écrit ce fichier du plus récemment utilisé au plus
+ancien, donc le parcourir à rebours renvoie d'abord les joueurs vus **il y a le plus
+longtemps** — l'inverse de ce que vise la route (son commentaire de code suppose l'ordre
+inverse). Avec plus de joueurs en cache que `n`, les plus récents sont coupés. `n` est borné entre 1 et 100 et vaut 20 par
 défaut ; un `n` illisible retombe sur la valeur par défaut au lieu d'échouer.
 
 ```json
@@ -144,7 +147,9 @@ un monde où le joueur n'est pas encore. Cette asymétrie surprend : le même co
 signifie deux choses différentes selon la présence de `dimension`.
 
 Le lacet et le tangage sont toujours conservés. Un identifiant de dimension inconnu donne
-`500 {"error":"Dimension not found: <id>"}`.
+`500 {"error":"java.lang.RuntimeException: Dimension not found: <id>"}` : l'exception est
+levée dans la tâche du thread serveur, et le gestionnaire renvoie le message de
+l'`ExecutionException` qui l'enveloppe, sans le déballer.
 
 La forme « point d'apparition » délègue à `DimensionManager.tpToDimension()`, qui connaît les
 dimensions personnalisées de CheeseGuard et leurs points d'apparition configurés — voir

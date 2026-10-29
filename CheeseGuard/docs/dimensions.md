@@ -8,8 +8,8 @@ registered on disk so it comes back on the next boot. On top of that sit the per
 rules, the world-file snapshots that let an arena be reset to a known state, and the
 per-player mode that hands every player their own private copy of a world.
 
-The manager is `com.cheeseguard.logic.DimensionManager`, 2 570 lines and the second-largest
-file in the mod. The config object is `com.cheeseguard.data.DimensionConfig`.
+The manager is `com.cheeseguard.logic.DimensionManager`, 2 570 lines and the third-largest
+file in the mod, after `MiniGameManager` and `EventManager`. The config object is `com.cheeseguard.data.DimensionConfig`.
 
 > ⚠️ This subsystem writes and deletes world files on disk, outside anything Minecraft
 > considers its own business. A snapshot restore unloads a live world, swaps its region
@@ -91,8 +91,9 @@ id = id.toLowerCase().replaceAll("[^a-z0-9_]", "_");
 Hyphens are replaced too, unlike zone ids. The dashboard route additionally collapses
 runs of underscores and trims leading and trailing ones. A blank result becomes
 `dim_<4 digits>` from the current clock. The world identifier is then
-`cheeseguard:<id>`, and creation returns `null` — HTTP 500 `Dimension already exists or
-creation failed` — if that identifier is taken.
+`cheeseguard:<id>`, and creation returns `null` — HTTP 500
+`java.lang.RuntimeException: Dimension already exists or creation failed` — if that
+identifier is taken.
 
 If you do not give a seed, one is generated at random, deliberately:
 
@@ -163,7 +164,7 @@ routing or the waystone cleanup, and the dimension itself keeps working.
 | `clearInventory` | boolean | `false` | Save and wipe the inventory on entry, restore on exit |
 | `constructionMode` | boolean | `false` | Creative for listed builders, plus item restrictions |
 | `constructionBuilders` | UUID set | empty | Who gets creative in construction mode |
-| `commandBlocks` | boolean | `false` | Placing or using command and structure blocks |
+| `commandBlocks` | boolean | `false` | Using (right-clicking) command and structure blocks. Placing one is not checked |
 | `enderChest` | boolean | `true` | Placing or using ender chests |
 | `generateStructures` | boolean | `true` | Structure generation. Always off for `VOID` |
 | `cobblemonBlocked` | boolean | `false` | Blocks all Cobblemon spawning, and purges what is already there |
@@ -207,9 +208,10 @@ the overworld's.
 `perPlayerMode`, `commandBlocks`, `enderChest`, `generateStructures`, `cobblemonBlocked`,
 `enabled`, `timeLocked`, `weatherLocked`, `allowHome`, `raidDensEnabled`, `borderEnabled`,
 plus `flag.<flagId>` to toggle a dimension-level denied flag. Anything else answers 500
-`Unknown toggle key: <key>`.
+`java.lang.RuntimeException: Unknown toggle key: <key>`. A `flag.<flagId>` key is not
+validated: an unknown flag id is stored in `deniedFlags` and simply never matches.
 
-Four of them do more than set a field. `constructionMode` turned on also turns
+Five of them do more than set a field. `constructionMode` turned on also turns
 `clearInventory` on, because construction mode has no inventory handling of its own.
 `cobblemonBlocked` turned on immediately purges Cobblemon entities from the world.
 `timeLocked`, `weatherLocked` and `borderEnabled` re-apply their effect at once instead of
@@ -276,8 +278,10 @@ The reset itself, in `executeReset()`:
    `lastResetAt` stamped with the current epoch milliseconds, config saved, and every
    online operator told `Dimension '%s' has been reset.`
 
-That 500 ms pause, and the matching 400 ms pause before the folder deletions in
-`deleteDimension()` and `deletePlayerDimension()`, are there for **Windows file locks**.
+That 500 ms pause, and the matching 400 ms pause before the folder deletion in
+`deletePlayerDimension()` (and before deleting each per-player child in
+`deleteDimension()` — the deleted dimension's own folder is removed at once, with no pause),
+are there for **Windows file locks**.
 Removing a `ServerWorld` from the server map does not immediately release the handles its
 chunk storage holds, and on Windows an open handle makes `Files.delete` fail outright
 rather than defer the unlink the way Linux does. The delay gives the handles time to
@@ -313,6 +317,8 @@ reset once a second forever.
 
 `SCHEDULED` compares `LocalTime.now().getHour()` against the configured hour and records
 the day it last fired, as `dayOfYear * 10000 + year`, so it cannot fire twice in one day.
+That record lives in memory only: a server restarted during the matching hour fires the
+reset again.
 The one-hour granularity means the reset happens at some point during the matching hour,
 whenever the next one-second check lands — not at the top of it. If the server is down for
 that whole hour, the reset is simply skipped; it does not catch up on the next boot.
@@ -416,8 +422,10 @@ sub-resource, so the dimension list stays readable on a server with a hundred of
 Resolving a full UUID back from eight hex characters is the awkward part of this design.
 The API cannot do it from the id alone, so it reads the instance config's whitelist and
 takes the entry whose UUID starts with those eight characters. An instance whose whitelist
-was cleared by hand can no longer be deleted or reset through the dashboard; the command
-path resolves the player by name instead and still works.
+was cleared by hand can no longer be deleted or reset through the dashboard.
+`/cg playerworld delete` still works for it only while the owner is online: the command
+takes the UUID of the online player of that name, and for an offline player falls back to
+the same whitelist.
 
 Snapshot lookups for an instance fall back to the master: `getEffectiveSnapshotFolder()`
 returns the instance's own folder if it exists, then the master's, then the instance's

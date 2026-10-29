@@ -118,7 +118,7 @@ La réponse rend compte du travail effectué :
 
 `totalBlocksScanned` compte toutes les positions visitées, l'air inclus : une zone haute le
 fait exploser. Une emprise de 200×200 sur 20 blocs de hauteur fait 800 000 positions ; la même
-emprise sur toute la hauteur du monde en fait 24 millions. Garde la plage Y de la zone serrée
+emprise sur toute la hauteur de l'overworld (384 blocs) en fait environ 15,4 millions. Garde la plage Y de la zone serrée
 autour du circuit — c'est le facteur de loin le plus déterminant pour le temps de scan.
 
 ### Rescanner
@@ -154,14 +154,16 @@ Cela correspond à peu près à une emprise de 700×700. Contrairement au scan, 
 porte que sur la surface : la hauteur de la zone ne compte pas, puisque chaque colonne s'arrête
 au premier bloc solide.
 
-La réponse donne `width`, `depth`, `minX`, `minZ` et les données de pixels, que le dashboard
-transforme en image. `minX` et `minZ` sont ce qui permet de placer le centre réel d'un point de
+La réponse donne `width`, `height` (la profondeur en Z), `minX`, `minZ` et `image`, la carte
+déjà encodée sous forme d'URL `data:image/png;base64,…` que le dashboard affiche telle quelle. `minX` et `minZ` sont ce qui permet de placer le centre réel d'un point de
 contrôle sur le bon pixel.
 
 ## Réglages du circuit
 
 `PUT /races/:eventId/track` fusionne les clés présentes dans le corps ; les clés absentes
-gardent leur valeur. Ces réglages sont lus par `MiniGameManager` au démarrage de la course :
+gardent leur valeur. Les trois clés de collection font exception : `transformCommands`,
+`blockMappings` et `powerupTypes` sont remplacées en bloc, donc envoie la liste ou la table
+complète. `DELETE` sur le même chemin supprime le fichier du circuit. Ces réglages sont lus par `MiniGameManager` au démarrage de la course :
 les changer en pleine course n'a aucun effet.
 
 | Clé | Type | Défaut | Effet |
@@ -182,7 +184,7 @@ les changer en pleine course n'a aucun effet.
 | `revertTransformsOnEnd` | booléen | `true` | défaire la transformation à la fin de la course |
 | `pointsPerCheckpoint` | entier | `10` | score d'événement par portique |
 | `finishBonusPoints` | entier | `100` | score d'événement à l'arrivée |
-| `positionBonusPoints` | entier | `50` | score supplémentaire pondéré par la place |
+| `positionBonusPoints` | entier | `50` | score supplémentaire : la valeur entière pour le 1er, la moitié pour le 2e, un quart pour le 3e, rien ensuite |
 | `checkpointReplacementBlock` | chaîne | `minecraft:air` | ce que deviennent les blocs d'un portique pris |
 | `startLineReplacementBlock` | chaîne | `minecraft:air` | ce que devient la ligne de départ au lancement |
 | `teleportOnOutOfBounds` | booléen | `true` | ramener un pilote sorti de la zone à son dernier portique |
@@ -196,7 +198,7 @@ dit donc « pour chaque point de contrôle scanné, quelle est sa place dans le 
 peut changer l'ordre stocké, et c'est pourquoi `applyToConfig` tente de reporter les valeurs.
 
 `movementMode` n'est qu'en partie implémenté. Seul `foot` est appliqué, et l'application
-consiste à démonter quiconque chevauche quoi que ce soit, une fois par tick, avec
+consiste à démonter quiconque chevauche quoi que ce soit, au rythme du tick de course à 1 Hz, avec
 `⚠ À pied uniquement ! Vous avez été démonté.` `shift` et `kart` sont acceptés, stockés, et
 sans effet dans cette version.
 
@@ -226,7 +228,8 @@ connaître. La détection n'échantillonne pas la position du joueur une fois pa
 interpole le segment entre la position du tick précédent et celle du tick courant, si bien
 qu'un pilote assez rapide pour traverser un portique d'un bloc d'épaisseur entre deux ticks le
 déclenche quand même. C'est pour cela que `tickRaceCheckpoints` tourne à chaque tick, alors que
-tout le reste de la course se met à jour à 1 Hz.
+les bonus sont vérifiés tous les 4 ticks et que tout le reste de la course (décompte, barre
+d'action, particules, conditions de fin) se met à jour à environ 1 Hz.
 
 Avec `orderedCheckpoints: true`, chaque pilote possède un indice de prochain portique. Seul
 celui-là compte ; se tenir dans un autre point de contrôle scanné affiche
@@ -241,23 +244,27 @@ La gestion de la sortie de circuit, quand `teleportOnOutOfBounds` est actif, té
 pilote au centre de son dernier portique pris, ou à la ligne de départ s'il n'en a pris aucun,
 avec `⚠ Vous avez quitté la piste ! Téléporté au dernier checkpoint.`
 
-Un événement dont la configuration de circuit n'a aucun point de contrôle est annulé
-d'emblée : `⚠ Course annulée — aucun checkpoint configuré.`
+Une configuration de circuit sans aucun point de contrôle est ignorée et la course retombe en
+mode historique (ci-dessous) ; si celui-ci ne trouve pas non plus de zone de point de
+contrôle, l'événement est terminé aussitôt avec
+`⚠ Course annulée — aucun checkpoint configuré.`
 
 Les scores alimentent la table de scores normale de l'événement, pour que le classement de la
 course et le scoreboard de l'événement concordent : les portiques donnent
-`pointsPerCheckpoint`, l'arrivée donne `finishBonusPoints`, et `positionBonusPoints` est
-pondéré par la place à l'arrivée.
+`pointsPerCheckpoint`, l'arrivée donne `finishBonusPoints`, et `positionBonusPoints` va en entier
+au vainqueur, divisé par deux pour le deuxième et par quatre pour le troisième.
 
 ### Mode historique
 
-Un événement `RACE` **sans** fichier de configuration de circuit tourne quand même, dans ce
-que le code appelle le mode historique : les points de contrôle sont de simples zones
-CheeseGuard listées dans le `miniGameConfig` de l'événement, et les clés de score
-(`pointsPerCheckpoint`, `finishBonusPoints`, `positionBonusPoints`, `checkpointSound`,
-`finishSound`) sont lues dans cet objet plutôt que dans le fichier de circuit. Il n'y a ni
-détection interpolée ni bonus en mode historique. Les nouveaux circuits doivent utiliser le
-scanner.
+Un événement `RACE` **sans** fichier de configuration de circuit, ou dont le fichier n'a aucun
+point de contrôle, tourne quand même, dans ce que le code appelle le mode historique : les
+points de contrôle sont de simples zones CheeseGuard listées dans le `miniGameConfig` de
+l'événement sous `checkpointZoneIds`, les bonus sont des zones listées sous `powerUpZones`,
+et les clés de score (`pointsPerCheckpoint`, `finishBonusPoints`, `positionBonusPoints`,
+`checkpointSound`, `finishSound`) sont lues dans cet objet plutôt que dans le fichier de
+circuit. La détection y est aussi interpolée, mais les points de contrôle sont toujours
+ordonnés, il n'y a pas de tours (la dernière zone est l'arrivée) ni de téléportation en cas
+de sortie de piste. Les nouveaux circuits doivent utiliser le scanner.
 
 ## Autorisation
 

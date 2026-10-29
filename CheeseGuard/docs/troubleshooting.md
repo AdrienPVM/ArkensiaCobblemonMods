@@ -81,7 +81,8 @@ with a cheerful confirmation message.
 
 **Fix.** Use exactly `true`, `false`, or `inherit`. Check with `/cg info` — which does not
 list flags, so really check from the dashboard. `inherit` is also distinct from `false`:
-it drops the flag so the zone falls back to its group and then to the flag's own default.
+it drops the flag so the zone falls back to its group, then to the dimension's denied
+flags, and otherwise the action is allowed.
 
 ---
 
@@ -120,11 +121,10 @@ miss them.
 - **State files** (`regions.json`, `cheeseguard_events.json`,
   `cheeseguard_dimensions.json`, `prison.json`) are owned by the running server, which
   holds them in memory and rewrites them on the next mutation. Your edit was overwritten.
-- **`cheeseguard_webhook.json`** and **`cheeseguard_pastures.json`** are read once at
-  server start.
-- **`cheeseguard_fish_pokemon.json`** reloads when the dashboard asks it to, but a
-  **malformed** file logs `Failed to load fish pokemon table` and silently falls back to
-  the built-in defaults.
+- **`cheeseguard_webhook.json`**, **`cheeseguard_pastures.json`** and
+  **`cheeseguard_fish_pokemon.json`** are read once at server start — nothing reloads
+  them at runtime. A **malformed** fishing table also logs
+  `Failed to load fish pokemon table` and silently falls back to the built-in defaults.
 
 **Fix.** Stop the server before editing a state file. Restart after editing a settings
 file. Validate your JSON — a trailing comma is enough to make the mod ignore the file
@@ -280,10 +280,11 @@ do it from the dashboard, which works on UUIDs.
 
 ---
 
-## A `/home` command silently does nothing for one player
+## A `/home` command is refused for one player
 
 **Cause.** `HomeCommandMixin` cancels any command whose text starts with `home` for a
-non-operator standing in a dimension whose config has `allowHome` off. The match is on the
+non-operator standing in a dimension whose config has `allowHome` off, and tells them
+*[CheeseGuard] The /home command is not allowed in this dimension.* The match is on the
 raw string, so `/homeland` and `/homes` are caught too.
 
 **Fix.** Enable `allowHome` on that dimension's config, or accept it. If the player is

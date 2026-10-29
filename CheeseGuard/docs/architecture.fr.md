@@ -14,10 +14,10 @@ cette page avant de modifier quoi que ce soit dedans.
 
 ```text
 com.cheeseguard
-├── CheeseGuardMod.java        442 lignes — le ModInitializer ; possède chaque gestionnaire
+├── CheeseGuardMod.java        441 lignes — le ModInitializer ; possède chaque gestionnaire
 ├── api/                         3 fichiers,    225 lignes — le seul point d'extension public
 ├── client/                      4 fichiers,    739 lignes — entrypoint client, HUD, écran de propriétaire de zone
-├── commands/                    2 fichiers,  1 441 lignes — les arbres Brigadier /cg et /prison
+├── commands/                    2 fichiers,  1 445 lignes — les arbres Brigadier /cg et /prison
 ├── dashboard/                  10 fichiers,  4 227 lignes — le module CheeseDash et huit API REST
 ├── data/                       25 fichiers,  4 965 lignes — le modèle : zones, flags, événements, configurations, stockage
 ├── logic/                      43 fichiers, 21 093 lignes — tous les gestionnaires, listeners et hooks tiers
@@ -66,8 +66,9 @@ requête arrivant pendant le démarrage est jetée, pas mise en file.
 
 `Region` est la zone : une boîte, un identifiant de monde, une priorité, un identifiant de
 groupe, une table de flags, une liste de membres, et une `SaleConfig` facultative. Un flag
-absent de la table signifie *hérité*, ce qui est distinct de `false` ; `Flag` porte le
-défaut par flag et un bit `memberExempt` qui décide si les propriétaires le contournent.
+absent de la table signifie *hérité*, ce qui est distinct de `false` ; `Flag` ne porte
+aucune valeur par défaut, seulement un bit `memberExempt` qui décide si les propriétaires
+le contournent.
 
 `RegionStorage` garde toutes les zones et tous les groupes dans deux tables et persiste les
 deux dans `config/cheeseguard/regions.json`. Chaque mutation appelle `save()` de façon
@@ -75,10 +76,12 @@ synchrone : ajouter un membre réécrit tout le fichier sur le thread serveur.
 
 ### `ProtectionListener`
 
-Le chemin chaud. Chaque mixin qui applique un flag demande à cette classe si une action est
-permise à une position, et elle résout zone → groupe → défaut du flag par priorité. Avec ses
-795 lignes, c'est le seul morceau de `logic/` qui tourne des milliers de fois par tick,
-d'où des recherches volontairement simples.
+La moitié de la protection tournée vers les joueurs : les callbacks Fabric (casse,
+utilisation, attaque, usage d'item) et les vérifications toutes les 10 ticks (entrée/sortie,
+vol, montures, transformation, nametag, minimap), 795 lignes. La résolution elle-même —
+surcharges d'événement → flag explicite de zone → flag de groupe → drapeaux refusés de la
+dimension — vit dans `RegionManager.isAllowed()` / `isFlagAllowed()`, et c'est elle
+qu'appelle chaque mixin qui applique un flag, pas cette classe.
 
 ### `EventManager` et `TimelineExecutor`
 
@@ -88,8 +91,8 @@ pause ni reprise nulle part dans le mod. N'en ajoute pas sans avoir lu comment
 `EventManager.tick` calcule le temps restant depuis des horodatages d'horloge murale : une
 pause exigerait de rebaser chacun d'eux, et plusieurs sont persistés.
 
-`TimelineExecutor` exécute les actes : chaque acte a un décalage temporel et une liste
-d'`EventEffect`, dont certains appellent d'autres mods (transformations CobbleShift,
+`TimelineExecutor` exécute les actes : chaque acte contient des blocs de chronologie, chacun
+avec un décalage de départ et un type d'`EventEffect`, dont certains appellent d'autres mods (transformations CobbleShift,
 démarrages CheeseKart, ouvertures de donjon).
 
 ### `DimensionManager`
@@ -101,7 +104,9 @@ hexadécimaux de l'UUID du propriétaire. Supprimer l'un d'eux décharge le mond
 son dossier ; sous Windows les handles de fichier ne sont pas relâchés immédiatement, le
 code attend donc avant de supprimer et peut échouer quand même.
 
-C'est aussi le seul consommateur de l'access widener : le vanilla chaîne la bordure de
+C'est aussi le seul utilisateur de l'entrée `getListeners()` de l'access widener (l'autre
+entrée du widener rend `NoiseChunkGenerator` extensible, ce que rien dans CheeseGuard
+lui-même n'étend) : le vanilla chaîne la bordure de
 l'Overworld au Nether et à l'End via un listener `WorldBorderSyncer`, ce qui rend
 impossibles des bordures indépendantes par dimension. Le widener ouvre
 `WorldBorder.getListeners()` pour que cette chaîne puisse être démontée au démarrage.
@@ -119,9 +124,11 @@ doit pas y être touché : chaque API passe donc le relais avec
 `WebDashboard.executeOnServerThread(server, () -> …)`. Les comptes actuels sont de 18
 passages dans `ZonesApi`, 13 dans `DimensionsApi` comme dans `EventsApi`, 7 dans
 `ChunksApi`, 5 dans `GroupsApi`, 4 dans `PlayersApi`, 2 dans `PrisonApi` et **aucun dans
-`RacesApi`** — ce dernier ne lit et n'écrit que ses propres fichiers JSON, ce qui se défend,
-mais signifie qu'une écriture de configuration de course est en concurrence avec le scanner
-de circuit sur le thread serveur.
+`RacesApi`**. `RacesApi` confie lui-même son scan et sa carte de hauteur au thread serveur,
+avec `server.execute` et un `CompletableFuture` de 30 secondes ; ses routes de circuit lisent
+et écrivent leurs propres fichiers JSON sur le thread HTTP, tout comme la sauvegarde
+automatique après un scan, si bien qu'une écriture de configuration de circuit peut entrer
+en concurrence avec une course qui la lit sur le thread serveur.
 
 Les lectures de structures immuables ou concurrentes se font directement depuis le thread
 HTTP. `PrisonManager` utilise une `ConcurrentHashMap` et une liste synchronisée exactement
@@ -157,7 +164,7 @@ Trois schémas, et les différences comptent :
 Rien n'est écrit de façon atomique. Chaque sauvegarde est un `Files.writeString`
 directement sur le chemin final, sans fichier temporaire ni renommage. Un plantage pendant
 l'écriture de `regions.json` le tronque, et le démarrage suivant charge zéro zone —
-`load()` repart sans bruit quand l'analyse échoue. Sauvegarde `config/cheeseguard/` et
+`load()` consigne une ligne `Failed to load CheeseGuard data` et continue sans rien. Sauvegarde `config/cheeseguard/` et
 `config/cheeseguard_*.json` avec ton monde.
 
 ## Les 44 mixins
@@ -170,7 +177,7 @@ Supprime le premier ; décide pour le second.
 
 Groupés par ce qu'ils accrochent, avec le risque porté par chaque groupe :
 
-### Comportement vanilla des blocs et des entités — 23 mixins
+### Comportement vanilla des blocs et des entités — 21 mixins
 
 `BlockPlaceMixin` (`BlockItem.place`), `ItemDropMixin`, `ItemPickupMixin`,
 `EntitySpawnMixin` (`ServerWorld.spawnEntity`), `MobSpawnMixin` (`MobEntity.canSpawn`),
@@ -180,21 +187,25 @@ Groupés par ce qu'ils accrochent, avec le risque porté par chaque groupe :
 `EndermanGriefMixin`, `EatGrassGoalMixin`, `CreativeInventoryMixin`,
 `CobblemonBlockInteractMixin` et `AbstractFireBlockCustomDimMixin`.
 
-Chacun demande à `ProtectionListener` si un flag autorise l'action et annule à `HEAD` sinon.
+Chacun demande à `RegionManager` (ou, pour les règles de dimension, à `DimensionManager`)
+si l'action est permise et annule à `HEAD` sinon.
 C'est la couche d'application des flags, et c'est le groupe le plus susceptible d'entrer en
 conflit avec un autre mod de protection ou de gestion de monde qui accroche les mêmes
 méthodes — deux mods qui annulent tous deux `BlockItem.place`, c'est une loterie d'ordre de
-chargement. `FireSpreadMixin` et `EventProjectileHitMixin` portent `require = 0` : ils
-échouent donc silencieusement si leur méthode cible est introuvable ; les autres font
+chargement. Neuf mixins portent `require = 0` et échouent silencieusement si leur méthode
+cible est introuvable — `FireSpreadMixin`, `EventProjectileHitMixin`, `EventCraftItemMixin`,
+`EventFishCatchMixin`, `CSAFuzzyMatchFixMixin` et les quatre mixins client ; les autres font
 planter le jeu à la place sur un changement de mappings, ce qui est le meilleur
 comportement pour un mod de protection.
 
-### Score d'événement — 6 mixins
+### Score d'événement — 8 mixins
 
 `EventBlockBreakMixin`, `EventBlockPlaceScoreMixin`, `EventCraftItemMixin`,
 `EventFishCatchMixin`, `EventItemPickupScoreMixin`, `EventMobKillMixin`,
-`EventPlayerDeathMixin`, `EventProjectileHitMixin`. Ceux-là s'injectent à `RETURN` plutôt
-qu'à `HEAD` et attribuent des points d'événement. Deux d'entre eux
+`EventPlayerDeathMixin`, `EventProjectileHitMixin`. Ceux-là attribuent des points d'événement
+sans rien annuler — trois à `RETURN` (`EventBlockPlaceScoreMixin`,
+`EventItemPickupScoreMixin`, `EventFishCatchMixin`), `EventBlockBreakMixin` à la fois à
+`HEAD` et à `RETURN`, les autres à `HEAD`. Deux d'entre eux
 (`EventBlockPlaceScoreMixin`, `EventItemPickupScoreMixin`) portent `priority = 1100` pour
 passer après le mixin de protection sur la même méthode — le point n'est marqué que pour
 une action réellement autorisée. Cet ordre est porteur et n'est documenté nulle part dans
@@ -334,8 +345,8 @@ teste, et quatre manquaient depuis des mois sans que personne le remarque. Le ta
 complet est dans [les commandes](commands.fr.md#niveaux-de-permission).
 
 **Les sauvegardes ne sont ni atomiques ni doublées.** Un plantage pendant l'écriture de
-`regions.json` perd toutes les zones, silencieusement, parce que le chargeur avale les
-erreurs d'analyse.
+`regions.json` perd toutes les zones, avec une seule ligne d'erreur dans le log, parce que
+le chargeur attrape l'erreur d'analyse et démarre à vide.
 
 **`MiniGameManager` fait 5 244 lignes.** Prop hunt, spleef, pêche et la logique d'équipe
 partagent une seule classe et un seul jeu de champs. Rien de tout cela n'est testé.
@@ -355,7 +366,7 @@ prison, et le littéral `aucun` affiché par `/cg info` quand une zone n'a pas d
 statique. Il n'existe aucune couture sur laquelle tester, et c'est pourquoi il n'y a aucun
 test.
 
-**Il vise six mods tiers par nom de classe.** Jade, JourneyMap, Cobblemon, Cobblemon Spawn
+**Il vise quatre mods tiers par nom de classe.** Jade, JourneyMap, Cobblemon, Cobblemon Spawn
 Alerts. Chacune de leurs mises à jour peut casser une fonction de CheeseGuard ou faire
 planter le jeu au chargement. Si le serveur ne démarre plus après la mise à jour d'un mod,
 soupçonne cette liste d'abord et cherche les échecs d'application de mixin dans le log.

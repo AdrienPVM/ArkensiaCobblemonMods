@@ -127,8 +127,8 @@ matters and it was arrived at by fixing things that went wrong:
 
 ### Crash safety
 
-When `saveInventory` is on, each participant's inventory is written to disk as NBT under
-the event's pending-restore directory at the moment they enter, not only kept in memory.
+When `saveInventory` is on, each participant's inventory is written to disk as NBT, in
+`config/cheeseguard_pending_inv/<uuid>.nbt`, at the moment they enter, not only kept in memory.
 If the server dies mid-event, the restore is replayed the next time that player logs in —
 `tickPendingRestores()` retries every 3 seconds while anything is pending. Spectators who
 crashed get a lighter record that only restores their game mode, and a CobbleShift revert
@@ -145,7 +145,11 @@ true of the dashboard helper: `EventsApi.getParticipants()` hands back a `Map`, 
 
 Roles are `PARTICIPANT` and `SPECTATOR`. Joining is only accepted while the event is
 `ANNOUNCED`, `COUNTDOWN` or `ACTIVE` — `joinEvent()` returns `false` outside those three
-states, and the API turns that into a `500` with `Failed to add participant`.
+states (or if the player is already in), and the API turns that into a `500` with
+`java.lang.RuntimeException: Failed to add participant`. The API also needs the player
+online. A `PARTICIPANT` join is silently turned into a `SPECTATOR` join when
+`maxParticipants` is reached, and when a mini-game event is already `ACTIVE` (roles are
+assigned at start); the player is told why in chat.
 
 Spectators are protected in two small ways that are easy to miss: anything riding a
 spectator is dismounted once per second, and a spectator's original game mode is part of
@@ -169,12 +173,16 @@ anything of that kind. The detection points are mixins — `EventMobKillMixin`,
 `EventBlockBreakMixin`, `EventFishCatchMixin`, `EventCraftItemMixin` and the rest — which
 is why scoring works for vanilla actions without any command plumbing.
 
-**Timeline multipliers.** A `MULTIPLIER` block raises or lowers the points awarded for a
-score type while it is active. See [Timeline](timeline.md).
+**Multipliers.** `EventManager.addScore()` multiplies the points by the `MULTIPLIER`
+effects of type `score` in the current **legacy phase**. A timeline `MULTIPLIER` block only
+stores its value on the event (`setActiveMultiplier`), and nothing reads that value back, so
+in the act system it has no effect on scores. See [Timeline](timeline.md).
 
-**Direct adjustment.** `POST /events/:id/score` with an `operation` of `add`, `subtract` or
-`set`. This is the admin override, and it is also how an external mod feeds points in
-through `EventScoreHook`.
+**Direct adjustment.** `POST /events/:id/score` with `playerName`, `amount` and an
+`operation` of `add` (default), `subtract` or `set`. This is the admin override: it writes
+the participant's score directly, so no multiplier applies, and it works in any state.
+`EventScoreHook` is something else — the helper the detection mixins call to apply the
+matching score triggers of every `ACTIVE` event.
 
 `victoryCondition` decides what the score is for:
 
@@ -194,7 +202,7 @@ against the live table.
 ## Announcements
 
 `announceEvent()` moves the event to `ANNOUNCED` and broadcasts `announceMessage` in
-`announceColor`. From then until the countdown ends, players may join. The bossbar, when
+`announceColor`. From then until the event ends, players may join. The bossbar, when
 `bossbarEnabled` is set, is updated every second for any non-`IDLE` event, and
 `discordNotify` sends the announcement through `logic/DiscordWebhook.java` as well.
 
@@ -219,7 +227,7 @@ Not `config/templates/`. The directory is created on first save.
 `EventTemplate.save()` serialises the event, strips `lastRun`, and adds `templateName`,
 `templateCreated` and `templateSource`. The filename is the template name lowercased with
 every character outside `[a-zA-Z0-9_-]` replaced by `_`, so `Tournoi d'été #2` becomes
-`tournoi_d_t__2.json` — two different names can therefore collide on one file. Keep
+`tournoi_d__t___2.json` — two different names can therefore collide on one file. Keep
 template names simple.
 
 `EventTemplate.load()` reads the file, assigns a **new** id of the form
@@ -261,25 +269,35 @@ In short:
 | `GET` `POST` `DELETE` | `/events/prophunt/icons[/:key]` | PropHunt icon store |
 
 `PUT /events/:id` is a patch, not a replacement: only the keys present in the body are
-applied. Sending `{"countdownSeconds": 5}` changes the countdown and nothing else. Three
-list fields are exceptions — `kitEntryCommands`, `kitExitCommands`, `blacklistItems` and
-`acts` are *cleared and refilled* when present, so sending an empty array deletes their
-contents.
+applied. Sending `{"countdownSeconds": 5}` changes the countdown and nothing else. List
+fields are the exception — `scopeZoneIds`, `tpParticipantZoneIds`, `tpSpectatorZoneIds`,
+`kitEntryCommands`, `kitExitCommands`, `blacklistItems` and `acts` are *replaced* when
+present, so sending an empty array deletes their contents.
+
+The route only reads a fixed set of keys. Several fields of the model have no setter there
+at all — `scheduledDelayMinutes`, `recurringIntervalMinutes`, `lunarEventId`,
+`triggerZoneId`, `scoreTriggers`, `rewards`, `chainEventId`, `exclusionPriority`,
+`endOnAllDead`, `blacklistEnchants`, `blacklistPokemon`, the three message colours — so the
+dashboard cannot change them. They come from the JSON file (edited with the server
+stopped) or from a template.
 
 A bad enum value in a `PUT` body — `"mode": "MINIGAMES"`, say — throws inside the
-server-thread task and surfaces as a `500` carrying the `IllegalArgumentException`
-message. The event is left partially patched, because the setters before the bad one have
-already run. Validate enum values client-side.
+server-thread task and surfaces as a `500` carrying the wrapped message,
+`java.lang.IllegalArgumentException: No enum constant …`. The event is left partially
+patched in memory, because the setters before the bad one have already run; the `save()` at
+the end of the task is skipped, but the half-patched state is written by the next save. Validate enum values client-side.
 
 ## Known rough edges
 
 - Event ids from templates are not collision-proof (see above).
-- A `PUT` that fails mid-way leaves the event half-updated and still saved.
+- A `PUT` that fails mid-way leaves the event half-updated in memory, and the next save
+  persists it.
 - `QUEUE` and `CLEANUP` exist in the state enum but are never assigned.
-- `phases` is the legacy structure, superseded by `acts`. Old events are migrated through
-  `EventAct.fromLegacyPhase()` on load, which distributes every phase effect as a timeline
-  block starting at second 0 of the act. The mapping is mechanical and rarely produces the
-  timing you would have chosen by hand — re-check any migrated event before running it.
+- `phases` is the legacy structure, superseded by `acts`. Nothing migrates old events:
+  `ServerEvent.migrateToActSystem()` (built on `EventAct.fromLegacyPhase()`) exists but has
+  no caller. An event whose `acts` list is empty simply runs its `phases` through the legacy
+  path — and `POST /events` creates every new event with one 300-second legacy phase,
+  `Phase 1`, until acts are added.
 
 ---
 

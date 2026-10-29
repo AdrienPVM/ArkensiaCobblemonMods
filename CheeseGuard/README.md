@@ -85,7 +85,7 @@ Full walkthrough, including the client side and clean removal:
 | [Getting started](docs/getting-started.md) | A tutorial: from a fresh server to a protected zone, a group, a restorable arena and a working prison |
 | [Commands](docs/commands.md) | Zones, selection, flags, members, groups, saved states, `/cg buy`, `/chunksuggest` — with the permission gaps |
 | [Events, prison and operations](docs/commands-operations.md) | The `/cg event` subtree, hot potato, per-player worlds, pasture limits, inventory restore, the `/prison` tree |
-| [Configuration](docs/configuration.md) | All fourteen config files and eight directories: what each holds, which four are safe to hand-edit, every key |
+| [Configuration](docs/configuration.md) | All fourteen config files and nine directories: what each holds, which four are safe to hand-edit, every key |
 | [Zones and flags](docs/zones-and-flags.md) | The zone model: geometry, the 31 flags, inheritance, priority, overlap, members, land sales |
 | [Groups](docs/groups.md) | Grouping zones so they share flag defaults, and how resolution falls through |
 | [Dimensions](docs/dimensions.md) | Runtime dimension creation, per-player worlds, snapshots, resets, borders, entry rules |
@@ -157,7 +157,7 @@ equivalent.
 This mod grew under deadline pressure on a live server. It works, it has run for months
 with hundreds of players, and parts of it are not pretty: `MiniGameManager` alone is
 5 244 lines covering four unrelated games, every class reaches every other through a
-static `CheeseGuardMod.INSTANCE`, there are no tests, and six mixins target third-party
+static `CheeseGuardMod.INSTANCE`, there are no tests, and four mixins target third-party
 mods by class name and will break when those mods update. The candid list is the last
 section of [architecture](docs/architecture.md#known-weaknesses).
 

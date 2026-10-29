@@ -19,7 +19,8 @@ gate; a few read-only and player-facing ones deliberately do not.
 
 | Subcommand | Gate in code | Effective access |
 |---|---|---|
-| `/cg` (bare), `gui` | root is ungated; `openGui` checks level 2 itself | everyone — non-ops get a help list, ops get a notice |
+| `/cg` (bare) | root is ungated; `openGui` checks level 2 itself | everyone — non-ops get a help list, ops get a notice |
+| `gui` | level 2 | operators |
 | `wand`, `pos1`, `pos2`, `create`, `delete`, `list`, `info` | level 2 | operators |
 | `flag`, `addmember`, `removemember` | level 2 | operators |
 | `group create`, `group delete`, `group add` | level 2 | operators |
@@ -66,7 +67,8 @@ There is no in-game admin GUI any more. It was deleted (`CheeseGuardScreen`,
 `EventEditorScreen`) when administration moved to CheeseDash, and the `gui` literal is
 what remains of it.
 
-For a player below level 2 the same command prints the player-facing help instead:
+For a player below level 2, bare `/cg` prints the player-facing help instead (`/cg gui`
+itself is gated at level 2, so a non-op gets *Unknown or incomplete command*):
 
 ```text
 ═══ CheeseGuard ═══
@@ -122,8 +124,10 @@ Position 2 set: 142, 90, -276
 The two corners are stored per player in `SelectionManager`, keyed by UUID, and they are
 in-memory only: a server restart clears every pending selection.
 
-A selection is only usable once **both** corners are set and both are in the same world.
-`pos1` and `pos2` record the world id along with the position.
+A selection is only usable once **both** corners are set. `pos1` and `pos2` record the
+world id along with the position, but a selection holds a single world id, overwritten by
+whichever corner was set last; nothing checks that both corners were marked in the same
+world, and the zone is created in the world of the last corner.
 
 ### `/cg create`
 
@@ -143,7 +147,8 @@ can collide into the same id, and nothing checks for that — the second `create
 the first entry in `regions.json`.
 
 The box is normalised (min/max per axis), so the order you marked the corners in does not
-matter. The creating player is added as the zone's first member.
+matter. The creating player becomes the zone's **owner** (not an entry in its member
+list, which starts empty — hence `Members: 0` in `/cg info`).
 
 ```mcfunction
 /cg create Market Square
@@ -179,9 +184,8 @@ Zone deleted: market_square
 |---|---|
 | `Zone not found: <id>` | no zone with that id |
 
-Deletion writes `regions.json` immediately. It does not clean the zone out of any group
-that referenced it, so a group can keep a dangling zone id — see
-[groups](groups.md).
+Deletion writes `regions.json` immediately, and also removes the zone id from every
+group's zone list (`RegionStorage.removeRegion`) — see [groups](groups.md).
 
 ---
 
@@ -199,7 +203,7 @@ Level 2. Every zone in every world, with its id and a shortened world name.
 Zones (3)
 • Market Square [market_square] – Overworld
 • Prison [prison] – Overworld
-• Boss Arena [boss_arena] – minecraft:the_nether
+• Boss Arena [boss_arena] – Nether
 ```
 
 The world column is run through a helper that recognises only the three vanilla worlds by
@@ -228,7 +232,7 @@ ID: market_square | Overworld
 Min: 118,64,-302
 Max: 142,90,-276
 Group: aucun
-Priority: 0 | Members: 1
+Priority: 0 | Members: 0
 ```
 
 The `Group:` line prints the literal string `aucun` when the zone belongs to no group,
@@ -300,7 +304,7 @@ Level 2.
 | `value` | single word | yes | `true`, `false`, `inherit`, `null` | — |
 
 `inherit` and `null` (case-insensitive) clear the flag, so the zone falls back to its
-group, then to the flag's own default. Anything else goes through
+group, then to the dimension's denied flags, and otherwise the action is allowed. Anything else goes through
 `Boolean.parseBoolean`, which means every unrecognised value — `yes`, `1`, `allow`,
 a typo — is read as `false`. There is no validation and no warning. This is the single
 easiest way to accidentally forbid something.
@@ -425,10 +429,10 @@ match.
 ```
 
 ```text
-Steve removed.
+steve removed.
 ```
 
-The success message is sent **whether or not anything was removed**: the handler reports
+The name in the message is the one you typed, not the stored one. The success message is sent **whether or not anything was removed**: the handler reports
 success unconditionally after the lookup. Run `/cg info <id>` and compare the member count
 if you need to be sure. Only `Zone not found.` is a real failure here.
 
@@ -481,8 +485,8 @@ Group deleted: public_areas
 ```
 
 The confirmation is unconditional — deleting a group that never existed reports success.
-Zones that pointed at the group keep their `groupId`, so they end up referencing a group
-that is gone. Reassign them before deleting.
+Zones that pointed at the group have their `groupId` cleared (`RegionStorage.removeGroup`),
+so they fall back to their own flags and the flag defaults.
 
 ### `/cg group add`
 
@@ -511,9 +515,10 @@ There is no `group remove`. To detach a zone, reassign it from the dashboard.
 
 ## Saved zone states
 
-A *state* is a captured copy of every block (and a count of entities) inside a zone, saved
-under `config/cheeseguard_states/<zoneId>/`. Re-applying one rebuilds the zone, optionally
-as an animation. Arena resets and seasonal decoration both use this.
+A *state* is a captured copy of every non-air block (with block-entity data) and every
+non-player entity inside a zone, saved under `config/cheeseguard_states/<zoneId>/`.
+Re-applying one rebuilds the zone, optionally as an animation: the non-player entities
+currently in the box are discarded and the captured ones are spawned again. Arena resets and seasonal decoration both use this.
 
 The whole `state` subtree requires **level 2**, and unlike most of this page it works from
 the console.
@@ -553,10 +558,12 @@ capture when nobody is online.
 
 ```text
 States for zone 'boss_arena':
-  a1b2c3d4 — Pristine (18432 blocks, 3 entities)
+  1 — Pristine (18432 blocks, 3 entities)
 ```
 
-The first column is the state id you pass to `apply` and `delete`.
+The first column is the state id you pass to `apply` and `delete`. State ids are
+sequential integers per zone (`1`, `2`, …), taken from the `nextId` counter in the zone's
+`index.json`.
 
 | Message | Cause |
 |---|---|
@@ -569,7 +576,7 @@ The first column is the state id you pass to `apply` and `delete`.
 ```
 
 ```text
-State 'a1b2c3d4' deleted from zone 'boss_arena'
+State '1' deleted from zone 'boss_arena'
 ```
 
 | Message | Cause |
@@ -617,24 +624,25 @@ An unrecognised `direction` or `particle` is **not** an error: both are parsed b
 `fromString` that falls back to the default (`bottom_up`, `cloud`) on anything it does not
 know. A typo silently gives you the default animation.
 
-The world used for the rebuild is the **command source's** world, which is what makes
-`state apply` work inside a per-player dimension: the same zone definition can be applied
-in whichever copy of the world the caller is standing in.
+The world used for the rebuild is the **command source's** world *when that world is a
+per-player copy of the zone's world*; in every other case it is the zone's own world. That
+is what makes `state apply` work inside a per-player dimension: the same zone definition
+can be applied in whichever copy of the world the caller is standing in.
 
 ```mcfunction
-/cg state apply boss_arena a1b2c3d4
+/cg state apply boss_arena 1
 ```
 
 ```text
-State 'a1b2c3d4' applied to zone 'boss_arena'
+State '1' applied to zone 'boss_arena'
 ```
 
 ```mcfunction
-/cg state apply boss_arena a1b2c3d4 true cascade_from_bottom 4 sparkle true
+/cg state apply boss_arena 1 true cascade_from_bottom 4 sparkle true
 ```
 
 ```text
-Animating state 'a1b2c3d4' on zone 'boss_arena'...
+Animating state '1' on zone 'boss_arena'...
 ```
 
 An animated apply returns immediately and runs over subsequent ticks, so the feedback
@@ -642,7 +650,7 @@ line means "started", not "finished".
 
 | Message | Cause |
 |---|---|
-| `Error: <detail>` | the single error channel for this subcommand — unknown zone, unknown state, unreadable file on disk. The detail string comes from `ZoneStateManager.applyState` |
+| `Error: <detail>` | the single error channel for this subcommand — `Animation already running on this zone`, `Zone not found`, `World not loaded`, `State file not found`, `Failed to load state: …`. The detail string comes from `ZoneStateManager.applyState` and is always English |
 
 ---
 
@@ -666,9 +674,13 @@ price and a clickable prompt; with `confirm` it executes the sale.
 ```
 
 ```text
-Zone plot_14 is for sale for 2500.
-[Click to Buy]
+Zone Plot 14 is for sale for 2500 fromage.
+ [Click to Buy]
 ```
+
+The prompt shows the zone's display name and the price formatted by
+`SaleManager.formatPrice` for the zone's currency (`2500 fromage`; a `NUMISMATIC` price of
+2500 prints as `25 silver`).
 
 ```mcfunction
 /cg buy plot_14 confirm
@@ -683,19 +695,23 @@ You are now the owner of Plot 14!
 | `Zone not found.` | no zone with that id |
 | `This zone is not for sale.` | the zone has no sale config, or it is disabled |
 | `This zone has already been sold.` | the sale config is marked sold |
-| `You cannot afford this zone. Price: <price>` | the wallet balance is below the price |
-| `You already own the maximum number of zones with the '<tag>' tag.` | the per-tag ownership cap in `tag_configs.json` is reached |
+| `You have reached the ownership limit for tag: <tag>` | the per-tag ownership cap in `config/cheeseguard/tag_configs.json` is reached (checked first) |
+| `You cannot afford this zone (<price>)` | the buyer cannot pay the price in the zone's currency |
+| `Failed to deduct fromage payment` / `Failed to deduct items from inventory` / `Unknown currency: <c>` | the payment step failed |
 
-A successful purchase adds the buyer as owner, marks the sale sold and persists both
-`regions.json` and the tag config. The currency comes from whichever wallet backend
-`SaleManager` finds — see [zones and flags](zones-and-flags.md) for the sale model and
-the sign format.
+A successful purchase makes the buyer the owner (the previous owner is demoted to member),
+marks the sale sold, records the buyer, and saves `regions.json`. It also breaks the sale
+sign the buyer clicked in the last 60 seconds, if any, and refreshes the sale hologram.
+The tag config is only read, not written. The currency is the one set in the zone's sale
+config (`NUMISMATIC`, `FROMAGE` or `ITEMS`) — see [zones and flags](zones-and-flags.md)
+for the sale model and the sign format.
 
-The failure strings for *cannot afford* and *ownership limit* are returned from
-`SaleManager.processPurchase` as a pre-formatted string and printed with `Text.literal`,
-so they are **not** translated even though the language files contain keys for them. Every
-other message on this page goes through `Text.translatable` and respects the client's
-language.
+The failure strings from the confirm step (the last three rows) are returned from
+`SaleManager.processPurchase` as hardcoded English strings and printed with
+`Text.literal`, so they are **not** translated even though the language files contain
+`cheeseguard.sale.cannotAfford` and `cheeseguard.sale.ownershipLimit` keys with different
+wording. Every other message on this page goes through `Text.translatable` and respects
+the client's language.
 
 ---
 

@@ -13,10 +13,10 @@ ever split out. Read this page before changing anything in it.
 
 ```text
 com.cheeseguard
-├── CheeseGuardMod.java        442 lines — the ModInitializer; owns every manager
+├── CheeseGuardMod.java        441 lines — the ModInitializer; owns every manager
 ├── api/                         3 files,    225 lines — the one public extension point
 ├── client/                      4 files,    739 lines — client entrypoint, HUDs, zone-owner screen
-├── commands/                    2 files,  1 441 lines — the /cg and /prison Brigadier trees
+├── commands/                    2 files,  1 445 lines — the /cg and /prison Brigadier trees
 ├── dashboard/                  10 files,  4 227 lines — the CheeseDash module and eight REST APIs
 ├── data/                       25 files,  4 965 lines — the model: zones, flags, events, configs, storage
 ├── logic/                      43 files, 21 093 lines — every manager, listener and third-party hook
@@ -65,8 +65,8 @@ queued.
 
 `Region` is the zone: a box, a world id, a priority, a group id, a flag map, a member
 list, and an optional `SaleConfig`. A flag absent from the map means *inherit*, which is
-distinct from `false`; `Flag` carries the per-flag default and a `memberExempt` bit
-deciding whether owners bypass it.
+distinct from `false`; `Flag` carries no default value, only a `memberExempt` bit deciding
+whether owners bypass it.
 
 `RegionStorage` holds every zone and group in two maps and persists both to
 `config/cheeseguard/regions.json`. Every mutation calls `save()` synchronously: adding one
@@ -74,10 +74,11 @@ member rewrites the whole file on the server thread.
 
 ### `ProtectionListener`
 
-The hot path. Every mixin that enforces a flag asks this class whether an action is
-allowed at a position, and it resolves zone → group → flag default by priority. At 795
-lines it is the one piece of `logic/` that runs thousands of times per tick, which is why
-its lookups are kept simple.
+The player-facing half of protection: the Fabric callbacks (break, use, attack, item use)
+and the 10-tick checks (entry/exit, fly, mounts, transform, nametag, minimap), 795 lines.
+The resolution itself — event overrides → explicit zone flag → group flag → dimension
+denied flags — lives in `RegionManager.isAllowed()` / `isFlagAllowed()`, and that is what
+every flag-enforcing mixin calls, not this class.
 
 ### `EventManager` and `TimelineExecutor`
 
@@ -87,8 +88,8 @@ anywhere in the mod. Do not add one without reading how `EventManager.tick` comp
 remaining time from wall-clock timestamps — a pause would need every one of those to be
 rebased, and several of them are also persisted.
 
-`TimelineExecutor` runs the acts: each act has a time offset and a list of `EventEffect`s,
-some of which call into other mods (CobbleShift transforms, CheeseKart starts, dungeon
+`TimelineExecutor` runs the acts: each act holds timeline blocks, each with a start offset
+and an `EventEffect` type, some of which call into other mods (CobbleShift transforms, CheeseKart starts, dungeon
 opens).
 
 ### `DimensionManager`
@@ -99,7 +100,9 @@ an underscore, and the first eight hex characters of the owner's UUID. Deleting 
 unloads the world and removes its directory; on Windows the file handles are not released
 immediately, so the code waits before deleting and can still fail.
 
-It is also the only consumer of the access widener: vanilla chains the Overworld's world
+It is also the only user of the access widener's `getListeners()` entry (the widener's
+other entry makes `NoiseChunkGenerator` extendable, which nothing in CheeseGuard itself
+extends): vanilla chains the Overworld's world
 border to the Nether and the End through a `WorldBorderSyncer` listener, which makes
 independent per-dimension borders impossible. The widener opens
 `WorldBorder.getListeners()` so that chain can be stripped at boot.
@@ -116,9 +119,11 @@ handlers mutate directly.
 touched from there, so each API hands work over with
 `WebDashboard.executeOnServerThread(server, () -> …)`. The current counts are 18 hand-offs
 in `ZonesApi`, 13 each in `DimensionsApi` and `EventsApi`, 7 in `ChunksApi`, 5 in
-`GroupsApi`, 4 in `PlayersApi`, 2 in `PrisonApi` and **none in `RacesApi`** — that last
-one reads and writes only its own JSON files, which is defensible, but it means a race
-config write races with the race scanner on the server thread.
+`GroupsApi`, 4 in `PlayersApi`, 2 in `PrisonApi` and **none in `RacesApi`**. `RacesApi`
+hands its scan and heightmap to the server thread itself, with `server.execute` and a
+30-second `CompletableFuture`; its track routes read and write their own JSON files on the
+HTTP thread, and so does the auto-save after a scan, so a track config write can race
+with a race reading it on the server thread.
 
 Reads of immutable or concurrent structures happen straight from the HTTP thread.
 `PrisonManager` uses a `ConcurrentHashMap` and a synchronized list for exactly this
@@ -151,8 +156,8 @@ Three patterns, and the differences matter:
 
 Nothing is written atomically. Every save is a `Files.writeString` straight onto the live
 path, with no temporary file and no rename. A crash during a save of `regions.json`
-truncates it, and the next start loads zero zones — `load()` returns quietly when parsing
-fails. Back up `config/cheeseguard/` and `config/cheeseguard_*.json` with your world.
+truncates it, and the next start loads zero zones — `load()` logs one
+`Failed to load CheeseGuard data` line and carries on with nothing. Back up `config/cheeseguard/` and `config/cheeseguard_*.json` with your world.
 
 ## The 44 mixins
 
@@ -163,7 +168,7 @@ code that nothing loads. Delete the first; decide about the second.
 
 Grouped by what they hook, with the risk each group carries:
 
-### Vanilla block and entity behaviour — 23 mixins
+### Vanilla block and entity behaviour — 21 mixins
 
 `BlockPlaceMixin` (`BlockItem.place`), `ItemDropMixin`, `ItemPickupMixin`,
 `EntitySpawnMixin` (`ServerWorld.spawnEntity`), `MobSpawnMixin` (`MobEntity.canSpawn`),
@@ -173,20 +178,23 @@ Grouped by what they hook, with the risk each group carries:
 `EndermanGriefMixin`, `EatGrassGoalMixin`, `CreativeInventoryMixin`,
 `CobblemonBlockInteractMixin` and `AbstractFireBlockCustomDimMixin`.
 
-Each one asks `ProtectionListener` whether a flag allows the action and cancels at `HEAD`
-if not. This is the flag enforcement layer, and it is the group most likely to conflict
+Each one asks `RegionManager` (or, for the dimension rules, `DimensionManager`) whether
+the action is allowed and cancels at `HEAD` if not. This is the flag enforcement layer, and it is the group most likely to conflict
 with another protection or world-management mod hooking the same methods — two mods both
-cancelling `BlockItem.place` is a load-order lottery. `FireSpreadMixin` and
-`EventProjectileHitMixin` carry `require = 0`, so they fail silently if their target
-method is not found; the rest will crash the game on a mapping change instead, which is
+cancelling `BlockItem.place` is a load-order lottery. Nine mixins carry `require = 0` and fail silently if their target
+method is not found — `FireSpreadMixin`, `EventProjectileHitMixin`, `EventCraftItemMixin`,
+`EventFishCatchMixin`, `CSAFuzzyMatchFixMixin` and the four client mixins; the rest will
+crash the game on a mapping change instead, which is
 the better behaviour for a protection mod.
 
-### Event scoring — 6 mixins
+### Event scoring — 8 mixins
 
 `EventBlockBreakMixin`, `EventBlockPlaceScoreMixin`, `EventCraftItemMixin`,
 `EventFishCatchMixin`, `EventItemPickupScoreMixin`, `EventMobKillMixin`,
-`EventPlayerDeathMixin`, `EventProjectileHitMixin`. These inject at `RETURN` rather than
-`HEAD` and award event points. Two of them (`EventBlockPlaceScoreMixin`,
+`EventPlayerDeathMixin`, `EventProjectileHitMixin`. They award event points without cancelling
+anything — three at `RETURN` (`EventBlockPlaceScoreMixin`, `EventItemPickupScoreMixin`,
+`EventFishCatchMixin`), `EventBlockBreakMixin` at both `HEAD` and `RETURN`, the others at
+`HEAD`. Two of them (`EventBlockPlaceScoreMixin`,
 `EventItemPickupScoreMixin`) set `priority = 1100` so they run after the protection mixin
 on the same method — the point is scored only for an action that was actually allowed.
 That ordering is load-bearing and undocumented in the code itself.
@@ -313,7 +321,8 @@ for months without anyone noticing. The full table is in
 [commands](commands.md#permission-levels).
 
 **Saves are not atomic and are not backed up.** A crash mid-save of `regions.json` loses
-every zone, silently, because the loader swallows parse errors.
+every zone, with a single error line in the log, because the loader catches the parse
+error and starts empty.
 
 **`MiniGameManager` is 5 244 lines.** Prop hunt, spleef, fishing and the team logic share
 one class and one set of fields. There is no test for any of it.
@@ -332,7 +341,7 @@ literal `aucun` printed by `/cg info` when a zone has no group.
 `CheeseGuardMod.INSTANCE`. There is no seam to test against, which is why there are no
 tests.
 
-**It targets six third-party mods by class name.** Jade, JourneyMap, Cobblemon, Cobblemon
+**It targets four third-party mods by class name.** Jade, JourneyMap, Cobblemon, Cobblemon
 Spawn Alerts. Each of those updating can break a CheeseGuard feature or crash the game at
 load. If the server will not start after a mod update, suspect this list first and check
 the mixin apply failures in the log.

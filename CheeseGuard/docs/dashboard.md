@@ -114,9 +114,12 @@ Any exception escaping a handler is caught by the router and turned into a `500`
 {"error":"Internal server error","detail":"<message with double quotes replaced by apostrophes>"}
 ```
 
-Individual APIs catch their own exceptions first, usually with the server-thread cause
-unwrapped, so most errors arrive as a `500` carrying the real message rather than this
-envelope.
+Individual APIs catch their own exceptions first, so most errors arrive as a `500` with an
+`error` field rather than this envelope. Only `ChunksApi` and `RacesApi` unwrap the
+server-thread cause; the zone, group, dimension, event and player routes report the
+message of the wrapping `ExecutionException`, so a failure inside the server-thread task
+reads `java.lang.RuntimeException: <message>` (or the name of whatever exception was
+thrown). The messages quoted on this page are shown without that prefix.
 
 ### `GET /` and `GET /status`
 
@@ -139,7 +142,7 @@ startup can return a partial object or `{}`.
 | Method | Path | Body / params | Response | Statuses | Role |
 |---|---|---|---|---|---|
 | `GET` | `/zones` | `?world=<id>` filters by world | array of zone summaries | `200` | any |
-| `POST` | `/zones` | `{name, playerName?, id?, ...}` | the created zone | `200` `400` `404` `409` | `OPERATOR` (core) |
+| `POST` | `/zones` | `{name, playerName?}` | the created zone | `200` `400` `404` `409` `500` | `OPERATOR` (core) |
 | `GET` | `/zones/:id` | — | zone detail | `200` `400` `404` | any |
 | `PUT` | `/zones/:id` | partial zone fields | zone detail | `200` `400` `404` `500` | `OPERATOR` (core) |
 | `DELETE` | `/zones/:id` | — | `{"deleted":true}` | `200` `404` `409` | `OPERATOR` (core) |
@@ -161,7 +164,7 @@ startup can return a partial object or `{}`.
 | `POST` | `/zones/:id/sale/sign` | `?player=<name>` | `{...}` | `200` `400` `404` | `OPERATOR` (core) |
 | `POST` | `/zones/:id/sale/relist` | — | `{...}` | `200` `400` `404` `500` | `OPERATOR` (core) |
 | `GET` | `/zones/:id/members` | — | array of members | `200` `404` | any |
-| `POST` | `/zones/:id/members` | `{playerName, role?}` | `{...}` | `200` `400` `404` `409` `500` | `OPERATOR` (core) |
+| `POST` | `/zones/:id/members` | `{playerName}` (any `role` is ignored) | `{...}` | `200` `400` `404` `409` `500` | `OPERATOR` (core) |
 | `DELETE` | `/zones/:id/members/:uuid` | — | `{...}` | `200` `400` `404` `500` | `OPERATOR` (core) |
 | `PUT` | `/zones/:id/owner` | `{playerName}` | `{...}` | `200` `400` `404` `500` | `OPERATOR` (core) |
 | `DELETE` | `/zones/:id/owner` | — | `{...}` | `200` `400` `404` `500` | `OPERATOR` (core) |
@@ -184,10 +187,15 @@ empty string is treated as `null`.
 curl -X PUT http://localhost:44311/api/v1/cheeseguard/zones/arena \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"priority":5,"flags":{"pvp":"ALLOW","build":"DENY"}}'
+  -d '{"priority":5,"flags":{"pvp":"ALLOW","block-break":"DENY"}}'
 ```
 
-`DELETE /zones/:id` answers `409` rather than cascading when the zone has children.
+`DELETE /zones/:id` answers `409` when the zone is the configured prison zone and still
+holds prisoners. It does not look at child zones: zones whose `parentId` points at the
+deleted one keep that dangling id.
+
+`PUT /zones/tag-configs/:tagId` replaces the whole config: a `label` or `color` left out
+becomes empty, and an `ownershipLimit` left out becomes `0` (unlimited).
 
 `DELETE /zones/:id/members/:uuid` refuses to remove the owner:
 `400 Cannot remove owner via members endpoint. Use DELETE /zones/:id/owner instead.`
@@ -235,7 +243,7 @@ to the same id, in which case the second one is refused.
 | `POST` | `/dimensions/:id/snapshot` | — | result | `200` `404` `500` | `OPERATOR` (core) |
 | `POST` | `/dimensions/:id/reset` | — | result | `200` `404` `500` | `OPERATOR` (core) |
 | `POST` | `/dimensions/:id/toggle` | `{key}` | dimension detail | `200` `400` `404` `500` | `OPERATOR` (core) |
-| `PUT` | `/dimensions/:id/snapshot/config` | `{trigger, hour?, minute?}` | config | `200` `400` `404` `500` | `OPERATOR` (core) |
+| `PUT` | `/dimensions/:id/snapshot/config` | `{trigger, hour?}` | `{trigger, hour, updated}` | `200` `400` `404` `500` | `OPERATOR` (core) |
 | `POST` | `/dimensions/:id/whitelist` | `{playerName}` | `{...}` | `200` `400` `404` `500` | `OPERATOR` (core) |
 | `DELETE` | `/dimensions/:id/whitelist/:uuid` | — | `{...}` | `200` `400` `404` | `OPERATOR` (core) |
 | `POST` | `/dimensions/:id/builders` | `{playerName}` | `{...}` | `200` `400` `404` `500` | `OPERATOR` (core) |
@@ -263,9 +271,9 @@ object.
 `POST /dimensions/:id/toggle` flips one boolean, named by `key`. Accepted keys: `pvp`,
 `mobSpawning`, `keepInventory`, `clearInventory`, `constructionMode`, `perPlayerMode`,
 `commandBlocks`, `enderChest`, `generateStructures`, `cobblemonBlocked`, `enabled`,
-`timeLocked`, `weatherLocked`, `allowHome`, `raidDensEnabled`, `borderEnabled`. A missing
-`key` gives `400`; an **unrecognised** key falls through the switch and changes nothing, yet
-still answers `200` with the unchanged detail. Check the field you expected to flip.
+`timeLocked`, `weatherLocked`, `allowHome`, `raidDensEnabled`, `borderEnabled`, plus
+`flag.<flagId>` for a dimension-level denied flag. A missing `key` gives `400`; any other
+key gives `500 {"error":"java.lang.RuntimeException: Unknown toggle key: <key>"}`.
 
 The per-player routes address a sub-dimension by the first 8 hex characters of the owner's
 UUID, validated against `[0-9a-f]{8}`. An id that does not resolve gives
@@ -318,7 +326,7 @@ and saves a new event. To load a template *for real*, use
 `PUT /events/:id` is a patch, except for `kitEntryCommands`, `kitExitCommands`,
 `blacklistItems` and `acts`, which are cleared and refilled when present. An invalid enum
 value throws inside the server-thread task, surfaces as a `500`, and leaves the event
-partially patched and saved.
+partially patched in memory — not saved by this request, but written by the next save.
 
 `POST /events/:id/start` refuses an event that is already running
 (`500 {"error":"Event already running"}`); `stop` refuses one that is not
@@ -342,8 +350,8 @@ PropHunt icon keys are validated against `[a-z0-9_]+` and must be under 128 char
 `400 {"error":"Invalid key"}`. The upload body takes either a bare base64 string or a full
 `data:image/png;base64,...` URI — anything before the first comma is stripped. `GET` on an
 icon returns `image/png` with `Cache-Control: public, max-age=60`, not JSON. An unsupported
-method on an icon key answers `405 {"error":"Method not allowed"}`, which is the only `405`
-in the whole module.
+method on an icon key answers `405 {"error":"Method not allowed"}` — one of the module's
+two `405`s, the other being `/races/:eventId/track`.
 
 ---
 
@@ -416,7 +424,7 @@ equality is on that triple. Getting the radius wrong gives
 | Method | Path | Body | Response | Statuses | Role |
 |---|---|---|---|---|---|
 | `POST` | `/races/scan` | `{zoneId, blockMappings, eventId?}` | a `ScanResult` | `200` `400` `500` | `OPERATOR` (`requireWrite`) |
-| `POST` | `/races/heightmap` | `{zoneId}` | `{width, depth, minX, minZ, image}` | `200` `400` `500` | `OPERATOR` (core) |
+| `POST` | `/races/heightmap` | `{zoneId}` | `{width, height, minX, minZ, image}` | `200` `400` `500` | `OPERATOR` (core) |
 | `GET` | `/races/:eventId/track` | — | the track config | `200` `400` | any |
 | `PUT` | `/races/:eventId/track` | partial track settings | the track config | `200` `400` | `OPERATOR` (`requireWrite`) |
 | `DELETE` | `/races/:eventId/track` | — | `{"ok":true}` | `200` `400` | `OPERATOR` (`requireWrite`) |

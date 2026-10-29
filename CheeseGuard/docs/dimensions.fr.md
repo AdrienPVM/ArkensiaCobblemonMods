@@ -8,8 +8,8 @@ serveur, et enregistré sur disque pour revenir au prochain démarrage. Par-dess
 les règles par dimension, les snapshots des fichiers de monde qui permettent de ramener une
 arène à un état connu, et le mode par joueur qui donne à chacun sa copie privée d'un monde.
 
-Le gestionnaire est `com.cheeseguard.logic.DimensionManager`, 2 570 lignes et le deuxième
-plus gros fichier du mod. L'objet de configuration est
+Le gestionnaire est `com.cheeseguard.logic.DimensionManager`, 2 570 lignes et le troisième
+plus gros fichier du mod, après `MiniGameManager` et `EventManager`. L'objet de configuration est
 `com.cheeseguard.data.DimensionConfig`.
 
 > ⚠️ Ce sous-système écrit et supprime des fichiers de monde sur disque, en dehors de tout
@@ -100,7 +100,8 @@ Les tirets sont remplacés eux aussi, contrairement aux identifiants de zones. L
 dashboard réduit en plus les suites d'underscores et retire ceux de début et de fin. Un
 résultat vide devient `dim_<4 chiffres>` d'après l'horloge courante. L'identifiant de monde
 est alors `cheeseguard:<id>`, et la création renvoie `null` — HTTP 500
-`Dimension already exists or creation failed` — si cet identifiant est déjà pris.
+`java.lang.RuntimeException: Dimension already exists or creation failed` — si cet
+identifiant est déjà pris.
 
 Si tu ne donnes pas de graine, une graine aléatoire est générée, et c'est volontaire :
 
@@ -176,7 +177,7 @@ elle-même continue de fonctionner.
 | `clearInventory` | booléen | `false` | Sauvegarder et vider l'inventaire à l'entrée, le restaurer à la sortie |
 | `constructionMode` | booléen | `false` | Créatif pour les builders listés, plus des restrictions d'items |
 | `constructionBuilders` | ensemble d'UUID | vide | Qui passe en créatif en mode construction |
-| `commandBlocks` | booléen | `false` | Placer ou utiliser des blocs de commande et de structure |
+| `commandBlocks` | booléen | `false` | Utiliser (clic droit) des blocs de commande et de structure. La pose n'est pas vérifiée |
 | `enderChest` | booléen | `true` | Placer ou utiliser des coffres de l'Ender |
 | `generateStructures` | booléen | `true` | La génération de structures. Toujours désactivée pour `VOID` |
 | `cobblemonBlocked` | booléen | `false` | Bloque tout spawn Cobblemon, et purge ce qui est déjà là |
@@ -223,9 +224,11 @@ synchronise automatiquement que celle de l'overworld.
 `perPlayerMode`, `commandBlocks`, `enderChest`, `generateStructures`, `cobblemonBlocked`,
 `enabled`, `timeLocked`, `weatherLocked`, `allowHome`, `raidDensEnabled`, `borderEnabled`,
 plus `flag.<flagId>` pour basculer un drapeau refusé au niveau de la dimension. Toute autre
-clé répond 500 `Unknown toggle key: <key>`.
+clé répond 500 `java.lang.RuntimeException: Unknown toggle key: <key>`. Une clé
+`flag.<flagId>` n'est pas validée : un identifiant de drapeau inconnu est stocké dans
+`deniedFlags` et ne correspond simplement jamais à rien.
 
-Quatre d'entre elles font plus que poser un champ. `constructionMode` activé active aussi
+Cinq d'entre elles font plus que poser un champ. `constructionMode` activé active aussi
 `clearInventory`, parce que le mode construction n'a pas de gestion d'inventaire propre.
 `cobblemonBlocked` activé purge immédiatement les entités Cobblemon du monde.
 `timeLocked`, `weatherLocked` et `borderEnabled` réappliquent leur effet tout de suite au
@@ -295,9 +298,10 @@ Le reset lui-même, dans `executeReset()` :
    `lastResetAt` horodaté en millisecondes epoch, configuration sauvegardée, et chaque
    opérateur en ligne averti par `Dimension '%s' réinitialisée.`
 
-Cette pause de 500 ms, et les pauses de 400 ms équivalentes avant les suppressions de
-dossiers dans `deleteDimension()` et `deletePlayerDimension()`, sont là pour les **verrous
-de fichiers Windows**. Retirer un `ServerWorld` de la table du serveur ne relâche pas
+Cette pause de 500 ms, et la pause de 400 ms équivalente avant la suppression du dossier
+dans `deletePlayerDimension()` (et avant celle de chaque enfant par joueur dans
+`deleteDimension()` — le dossier propre de la dimension supprimée part aussitôt, sans
+pause), sont là pour les **verrous de fichiers Windows**. Retirer un `ServerWorld` de la table du serveur ne relâche pas
 immédiatement les descripteurs que son stockage de chunks détient, et sous Windows un
 descripteur ouvert fait échouer `Files.delete` purement et simplement, au lieu de différer
 la suppression comme le fait Linux. Le délai laisse aux descripteurs le temps de se
@@ -335,7 +339,8 @@ par seconde indéfiniment.
 
 `SCHEDULED` compare `LocalTime.now().getHour()` à l'heure configurée et enregistre le jour
 du dernier déclenchement, sous la forme `dayOfYear * 10000 + year`, pour ne pas pouvoir se
-déclencher deux fois le même jour. La granularité d'une heure signifie que le reset a lieu à
+déclencher deux fois le même jour. Cet enregistrement ne vit qu'en mémoire : un serveur
+redémarré pendant l'heure correspondante relance le reset. La granularité d'une heure signifie que le reset a lieu à
 un moment quelconque de l'heure correspondante, dès que la prochaine vérification à la
 seconde tombe — pas au début de l'heure. Si le serveur est arrêté pendant toute cette
 heure, le reset est simplement sauté ; il ne se rattrape pas au démarrage suivant.
@@ -448,8 +453,9 @@ Retrouver un UUID complet à partir de huit caractères hexadécimaux est la par
 cette conception. L'API ne peut pas le faire depuis le seul identifiant, donc elle lit la
 whitelist de la configuration de l'instance et prend l'entrée dont l'UUID commence par ces
 huit caractères. Une instance dont la whitelist a été vidée à la main ne peut plus être
-supprimée ni réinitialisée depuis le dashboard ; la voie des commandes résout le joueur par
-son nom et fonctionne encore.
+supprimée ni réinitialisée depuis le dashboard. `/cg playerworld delete` fonctionne encore
+pour elle seulement quand son propriétaire est connecté : la commande prend l'UUID du joueur
+connecté de ce nom, et pour un joueur déconnecté se rabat sur la même whitelist.
 
 Les recherches de snapshot pour une instance se rabattent sur la maîtresse :
 `getEffectiveSnapshotFolder()` renvoie le dossier propre à l'instance s'il existe, puis

@@ -88,8 +88,8 @@ deviennent **`false`**, avec un message de confirmation enjoué.
 
 **Remède.** Utilise exactement `true`, `false` ou `inherit`. Vérifie avec `/cg info` — qui
 n'affiche pas les flags, donc vérifie plutôt depuis le dashboard. `inherit` est aussi
-distinct de `false` : il retire le flag, de sorte que la zone retombe sur son groupe puis
-sur le défaut du flag.
+distinct de `false` : il retire le flag, de sorte que la zone retombe sur son groupe, puis
+sur les flags refusés de la dimension, et à défaut l'action est autorisée.
 
 ---
 
@@ -129,11 +129,11 @@ du monde et la plupart des scripts de sauvegarde les oublient.
 - **Les fichiers d'état** (`regions.json`, `cheeseguard_events.json`,
   `cheeseguard_dimensions.json`, `prison.json`) appartiennent au serveur en marche, qui les
   garde en mémoire et les réécrit à la prochaine mutation. Ta modification a été écrasée.
-- **`cheeseguard_webhook.json`** et **`cheeseguard_pastures.json`** sont lus une seule
-  fois, au démarrage du serveur.
-- **`cheeseguard_fish_pokemon.json`** se recharge quand le dashboard le demande, mais un
-  fichier **mal formé** journalise `Failed to load fish pokemon table` et retombe
-  silencieusement sur les valeurs par défaut intégrées.
+- **`cheeseguard_webhook.json`**, **`cheeseguard_pastures.json`** et
+  **`cheeseguard_fish_pokemon.json`** sont lus une seule fois, au démarrage du serveur —
+  rien ne les recharge en cours de route. Une table de pêche **mal formée** journalise en
+  plus `Failed to load fish pokemon table` et retombe silencieusement sur les valeurs par
+  défaut intégrées.
 
 **Remède.** Arrête le serveur avant d'éditer un fichier d'état. Redémarre après avoir
 édité un fichier de réglages. Valide ton JSON — une virgule en trop suffit à faire ignorer
@@ -298,11 +298,12 @@ existé.
 
 ---
 
-## Une commande `/home` ne fait rien, pour un joueur seulement
+## Une commande `/home` est refusée, pour un joueur seulement
 
 **Cause.** `HomeCommandMixin` annule toute commande dont le texte commence par `home` pour
 un non-opérateur se trouvant dans une dimension dont la configuration a `allowHome`
-désactivé. La comparaison porte sur la chaîne brute : `/homeland` et `/homes` sont donc
+désactivé, et lui affiche *[CheeseGuard] La commande /home n'est pas autorisée dans cette
+dimension.* La comparaison porte sur la chaîne brute : `/homeland` et `/homes` sont donc
 attrapés aussi.
 
 **Remède.** Active `allowHome` sur la configuration de cette dimension, ou accepte le

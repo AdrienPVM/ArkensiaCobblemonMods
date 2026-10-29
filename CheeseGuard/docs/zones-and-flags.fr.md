@@ -83,7 +83,7 @@ Les deux ne comptent que lorsque des zones se recouvrent. Voir
 | `exitMessageEnabled` | `false` | Faut-il envoyer une ligne en sortant |
 | `exitMessage` | `"Vous quittez : <nom>"` | Cette ligne |
 | `protectionMessage` | `"⛔ Cette zone est protégée !"` | Texte d'action bar quand un drapeau bloque quelque chose |
-| `particleColor` | `"green"` | Couleur du contour pour la visualisation `/cg toggle`. Au choix : red, green, blue, yellow, purple, cyan, white, orange |
+| `particleColor` | `"green"` | Couleur du contour pour la visualisation `/cg toggle`. Au choix : red, green, blue, yellow, purple, cyan, white, orange, pink ; une valeur inconnue dessine en vert. Un tag doté d'une `color` configurée passe devant, voir [les tags](#tags-et-limites-de-possession) |
 | `requiredAdvancementsEntry` / `Exit` | vide | Conditions d'advancement, voir [les conditions d'entrée et de sortie](#les-conditions-dentrée-et-de-sortie) |
 | `advancementDeniedMessage` | `"⛔ Vous n'avez pas les advancements requis !"` | Affiché quand une condition refuse |
 | `requiredQuestsEntry` / `Exit` | vide | Conditions FTB Quests, identifiants de quête en hexadécimal |
@@ -108,12 +108,14 @@ donne une ; elle n'est pas craftable et rien d'autre dans le mod n'utilise cet i
    cassé.
 3. **Clic droit** sur un bloc : position 2. Le chat affiche alors la taille de la
    sélection et le nombre total de blocs.
-4. `/cg create <nom>` — crée la zone dans le monde où tu te trouves, avec toi comme
-   propriétaire.
+4. `/cg create <nom>` — crée la zone dans le monde de la sélection (celui de ton dernier
+   clic au wand), avec toi comme propriétaire.
 
-Les deux clics du wand exigent le niveau de permission 2, et tous deux vérifient l'item
-dans la main qui a cliqué. Une sélection vit en mémoire, par joueur
-(`SelectionManager`), et est perdue au redémarrage.
+Les deux clics du wand exigent le niveau de permission 2. Le clic gauche vérifie la main
+principale ; le clic droit, la main qui a cliqué. Le wand est reconnu comme toute hache en
+or dont le nom personnalisé contient `Zone Selection Wand`. `/cg pos1` et `/cg pos2`
+(niveau 2) posent les mêmes coins depuis le bloc où tu te tiens, sans le wand. Une
+sélection vit en mémoire, par joueur (`SelectionManager`), et est perdue au redémarrage.
 
 La route `POST /zones` du dashboard consomme la **même** sélection : elle va chercher la
 sélection stockée du joueur que tu nommes, ce qui veut dire qu'un admin sélectionne en jeu
@@ -223,7 +225,8 @@ Trente et un drapeaux, définis une seule fois dans `com.cheeseguard.data.Flag`.
   pas.
 
 L'API REST écrit ces trois états `ALLOW`, `DENY` et `INHERIT`. `/cg flag` accepte `true`,
-`false`, ou `inherit` / `null`. Un identifiant de drapeau que `Flag.fromId()` ne reconnaît
+`false`, ou `inherit` / `null` ; tout autre mot passe par `Boolean.parseBoolean` et est
+donc enregistré comme `false` (refuser). Un identifiant de drapeau que `Flag.fromId()` ne reconnaît
 pas est ignoré au chargement et refusé par la commande.
 
 > Il n'y a **aucune valeur par défaut par drapeau**. Le quatrième argument de chaque
@@ -342,9 +345,9 @@ dans la liste.
 | `removeOwner` | Vide l'emplacement du propriétaire. La zone devient sans propriétaire ; ses membres gardent leur exemption |
 
 Le nom en cache est celui que tu vois dans les listes et celui que `/cg removemember`
-compare, sans tenir compte de la casse. Il est rafraîchi quand le joueur est résolu à
-nouveau, donc un compte renommé peut afficher un nom périmé jusqu'à ce que quelqu'un touche
-à l'appartenance.
+compare, sans tenir compte de la casse. Rien ne le rafraîchit jamais (`Member.setName()`
+n'a aucun appelant), donc un compte renommé garde son ancien nom jusqu'à ce qu'on le
+retire puis l'ajoute à nouveau.
 
 ### En jeu
 
@@ -352,7 +355,9 @@ Le propriétaire d'une zone qui s'y tient reçoit un rappel sur l'action bar tou
 secondes — `Vous possédez <zone> — appuyez sur <touche> pour gérer` — avec la vraie touche
 assignée à `key.cheeseguard.zone_menu`, donc une touche réassignée s'affiche
 correctement. La touche ouvre un menu côté client qui peut ajouter un membre, en retirer
-un, transférer la propriété, renommer la zone et l'abandonner. Le menu exige le mod client
+un, transférer la propriété, renommer la zone (1 à 64 caractères), faire tourner les
+drapeaux `pvp` et `mob-spawning` de la zone selon le cycle hériter → autoriser → refuser →
+hériter, et l'abandonner. Le menu exige le mod client
 CheeseGuard ; sans lui le serveur répond
 `Ce menu nécessite le mod client CheeseGuard.`
 
@@ -360,12 +365,9 @@ CheeseGuard ; sans lui le serveur répond
 depuis la console ou le chat. La cible doit être **en ligne** pour `addmember`, parce que
 l'UUID vient de `PlayerManager.getPlayer(name)`.
 
-> ⚠️ `/cg flag`, `/cg addmember`, `/cg removemember`, `/cg group …` et `/cg buy` ne portent
-> **aucune** clause `requires(permissionLevel)`. Contrairement à `/cg create`,
-> `/cg delete` et `/cg wand`, elles sont accessibles à tous les joueurs, qui peuvent donc
-> poser n'importe quel drapeau sur n'importe quelle zone par son identifiant. Si ton
-> serveur accueille des joueurs non fiables, verrouille la commande `cg` dans ton mod de
-> permissions jusqu'à correction.
+`/cg flag`, `/cg addmember`, `/cg removemember` et `/cg group …` exigent toutes le niveau
+de permission 2, comme `/cg create`, `/cg delete` et `/cg wand`. `/cg buy` reste ouverte à
+tous les joueurs, puisque c'est par elle qu'ils achètent des zones.
 
 ---
 
@@ -394,8 +396,8 @@ Les identifiants de quête sont des chaînes hexadécimales — le format d'iden
 lu avec `Long.parseUnsignedLong(id, 16)`. Une quête qui ne peut pas être résolue compte
 comme manquante, ce qui échoue du côté fermé : une faute de frappe verrouille la zone au
 lieu de l'ouvrir. La recherche passe par réflexion sur
-`dev.ftb.mods.ftbquests.quest.ServerQuestFile`, en balayant les méthodes par type de
-paramètre plutôt que par nom afin de survivre au remappage. C'est une observation du
+`dev.ftb.mods.ftbquests.quest.ServerQuestFile`, en cherchant les méthodes à la fois par
+nom (`getData`, `getBase`, `isCompleted`…) et par type de paramètre. C'est une observation du
 comportement actuel de FTB Quests, pas un contrat — une mise à jour de FTB peut la casser,
 et quand ce sera le cas, toutes les quêtes requises seront lues comme manquantes.
 
@@ -461,7 +463,7 @@ Un tag prend du sens lorsqu'il a une configuration dans
 | Clé | Type | Défaut | Effet |
 |---|---|---|---|
 | `label` | chaîne | l'identifiant du tag | Nom d'affichage. Omis du fichier quand il est égal à l'identifiant |
-| `color` | chaîne | absent | Couleur d'affichage, utilisée par le dashboard uniquement |
+| `color` | chaîne | absent | Couleur d'affichage (`#rrggbb`). Affichée par le dashboard, et utilisée pour le contour `/cg toggle` de toute zone qui porte le tag, avant le `particleColor` de la zone |
 | `ownershipLimit` | entier | `0` | Nombre maximum de zones portant ce tag qu'un joueur peut posséder. `0` signifie illimité |
 
 Un identifiant de tag doit correspondre à `^[a-z0-9-]+$` et faire au plus 64 caractères.
@@ -529,10 +531,11 @@ quatre listes de conditions, `saleConfig`, et `advancementDeniedMessage` quand i
 du défaut — ce qui garde le fichier court pour les zones simples.
 
 `name`, `world` et les six bornes sont lus sans garde `has()`. Une zone éditée à la main
-à laquelle il manque l'un de ces champs lève une exception, et tout le chargement avorte
-dans le bloc catch : tu perds toutes les zones du fichier, pas seulement celle qui est
-cassée, avec une seule ligne `Failed to load CheeseGuard data` dans le log. Sauvegarde le
-fichier avant de l'éditer.
+à laquelle il manque l'un de ces champs lève une exception, et le chargement avorte dans
+le bloc catch : les zones lues avant elle restent chargées, mais la zone cassée et toutes
+celles qui la suivent dans le fichier sont perdues, avec une seule ligne
+`Failed to load CheeseGuard data` dans le log. La sauvegarde suivante réécrit alors le
+fichier sans elles. Sauvegarde le fichier avant de l'éditer.
 
 ### Ce qui ne survit pas à un aller-retour
 
@@ -561,7 +564,7 @@ vente et rien chez elle ne change.
 | `currency` | chaîne | `"NUMISMATIC"` | Au choix : `NUMISMATIC`, `FROMAGE`, `ITEMS`. Comparé sans tenir compte de la casse |
 | `itemId` | chaîne | `null` | Pour `ITEMS` : l'identifiant de l'item, par exemple `minecraft:diamond` |
 | `itemCount` | entier | `0` | Pour `ITEMS` : combien. Ramené à `>= 1` par le setter |
-| `signText` | liste de chaînes | vide | Remplace tout le texte de l'hologramme, une entrée par ligne |
+| `signText` | liste de chaînes | vide | Remplace tout le texte de l'hologramme, une entrée par ligne. Une fois la zone vendue, une ligne rouge `SOLD` est tout de même ajoutée |
 | `signLine1` | chaîne | nom de la zone | Ligne 2 du panneau physique. **Non persistée** |
 | `signLine2` | chaîne | vide | Ligne 3 du panneau physique. **Non persistée** |
 | `signType` | chaîne | `"oak"` | Type de bois de l'item panneau. **Non persisté** |
@@ -659,8 +662,10 @@ qu'un clic périmé sur une autre parcelle ne contamine pas cet achat.
 3. Les limites de possession par tag, sinon
    `You have reached the ownership limit for tag: <tag>`.
 4. La solvabilité, sinon `You cannot afford this zone (<prix>)`.
-5. **Prélèvement du paiement.** Un prélèvement numismatique ou en items qui échoue renvoie
-   `Failed to deduct items from inventory` ou `Failed to deduct fromage payment`.
+5. **Prélèvement du paiement.** Un prélèvement d'items qui échoue renvoie
+   `Failed to deduct items from inventory`, un prélèvement de fromage qui échoue
+   `Failed to deduct fromage payment`. Le résultat du prélèvement numismatique n'est pas
+   vérifié.
 6. `transferOwnership()` — l'acheteur devient `OWNER`, l'ancien propriétaire est rétrogradé
    en `MEMBER` et conservé dans la liste des membres.
 7. `sold = true`, `buyerUuid` et `buyerName` enregistrés.
@@ -685,10 +690,10 @@ dashboard et le panneau aboutissent tous deux dans cette unique méthode.
 
 > `SaleManager.sendPurchasePrompt()` utilise la clé de traduction
 > `cheeseguard.sale.already_sold` quand la zone est déjà vendue. Cette clé n'existe dans
-> aucun des deux fichiers de langue — seule `cheeseguard.sale.alreadySold` existe. Un
-> joueur qui clique sur un panneau vendu par cette voie voit la clé brute. Le chemin de la
-> commande utilise la bonne clé, donc le défaut n'apparaît que sur les routes du panneau et
-> de l'hologramme.
+> aucun des deux fichiers de langue — seule `cheeseguard.sale.alreadySold` existe. En
+> pratique, cette branche n'est jamais atteinte : le panneau, l'hologramme et `/cg buy`
+> vérifient tous `isSold()` d'abord et répondent avec la bonne clé `alreadySold` avant
+> d'appeler l'invite.
 
 ### Remettre en vente, ou retirer du marché
 

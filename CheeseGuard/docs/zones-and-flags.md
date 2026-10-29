@@ -79,7 +79,7 @@ Both only matter when zones overlap. See [overlaps](#overlapping-zones).
 | `exitMessageEnabled` | `false` | Whether to chat a line on exit |
 | `exitMessage` | `"Vous quittez : <name>"` | That line |
 | `protectionMessage` | `"⛔ Cette zone est protégée !"` | Action-bar text when a flag blocks something |
-| `particleColor` | `"green"` | Outline colour for `/cg toggle` visualization. One of red, green, blue, yellow, purple, cyan, white, orange |
+| `particleColor` | `"green"` | Outline colour for `/cg toggle` visualization. One of red, green, blue, yellow, purple, cyan, white, orange, pink; an unknown value draws green. A tag with a configured `color` takes precedence, see [tags](#tags-and-ownership-limits) |
 | `requiredAdvancementsEntry` / `Exit` | empty | Advancement gates, see [entry and exit gates](#entry-and-exit-gates) |
 | `advancementDeniedMessage` | `"⛔ Vous n'avez pas les advancements requis !"` | Shown when a gate refuses |
 | `requiredQuestsEntry` / `Exit` | empty | FTB Quests gates, hexadecimal quest ids |
@@ -102,12 +102,14 @@ one; it is not craftable and nothing else in the mod uses that item.
 2. **Left-click** a block: position 1. The click is consumed, so the block is not broken.
 3. **Right-click** a block: position 2. The chat then prints the selection size and the
    total block count.
-4. `/cg create <name>` — creates the zone in the world you are standing in, with you as
-   owner.
+4. `/cg create <name>` — creates the zone in the world of the selection (the world of
+   your last wand click), with you as owner.
 
-Both wand clicks require permission level 2, and both check the item in the hand that
-clicked. A selection lives in memory per player (`SelectionManager`) and is lost on
-restart.
+Both wand clicks require permission level 2. The left click checks the main hand; the
+right click checks the hand that clicked. The wand is recognised as any golden axe whose
+custom name contains `Zone Selection Wand`. `/cg pos1` and `/cg pos2` (level 2) set the
+same corners from the block you are standing on, without the wand. A selection lives in
+memory per player (`SelectionManager`) and is lost on restart.
 
 The dashboard route `POST /zones` consumes the *same* selection: it looks up the stored
 selection of the player you name, which means an admin selects in game and an admin
@@ -207,7 +209,8 @@ a zone and on a group:
   to the dimension. This is what every flag is until you set it.
 
 The REST API spells those three states `ALLOW`, `DENY` and `INHERIT`. `/cg flag` takes
-`true`, `false`, or `inherit` / `null`. A flag id that `Flag.fromId()` does not recognise
+`true`, `false`, or `inherit` / `null`; any other word is parsed by `Boolean.parseBoolean`
+and therefore stored as `false` (deny). A flag id that `Flag.fromId()` does not recognise
 is ignored on load and refused by the command.
 
 > There is **no per-flag default value**. The fourth argument in each enum constant is
@@ -320,8 +323,8 @@ either, so the owner never needs to also appear in the list.
 | `removeOwner` | Clears the owner slot. The zone becomes ownerless; its members keep their exemption |
 
 The cached name is what you see in listings and what `/cg removemember` matches against,
-case-insensitively. It is refreshed when the player is resolved again, so a renamed
-account can show a stale name until someone touches the membership.
+case-insensitively. Nothing ever refreshes it (`Member.setName()` has no caller), so a
+renamed account keeps its old name until it is removed and added again.
 
 ### In game
 
@@ -329,18 +332,17 @@ A zone's owner standing inside it gets an action-bar reminder every two seconds 
 `You own <zone> — press <key> to manage` — with the real keybind for
 `key.cheeseguard.zone_menu`, so a rebound key shows correctly. The key opens a
 client-side menu that can add a member, remove one, transfer ownership, rename the zone
-and abandon it. The menu needs the CheeseGuard client mod; without it the server answers
+(1 to 64 characters), cycle the zone's `pvp` and `mob-spawning` flags through
+inherit → allow → deny → inherit, and abandon it. The menu needs the CheeseGuard client mod; without it the server answers
 `This menu requires the CheeseGuard client mod.`
 
 `/cg addmember <zone> <player>` and `/cg removemember <zone> <player>` do the same from
 the console or chat. The target must be **online** for `addmember`, because the UUID comes
 from `PlayerManager.getPlayer(name)`.
 
-> ⚠️ `/cg flag`, `/cg addmember`, `/cg removemember`, `/cg group …` and `/cg buy` carry
-> **no** `requires(permissionLevel)` clause. Unlike `/cg create`, `/cg delete` and
-> `/cg wand`, they are available to every player, who can therefore set any flag on any
-> zone by id. If your server has untrusted players, gate the `cg` command in your
-> permissions mod until that is fixed.
+`/cg flag`, `/cg addmember`, `/cg removemember` and `/cg group …` all require
+permission level 2, like `/cg create`, `/cg delete` and `/cg wand`. `/cg buy` is open to
+every player, since it is how players purchase zones.
 
 ---
 
@@ -366,8 +368,8 @@ group's list, so a group can gate a dozen zones at once.
 Quest ids are hexadecimal strings — FTB's own id format, parsed with
 `Long.parseUnsignedLong(id, 16)`. A quest that cannot be resolved counts as missing, which
 fails closed: a typo locks the zone rather than opening it. The lookup goes through
-reflection against `dev.ftb.mods.ftbquests.quest.ServerQuestFile`, scanning for methods by
-parameter type rather than by name so it survives remapping. That is an observation of how
+reflection against `dev.ftb.mods.ftbquests.quest.ServerQuestFile`, looking methods up by
+both name (`getData`, `getBase`, `isCompleted`…) and parameter type. That is an observation of how
 FTB Quests behaves today, not a contract — an FTB update can break it, and when it does
 every required quest reads as missing.
 
@@ -430,7 +432,7 @@ A tag becomes meaningful when it has a configuration in
 | Key | Type | Default | Effect |
 |---|---|---|---|
 | `label` | string | the tag id | Display name. Omitted from the file when it equals the id |
-| `color` | string | absent | Display colour, used by the dashboard only |
+| `color` | string | absent | Display colour (`#rrggbb`). Shown by the dashboard, and used for the `/cg toggle` outline of every zone carrying the tag, ahead of the zone's own `particleColor` |
 | `ownershipLimit` | int | `0` | Maximum zones carrying this tag that one player may own. `0` means unlimited |
 
 A tag id must match `^[a-z0-9-]+$` and be at most 64 characters.
@@ -496,9 +498,10 @@ The zone id is the **key**, not a field. Only flags that are explicitly set appe
 for simple zones.
 
 `name`, `world` and the six bounds are read without a `has()` guard. A hand-edited zone
-missing any one of them throws, and the whole load aborts in the catch block: you lose
-every zone in the file, not just the broken one, with one `Failed to load CheeseGuard data`
-line in the log. Back the file up before editing it.
+missing any one of them throws, and the load aborts in the catch block: the zones read
+before it stay loaded, but the broken one and every zone after it in the file are lost,
+with one `Failed to load CheeseGuard data` line in the log. The next save then rewrites
+the file without them. Back the file up before editing it.
 
 ### What does not survive a round-trip
 
@@ -527,7 +530,7 @@ changes.
 | `currency` | string | `"NUMISMATIC"` | One of `NUMISMATIC`, `FROMAGE`, `ITEMS`. Compared case-insensitively |
 | `itemId` | string | `null` | For `ITEMS`: the item identifier, e.g. `minecraft:diamond` |
 | `itemCount` | int | `0` | For `ITEMS`: how many. Clamped to `>= 1` by the setter |
-| `signText` | string list | empty | Overrides the whole hologram text, one entry per line |
+| `signText` | string list | empty | Overrides the whole hologram text, one entry per line. Once sold, a red `SOLD` line is still appended |
 | `signLine1` | string | zone name | Line 2 of the physical sign. **Not persisted** |
 | `signLine2` | string | empty | Line 3 of the physical sign. **Not persisted** |
 | `signType` | string | `"oak"` | Wood type of the sign item. **Not persisted** |
@@ -620,8 +623,9 @@ bleed into this purchase.
 2. Not already sold, else `This zone has already been sold`.
 3. Tag ownership limits, else `You have reached the ownership limit for tag: <tag>`.
 4. Affordability, else `You cannot afford this zone (<price>)`.
-5. **Deduct the payment.** Numismatic and item deductions that fail return
-   `Failed to deduct items from inventory` or `Failed to deduct fromage payment`.
+5. **Deduct the payment.** A failed item deduction returns
+   `Failed to deduct items from inventory`, a failed fromage deduction
+   `Failed to deduct fromage payment`. The Numismatic deduction's result is not checked.
 6. `transferOwnership()` — the buyer becomes `OWNER`, the previous owner is demoted to
    `MEMBER` and kept in the members list.
 7. `sold = true`, `buyerUuid` and `buyerName` recorded.
@@ -645,9 +649,9 @@ sign paths both land in this one method.
 
 > `SaleManager.sendPurchasePrompt()` uses the translation key
 > `cheeseguard.sale.already_sold` when the zone is already sold. That key does not exist
-> in either lang file — only `cheeseguard.sale.alreadySold` does. A player who clicks a
-> sold sign through that path sees the raw key. The command path uses the correct key, so
-> the bug only shows on the sign and hologram routes.
+> in either lang file — only `cheeseguard.sale.alreadySold` does. In practice the branch
+> is never reached: the sign, hologram and `/cg buy` paths all check `isSold()` first and
+> answer with the correct `alreadySold` key before calling the prompt.
 
 ### Re-listing and taking a zone off the market
 

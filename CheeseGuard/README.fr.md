@@ -92,7 +92,7 @@ Marche à suivre complète, côté client et désinstallation propre comprises :
 | [Premiers pas](docs/getting-started.fr.md) | Un tutoriel : d'un serveur vierge à une zone protégée, un groupe, une arène restaurable et une prison qui marche |
 | [Commandes](docs/commands.fr.md) | Zones, sélection, flags, membres, groupes, états sauvegardés, `/cg buy`, `/chunksuggest` — avec les niveaux de permission |
 | [Événements, prison et exploitation](docs/commands-operations.fr.md) | Le sous-arbre `/cg event`, le hot potato, les mondes par joueur, les limites de pâturages, la restauration d'inventaire, l'arbre `/prison` |
-| [Configuration](docs/configuration.fr.md) | Les quatorze fichiers de configuration et huit dossiers : contenu de chacun, les quatre éditables à la main, toutes les clés |
+| [Configuration](docs/configuration.fr.md) | Les quatorze fichiers de configuration et neuf dossiers : contenu de chacun, les quatre éditables à la main, toutes les clés |
 | [Zones et flags](docs/zones-and-flags.fr.md) | Le modèle de zone : géométrie, les 31 flags, héritage, priorité, recouvrement, membres, ventes de terrain |
 | [Groupes](docs/groups.fr.md) | Grouper des zones pour qu'elles partagent des flags par défaut, et comment la résolution retombe |
 | [Dimensions](docs/dimensions.fr.md) | Création de dimension à chaud, mondes par joueur, snapshots, remises à zéro, bordures, règles d'entrée |
@@ -172,7 +172,7 @@ Ce mod a grandi sous la pression des délais, sur un serveur en production. Il f
 il tourne depuis des mois avec des centaines de joueurs, et des pans entiers ne sont pas
 jolis : `MiniGameManager` fait à lui seul 5 244 lignes couvrant quatre jeux sans rapport,
 chaque classe atteint toutes les autres par un `CheeseGuardMod.INSTANCE` statique, il n'y a
-aucun test, et six mixins visent des mods tiers par leur nom de classe et casseront quand
+aucun test, et quatre mixins visent des mods tiers par leur nom de classe et casseront quand
 ces mods changeront. La liste franche est la dernière section de
 [l'architecture](docs/architecture.fr.md#faiblesses-connues).
 
