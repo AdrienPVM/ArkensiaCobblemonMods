@@ -2,10 +2,9 @@
 
 # Architecture
 
-Le jar contient 109 fichiers source Java. **23 d'entre eux sont CheeseMarket.** Les 86
-autres, environ 18 900 lignes, sont une copie dupliquée du package `com.cheeseguard`,
-compilée, livrée, et jamais exécutée. Lis la section qui lui est consacrée avant de
-chercher le système d'événements ici.
+Le jar contient 23 fichiers source Java, environ 6 900 lignes, tous sous
+`com.cheesemarket`. Le système d'événements n'est pas ici : il vit dans
+[CheeseGuard](../../CheeseGuard/).
 
 ---
 
@@ -44,7 +43,6 @@ com.cheesemarket
     ├── MarketApi.java                     le dispatch REST
     └── AssetManager.java                  assets PNG et templates de mise en page
 
-com.cheeseguard                  86 fichiers, mort — voir plus bas
 ```
 
 ---
@@ -159,12 +157,9 @@ tout, et tout le reste vers l'écran d'administration.
 
 ## Mixins
 
-**Aucun.** Le mod livre un `cheeseguard.mixins.json` listant 30 classes de mixins, et
-`fabric.mod.json` n'a **aucune clé `mixins`** : ce fichier n'est donc jamais chargé et pas
-un seul de ces mixins n'est appliqué. Voir plus bas.
-
-CheeseMarket lui-même n'a besoin d'aucun mixin : il s'accroche au jeu par les événements de
-la Fabric API, le callback d'enregistrement des commandes et ses propres payloads.
+**Aucun.** `fabric.mod.json` n'a aucune clé `mixins`, et CheeseMarket n'en a pas besoin :
+il s'accroche au jeu par les événements de la Fabric API, le callback d'enregistrement des
+commandes et ses propres payloads.
 
 ---
 
@@ -197,45 +192,19 @@ identifiant de mod.
 
 ---
 
-## Le package `com.cheeseguard` dupliqué
+## L'ancienne copie de `com.cheeseguard`
 
-86 fichiers Java, environ 18 900 lignes : `CheeseGuardMod`, tout l'arbre `data/` et
-`logic/` (régions, dimensions, événements, timelines, mini-jeux, votes, jeux de chunks),
-onze classes de GUI en coffre, 30 mixins, et un `GuiSyncPayload`. C'est une copie de
-CheeseGuard datant de la séparation des deux mods.
+Les builds antérieurs au 29 octobre 2026 embarquaient dans ce jar une seconde copie,
+plus ancienne, du code de CheeseGuard : 86 classes sous `com.cheeseguard`, un
+`cheeseguard.mixins.json` et `assets/cheeseguard/lang/`. Rien dans CheeseMarket ne s'en
+servait et aucun entrypoint n'y menait, mais elle n'était pas inoffensive. Avec les deux
+mods installés, les mêmes noms de classes existaient dans deux jars, et aucun des deux
+mods ne décide de la copie que le jeu charge ; les fichiers de langue dupliqués pouvaient
+de même écraser les traductions du vrai CheeseGuard. La copie datait en outre d'avant les
+correctifs de permissions de CheeseGuard.
 
-**Ce qui est compilé :** tout. C'est sous `src/main/java`, donc `javac` construit chaque
-classe et les 86 finissent dans le jar.
-
-**Ce qui s'exécute :** rien.
-
-- `fabric.mod.json` déclare trois entrypoints — `com.cheesemarket.CheeseMarket`,
-  `com.cheesemarket.CheeseMarketClient` et le module dashboard.
-  `com.cheeseguard.CheeseGuardMod` n'en fait pas partie, donc son `onInitialize` n'est
-  jamais appelé et aucun de ses listeners, commandes ou managers ne s'enregistre jamais.
-- `fabric.mod.json` n'a aucune clé `mixins`, donc `cheeseguard.mixins.json` n'est jamais
-  lu et aucun des 30 mixins n'est appliqué. Le fichier dort dans le jar comme du JSON
-  inerte.
-- Rien dans `com.cheesemarket` n'importe ni ne référence `com.cheeseguard`, et rien dans
-  `com.cheeseguard` ne référence `com.cheesemarket`. Cherche dans les deux sens : zéro
-  occurrence. Les deux packages partagent un jar et rien d'autre.
-
-Le package est donc du poids mort : il gonfle le jar, il refusera de compiler le jour où
-un mapping Yarn qu'il utilise changera, et il trompe quiconque lit l'arborescence. Il ne
-change **pas** le comportement, et il n'entre pas non plus en conflit avec le vrai mod
-CheeseGuard à l'exécution, puisque les noms de classes sont identiques mais ne sont jamais
-chargés ni comme cibles de mixins ni comme entrypoints.
-
-L'ancien README affirmait que la duplication portait « spécifiquement sur
-`logic/TimelineExecutor.java` et `gui/MainGui.java` » et qu'elle se trouvait « sur le
-chemin d'exécution des événements partagé avec CheeseGuard ». Les deux affirmations sont
-fausses : c'est le package entier, et il n'est sur aucun chemin d'exécution. Le plan de
-publication a décidé de le conserver tel quel plutôt que de risquer un nettoyage que
-personne ne pouvait tester : il reste donc là, documenté plutôt que retiré.
-
-Si tu le retires, supprime `src/main/java/com/cheeseguard/` et
-`src/main/resources/cheeseguard.mixins.json` ensemble, et n'oublie pas
-`src/main/resources/assets/cheeseguard/lang/`, encore livré lui aussi.
+Tout a été supprimé. Si un ancien jar `cheesemarket` traîne encore dans un dossier
+`mods/`, remplace-le.
 
 ---
 

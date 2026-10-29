@@ -22,13 +22,7 @@ player's purse, or CheeseStore credits — same field, different id. An item can
 server commands on purchase, which is how a shop sells a rank or a permission rather
 than a stack.
 
-**Minecraft 1.21.1 · Fabric · Java 21 · 109 source files, ~25 800 lines**
-
-⚠️ Only 23 of those files are CheeseMarket (~6 900 lines). The other 86 are a
-duplicated, dead copy of `com.cheeseguard` — compiled into the jar and never executed.
-It is documented in
-[architecture](docs/architecture.md#the-duplicated-comcheeseguard-package) and
-deliberately left in place.
+**Minecraft 1.21.1 · Fabric · Java 21 · 23 source files, ~6 900 lines**
 
 ---
 
@@ -75,7 +69,7 @@ Full walkthrough: [installation](docs/installation.md).
 | [Layout editor](docs/layout-editor.md) | The five element types, the item card template, the confirmation dialog, uploaded images, templates, and what is validated |
 | [Purchases](docs/purchases.md) | The purchase pipeline step by step, what is recorded and where, and the three ways a purchase ends with a charged player and no goods |
 | [Dashboard API](docs/dashboard.md) | Every route under `/api/v1/market`, request and response shapes, the role each one needs, and the `market_purchase` WebSocket message |
-| [Architecture](docs/architecture.md) | Package layout, class responsibilities, threading, the string-splitting protocol, the dead `com.cheeseguard` package, known weaknesses |
+| [Architecture](docs/architecture.md) | Package layout, class responsibilities, threading, the string-splitting protocol, known weaknesses |
 | [Troubleshooting](docs/troubleshooting.md) | Symptom, cause, fix — including the log lines that mean a player was charged for nothing |
 
 ## Commands at a glance

@@ -24,13 +24,7 @@ pièces Numismatic Overhaul prélevées sur la bourse du joueur, ou des crédits
 même champ, identifiant différent. Un item peut aussi exécuter des commandes serveur à
 l'achat, et c'est ainsi qu'une boutique vend un rang ou une permission plutôt qu'une pile.
 
-**Minecraft 1.21.1 · Fabric · Java 21 · 109 fichiers source, ~25 800 lignes**
-
-⚠️ Seuls 23 de ces fichiers sont CheeseMarket (~6 900 lignes). Les 86 autres sont une copie
-dupliquée et morte de `com.cheeseguard` — compilée dans le jar et jamais exécutée. Elle est
-documentée dans
-[l'architecture](docs/architecture.fr.md#le-package-comcheeseguard-dupliqué) et conservée
-délibérément.
+**Minecraft 1.21.1 · Fabric · Java 21 · 23 fichiers source, ~6 900 lignes**
 
 ---
 
@@ -77,7 +71,7 @@ Marche à suivre complète : [installation](docs/installation.fr.md).
 | [Éditeur de mise en page](docs/layout-editor.fr.md) | Les cinq types d'éléments, le gabarit de carte, la fenêtre de confirmation, les images téléversées, les templates, et ce qui est validé |
 | [Achats](docs/purchases.fr.md) | Le pipeline d'achat étape par étape, ce qui est enregistré et où, et les trois façons dont un achat finit sur un joueur débité et sans marchandise |
 | [API dashboard](docs/dashboard.fr.md) | Chaque route sous `/api/v1/market`, les formes de requête et de réponse, le rôle exigé par chacune, et le message WebSocket `market_purchase` |
-| [Architecture](docs/architecture.fr.md) | Organisation des packages, responsabilités des classes, threads, le protocole à découpage de chaînes, le package `com.cheeseguard` mort, faiblesses connues |
+| [Architecture](docs/architecture.fr.md) | Organisation des packages, responsabilités des classes, threads, le protocole à découpage de chaînes, faiblesses connues |
 | [Dépannage](docs/troubleshooting.fr.md) | Symptôme, cause, remède — y compris les lignes de log qui signifient qu'un joueur a été débité pour rien |
 
 ## Commandes en un coup d'œil
