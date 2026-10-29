@@ -107,12 +107,14 @@ active :
 [CobbleCap-Client] /pasturehide last 1s: checked 42 Pokémon entities, hid 7
 ```
 
-Cette ligne est le diagnostic. `checked 0` signifie que le mixin ne voit aucune entité
-Pokémon. `checked 42, hid 0` signifie que le mixin fonctionne et que le client n'a aucune
+Cette ligne est le diagnostic. Le mixin ne l'affiche que s'il a vérifié au moins un Pokémon
+dans la dernière seconde, donc tu ne verras jamais `checked 0` : **aucune ligne du tout**
+alors que la bascule est active et que des Pokémon sont en vue signifie que le mixin ne voit
+aucune entité Pokémon. `checked 42, hid 0` signifie que le mixin fonctionne et que le client n'a aucune
 donnée de pâturage — le serveur ne l'envoie pas, ce qui veut dire d'ordinaire que le serveur
 n'a pas CobbleCap, ou que `PastureTracker` n'a pas encore fait son premier parcours. Noter
 que le log est en niveau `info` et se déclenche une fois par seconde aussi longtemps que la
-bascule est active, ce qui remplira un log de client sur une longue session.
+bascule est active et qu'un Pokémon est rendu, ce qui remplira un log de client sur une longue session.
 
 `PastureHideClient` contient aussi une méthode `debugLog` et un champ `lastDebugLog`
 inutilisés — du code mort issu de l'ancienne approche par réflexion.

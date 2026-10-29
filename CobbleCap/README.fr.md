@@ -83,9 +83,9 @@ Procédure complète : [installation](docs/installation.fr.md).
 | [Statues et dioramas](docs/statues.fr.md) | Trackers invisibles et doublures de faux joueur, les treize styles, le diorama dynamique du champion, le mode test |
 | [Commandes](docs/commands.fr.md) | Les sous-commandes de limite, de joueur et de configuration de `/cobblecap`, plus `/explock` et `/pasturehide` — arguments, permissions, sorties et tous les messages d'échec |
 | [Commandes statues, chrono et champion](docs/commands-statues.fr.md) | Les trois grands sous-arbres, argument par argument |
-| [Configuration](docs/configuration.fr.md) | Les huit fichiers, chaque clé avec sa valeur par défaut et son plafonnement, deux exemples complets annotés, et la liste de ce qui n'est **pas** configurable |
+| [Configuration](docs/configuration.fr.md) | Les neuf fichiers, chaque clé avec sa valeur par défaut et son plafonnement, deux exemples complets annotés, et la liste de ce qui n'est **pas** configurable |
 | [Le côté client](docs/client.fr.md) | Le badge de limite, `/pasturehide` et pourquoi le serveur doit aider, les quatre mixins de statue |
-| [API dashboard](docs/dashboard.fr.md) | Les neuf routes sous `/api/v1/cobblecap`, forme des requêtes et des réponses, rôle exigé par chacune |
+| [API dashboard](docs/dashboard.fr.md) | Les dix routes sous `/api/v1/cobblecap`, forme des requêtes et des réponses, rôle exigé par chacune |
 | [Architecture](docs/architecture.fr.md) | Arborescence des packages, qui possède quoi, threading et points de passage, chaque mixin, points d'extension, code mort et faiblesses connues |
 | [Dépannage](docs/troubleshooting.fr.md) | Symptôme, cause, remède — une trentaine, plus comment produire un rapport exploitable |
 
@@ -101,9 +101,9 @@ Procédure complète : [installation](docs/installation.fr.md).
 | `/cobblecap get\|set\|reset <player>` | 2 | lire, écrire ou réinitialiser une limite |
 | `/cobblecap addbeaten\|removebeaten <player> <id>` | 2 | réparer la progression des champions |
 | `/cobblecap reload` · `enable` · `disable` | 2 | relire les configs, basculer l'interrupteur général |
-| `/cobblecap statue …` | 2 | 17 sous-commandes pour les dioramas |
+| `/cobblecap statue …` | 2 | 18 sous-commandes pour les dioramas |
 | `/cobblecap chrono …` | 2 | 7 sous-commandes pour les chronos |
-| `/cobblecap champion …` | 2 | 7 sous-commandes pour le morphing et le repli par NPC |
+| `/cobblecap champion …` | 2 | 8 sous-commandes pour le morphing et le repli par NPC |
 | `/explock [player]` | tout joueur / 2 | basculer le blocage d'XP pour soi, ou pour quelqu'un d'autre |
 | `/pasturehide [on\|off\|toggle\|status]` | côté client | masquer les Pokémon attachés à un pâturage, pour le framerate |
 

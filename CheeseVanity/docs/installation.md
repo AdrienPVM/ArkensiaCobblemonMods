@@ -9,7 +9,7 @@ is the only thing that can act on it. One side without the other gives you half 
 | Where the jar is | What happens |
 |---|---|
 | server and client | the mod works as documented |
-| server only | preferences can be stored but nothing is ever hidden, on any screen, for anyone |
+| server only | the `=` key lives in a client mixin, so no player can send a toggle: nothing new is stored, and nothing is ever hidden, on any screen, for anyone |
 | client only | pressing `=` sends a packet the server does not understand and drops; nothing is stored, nothing hides |
 
 It declares `"environment": "*"` in `fabric.mod.json`, so the same jar covers both.
@@ -90,12 +90,13 @@ config/cheesevanity.json
 
 `config/cheesevanity_data.json` is **not** created at startup. It only appears the first
 time a player toggles something, because `VanityData.save()` is called from the toggle
-handler and nowhere else. An empty `config/` after a first launch with no players is
-normal.
+handler and nowhere else. A `config/` holding only `cheesevanity.json` after a first launch
+with no players is normal.
 
-A client writes `config/cheesevanity.json` too, under `.minecraft/config/`. Nothing reads
-it there; the file is a side effect of the main entrypoint running on an integrated
-client. Editing it has no effect on a multiplayer server.
+A client writes `config/cheesevanity.json` too, under `.minecraft/config/`, because the
+main entrypoint also runs on a client. Editing it has no effect on a multiplayer server,
+but it is the config actually used in singleplayer and on a LAN world the client hosts:
+the integrated server lives in the same process and reads it.
 
 ---
 

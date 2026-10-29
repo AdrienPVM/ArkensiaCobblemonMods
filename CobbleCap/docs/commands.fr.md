@@ -89,9 +89,14 @@ System enabled: true
 ─── Next champion gating ───
 Next: gym_leader_erika_0399 (Erika)
   cap granted: 50 | allowRefight: true
+  victoryQuestId: 0123456789ABCDEF
+  challengeId: ''
   scoreboard arkensia_tour >= 12 (current=9) FAIL
   ftb quest: (none)
   pokedex: 61/80 FAIL
+─── Last challenge times (0) ───
+  (none)
+…
 ═════ end status ═════
 ```
 
@@ -301,10 +306,13 @@ nouveaux arrivants reçoivent la nouvelle valeur, mais les entrées existantes c
 leur. Les données joueur (`players.json`) ne sont pas relues — la mémoire est l'autorité, et
 recharger perdrait les modifications non sauvegardées.
 
-Un fichier JSON mal formé journalise `[CobbleCap] Failed to load champions.json: …` et
-laisse la liste en mémoire telle qu'elle était. Vérifie le log serveur après chaque
-modification ; la ligne de chat annonce un compte, et un compte de `0` après avoir édité un
-fichier contenant treize champions signifie que l'analyse a échoué.
+Un fichier JSON mal formé ne produit **pas** la ligne
+`[CobbleCap] Failed to load champions.json: …` : celle-ci n'est journalisée que pour une
+erreur d'E/S. Une erreur de syntaxe lève une `JsonSyntaxException` que ni `CapConfig.load`
+ni `ChampionConfig.load` n'interceptent ; elle remonte jusqu'à Brigadier, le chat affiche
+l'erreur vanilla *An unexpected error occurred trying to execute that command*, aucun compte
+n'est annoncé et aucun client n'est resynchronisé. Si c'est `champions.json` qui est cassé,
+la liste en mémoire reste celle d'avant. Vérifie le log serveur après chaque modification.
 
 ## `/cobblecap enable` · `/cobblecap disable`
 
@@ -395,6 +403,12 @@ ou, quand la variante demandée était déjà celle en place :
 Conseil 4 mode → classic for Steve (already live)
 ```
 
+`(already live)` s'affiche dès que `applyMode` renvoie `false`, ce qui couvre aussi les
+échecs : aucun instantané dans `config/cobblecap_regis_backup/`, aucune racine de datapack
+trouvée, ou une copie qui échoue. Si la ligne dit `already live` et que le combat n'a pas
+changé, cherche dans le log `[CobbleCap] … swap aborted` ou `Régis JSON copy failed`. Une
+demande `ranked` sans instantané compétitif retombe sans bruit sur le fichier classique.
+
 ⚠️ Le basculement de JSON est **global au serveur**, alors que le score de scoreboard est
 par joueur. Deux joueurs choisissant des modes différents au même moment affrontent la
 variante écrite en dernier. C'est une vraie limite de la conception, et non un bug à
@@ -433,7 +447,9 @@ l'a basculé pour lui :
 🔓 Blocage d'XP désactivé — vos Pokémon peuvent de nouveau gagner de l'expérience.
 ```
 
-Et quand un admin a ciblé quelqu'un d'autre, l'admin voit en plus, diffusé aux opérateurs :
+Et quand un admin **joueur** a ciblé quelqu'un d'autre, l'admin voit en plus, diffusé aux
+opérateurs (lancée depuis la console ou un bloc de commande, `/explock <player>` n'affiche
+aucune confirmation — seule la cible est prévenue) :
 
 ```text
 Blocage d'XP pour Steve : ON

@@ -100,11 +100,13 @@ It also keeps telemetry and logs once a second while the toggle is on:
 [CobbleCap-Client] /pasturehide last 1s: checked 42 Pokémon entities, hid 7
 ```
 
-That line is the diagnostic. `checked 0` means the mixin is not seeing Pokémon entities at
-all. `checked 42, hid 0` means the mixin works and the client has no pasture data — the
-server is not sending it, which usually means the server does not have CobbleCap, or
-`PastureTracker` has not run its first scan yet. Note the log is at `info` level and fires
-once a second for as long as the toggle is on, which will fill a client log over a long
+That line is the diagnostic. The mixin only prints it when it checked at least one Pokémon
+in the past second, so you never see `checked 0`: **no line at all** while the toggle is on
+and Pokémon are in view means the mixin is not seeing Pokémon entities. `checked 42, hid 0`
+means the mixin works and the client has no pasture data — the server is not sending it,
+which usually means the server does not have CobbleCap, or `PastureTracker` has not run its
+first scan yet. Note the log is at `info` level and fires once a second for as long as the
+toggle is on and a Pokémon is being rendered, which will fill a client log over a long
 session.
 
 `PastureHideClient` also contains an unused `debugLog` method and a `lastDebugLog` field —

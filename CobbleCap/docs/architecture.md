@@ -99,6 +99,7 @@ stateless helpers, or static mutable state with no instance.
 | `cobblecap_chronos.json` | every start, stop, cancel | **yes** |
 | `cobblecap_dioramas.json` | every anchor change | **yes** |
 | `cobblecheesescore_external_conseil4_*.json` | every board rebuild | **yes** |
+| `cobblecap_champion_npc.json` | every `bind_npc*` / `unbind_npc` | **yes** |
 | `cobblecap_client.properties` | every `/pasturehide` change | no |
 
 "Atomic" means a `.tmp` sibling and a `Files.move`, preferring `ATOMIC_MOVE` and falling
@@ -118,7 +119,7 @@ data is therefore half a second — realistically one cap raise.
 | **server thread** | every command, every Cobblemon event handler, the two tick bodies, all entity work, `RctReloadHook` |
 | **HTTP thread** (CheeseDash) | `CobbleCapApi` handlers — reads directly, mutations hop to the server thread |
 | **netty thread** (client) | payload receipt, immediately deferred with `context.client().execute(...)` |
-| **client render thread** | `CapHudRenderer.render`, the four client mixins |
+| **client render thread** | `CapHudRenderer.render`, the five client mixins |
 | `CobbleCap-Save` daemon | `CapStorage` debounced writes |
 | `cobblecap-tenures-save` | one `new Thread` per `TenureStorage.saveAsync` call |
 | the fireworks thread | one `new Thread` per show, sleeping between rockets |
@@ -271,6 +272,10 @@ Stated plainly, because reading the source without this list is confusing:
   class, so the fallback path records a binding and nothing morphs automatically.
 - **`PastureHideClient.debugLog` and `lastDebugLog`** — leftovers of the
   client-side-reflection approach that could not work.
+- **`ChampionEntry.allowRefight`** — read only by the "already beaten" branch of
+  `ChampionManager.handlePreBattle`, which no caller reaches: `CapListener` and the
+  `BATTLE_STARTED_PRE` hook both deal with beaten champions before calling it. The field is
+  loaded, saved and shown by `/cobblecap status`, and changes nothing.
 - **`ChampionManager.allChallengesBeaten`** is private and *is* used, by
   `handleChallengeVictory`; mentioned only because it looks dead next to the rest.
 

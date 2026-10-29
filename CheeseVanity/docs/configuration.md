@@ -12,8 +12,10 @@ server launch is the server directory, next to `world/` and `mods/`. That is the
 place `FabricLoader.getConfigDir()` points to in practice, but it is not the same code:
 start the server with a working directory other than the server root and the file will be
 created somewhere else. Launching a client the mod also writes it, under
-`.minecraft/config/`, where it has no effect at all — the config is only ever read by the
-server side.
+`.minecraft/config/`. That copy has no effect on a dedicated server, whose own file is the
+one that counts; it **is** the live config in singleplayer and on a LAN world you host,
+because the integrated server runs inside the client process and its toggle handler reads
+the `VanityConfig` that this client loaded.
 
 The file is written with a default-valued object the first time the mod starts without
 it, so you never have to create it by hand.

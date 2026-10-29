@@ -2,8 +2,8 @@
 
 # Configuration
 
-CobbleCap tient huit fichiers. Deux sont de la configuration que tu édites, un est une liste
-de champions que tu rédiges, et cinq sont de l'état que le mod possède et que tu ne devrais
+CobbleCap tient neuf fichiers. Deux sont de la configuration que tu édites, un est une liste
+de champions que tu rédiges, et six sont de l'état que le mod possède et que tu ne devrais
 toucher qu'avec le serveur arrêté.
 
 | Chemin | Nature | Écrit par |
@@ -15,6 +15,7 @@ toucher qu'avec le serveur arrêté.
 | `config/cobblecap_tenures.json` | état | `TenureStorage` — à chaque changement |
 | `config/cobblecap_chronos.json` | état | `ChronoManager` — à chaque changement |
 | `config/cobblecap_dioramas.json` | état | `StatueManager` — à chaque changement d'ancre |
+| `config/cobblecap_champion_npc.json` | état | `ChampionNpcState` — sur `bind_npc*` / `unbind_npc` |
 | `config/cobblecap_client.properties` | configuration **client** | `PastureHideClient` |
 
 Noter l'incohérence de disposition : `config.json`, `champions.json` et `players.json`
@@ -22,7 +23,7 @@ vivent dans un sous-répertoire `cobblecap/` ; tout le reste est directement dan
 avec un préfixe `cobblecap_`. C'est historique et le mod s'en moque, mais cela veut dire
 qu'un script de sauvegarde doit couvrir les deux formes.
 
-Un neuvième et un dixième ensemble de fichiers sont des **sorties**, pas de la
+Un dixième et un onzième ensemble de fichiers sont des **sorties**, pas de la
 configuration : `config/cobblecheesescore_external_conseil4_*.json` et
 `config/cobblecap_regis_backup/`. Voir
 [les classements Conseil 4](champions.fr.md#export-json-pour-cobblecheesescore) et
@@ -33,8 +34,9 @@ configuration : `config/cobblecheesescore_external_conseil4_*.json` et
 ## `config/cobblecap/config.json`
 
 Écrit avec les valeurs par défaut au premier démarrage s'il n'existe pas. Chaque clé n'est
-lue que si elle est présente, donc supprimer une clé restaure sa valeur par défaut au lieu
-de casser l'analyse.
+lue que si elle est présente, donc supprimer une clé ne casse pas l'analyse : au démarrage,
+la clé prend sa valeur par défaut, mais lors d'un `/cobblecap reload` elle conserve
+simplement la valeur déjà en mémoire jusqu'au prochain redémarrage.
 
 | Clé | Type | Défaut | Effet |
 |---|---|---|---|
@@ -107,7 +109,9 @@ qui casse la réflexion sur l'équipe désactive donc silencieusement la liste d
 
 Les cinq alimentent `FireworksManager`, qui lance des fusées dans une zone CheeseGuard quand
 un champion **compétitif** est couronné. CheeseGuard est atteint par réflexion, donc en son
-absence le spectacle est ignoré avec une ligne de debug et rien d'autre ne se produit.
+absence la zone ne se résout jamais : le spectacle est ignoré avec une ligne de debug et
+l'avertissement `Fireworks zone '…' not found via CheeseGuard — show aborted` montré plus
+bas.
 
 Les setters plafonnent, et ils plafonnent silencieusement — un `PUT` du dashboard annonce un
 succès avec la valeur que tu as envoyée tout en stockant la valeur plafonnée :
@@ -257,9 +261,11 @@ Ce qu'il faut savoir de cet exemple :
   la même liste sans bloquer les déblocages de défi.
 - `requiredScoreMin` et `challengeRequiredScoreMin` ne sont lus que quand
   `requiredScoreboard` est non vide. Les deux conditionnent sur le **même** objectif.
-- `allowRefight: false` rend le combat unique ; `true` permet de réaffronter un champion
-  battu, même si `CapListener` refuse quand même l'interaction une fois le champion battu et
-  sans défi débloqué, ce qui restreint l'effet pratique de `true`.
+- `allowRefight` n'a **aucun effet pratique**, quelle que soit sa valeur. Il n'est lu que
+  par `handlePreBattle` pour un champion déjà battu, et aucun appelant ne lui en passe un :
+  `CapListener` refuse un champion battu (sauf si son défi est débloqué) avant d'y arriver,
+  et le hook `BATTLE_STARTED_PRE` envoie les champions battus vers le basculement en défi.
+  Un champion battu n'est jamais réaffronté en mode normal.
 - l'identifiant `champion_regis_challenge` est codé en dur à quatre endroits comme « le
   champion final ». Voir
   [ce que tu dois changer](champions.fr.md#ce-que-tu-dois-changer-pour-ton-propre-serveur).
@@ -270,14 +276,14 @@ Ce qu'il faut savoir de cet exemple :
 entière** et réécrit le fichier — il n'y a ni fusion ni retour en arrière, donc fais
 toujours un `PUT` du résultat d'un `GET` avec tes modifications appliquées.
 
-Un échec d'analyse laisse la liste en mémoire intacte et journalise :
-
-```text
-[CobbleCap] Failed to load champions.json: <message>
-```
-
-La réponse de chat à `/cobblecap reload` annonce un compte. Un compte de `0` juste après
-avoir édité un fichier rempli signifie que l'analyse a échoué — lis le log.
+`[CobbleCap] Failed to load champions.json: <message>` n'est journalisé que pour une
+erreur d'E/S. Une erreur de syntaxe JSON n'est pas interceptée par `ChampionConfig.load` :
+la liste en mémoire reste intacte, mais l'exception remonte — au démarrage, elle sort de
+`onInitialize` et le serveur ne démarre pas, et lors d'un `/cobblecap reload` la commande échoue avec l'erreur
+vanilla *An unexpected error occurred trying to execute that command*, sans compte. Un
+fichier bien formé avec une valeur mal typée (par exemple `"capGranted": "thirty"`) est
+pire : la liste a déjà été vidée quand l'entrée lève l'exception, donc seules les entrées
+qui la précèdent restent chargées. Lis le log après chaque modification.
 
 Noter que `ChampionEntry.toJson` omet les champs conditionnels, donc un `GET` suivi d'un
 `PUT` est sans perte mais pas identique octet pour octet à un fichier écrit à la main :
@@ -376,6 +382,15 @@ Si tu redémarres pendant une course, annule les chronos concernés.
 Les ancres de diorama dynamique du champion. Forme dans
 [statues et dioramas](statues.fr.md#le-diorama-dynamique-du-champion). Vidé par
 `/cobblecap statue wipe_all`.
+
+### `config/cobblecap_champion_npc.json`
+
+La liaison du [repli par NPC Cobblemon](champion-morphing.fr.md#le-repli--un-npc-cobblemon) :
+`npcEntityUuid`, `dimensionId`, et les `lastChampionUuid`/`lastChampionName`/`lastMorphAt`
+du dernier morph de NPC, chaque clé n'étant écrite que si elle est définie. Créé par le
+premier `/cobblecap champion bind_npc` ou `bind_npc_closest`, vidé de sa liaison par
+`unbind_npc`, écrit atomiquement via un fichier frère `.tmp`. Il n'existe pas sur un serveur
+qui n'a jamais utilisé ces commandes.
 
 ---
 

@@ -64,24 +64,29 @@ HUD moved to top-left.
 
 ## 3. Watch the cap actually bite
 
-Get a Pokémon to level 20. The quickest way is a handful of exp candies, or:
+Give the player a Pokémon sitting exactly on the cap (`pokegiveother` targets another
+player; `/pokegive` gives to whoever runs it):
 
 ```mcfunction
-/pokegive Steve pikachu level=19
+/pokegiveother Steve pikachu level=20
 ```
 
-Then battle something, or feed it candy. Once it reaches the cap, further experience is
-refused and the player gets an action-bar line:
+Then feed it an exp candy. The candy is refused and the player gets an action-bar line:
 
 ```text
 Pikachu cannot gain XP — level cap is 20. No more champions to beat!
 ```
 
+Battle XP for that Pokémon is refused too, but **silently**: `PokemonAddExperienceMixin`
+returns zero XP before Cobblemon fires its XP event, so the event hook never sees it. The
+message only comes from the candy path, whose event fires before any XP is added.
+
 Two details worth noticing, because they are the whole design:
 
-- The Pokémon sits at **level 19** with a nearly full XP bar, not at level 20. The trimming
-  layer deliberately leaves it one experience point short of the cap level so Cobblemon's
-  level-up path never fires. See [the level cap](level-cap.md#2-pokemonaddexperiencemixin--the-shaping-layer).
+- A Pokémon that levels up *towards* the cap never reaches it through XP: it sits at
+  **level 19** with a nearly full XP bar. The trimming layer deliberately leaves it one
+  experience point short of the cap level, and since it is still under the cap no message
+  is shown. See [the level cap](level-cap.md#2-pokemonaddexperiencemixin--the-shaping-layer).
 - The surplus experience is **discarded**, not banked. Raising the cap later does not make
   the Pokémon jump several levels.
 
@@ -97,8 +102,9 @@ Place or find an rctmod trainer NPC, then right-click it once and read the serve
 [CobbleCap] BATTLE_PRE: entity=TrainerMob trainerId=gym_leader_pierre_0395 (raw=gym_leader_pierre_0395)
 ```
 
-That line only appears once a champion battle is being evaluated, so on a fresh install you
-may see nothing. The reliable alternative is to read the id out of your rctmod datapack —
+The line is logged when the battle starts, for any trainer CobbleCap can read an id from,
+champion or not — so it shows up on a fresh install too, as long as the right-click actually
+starts a fight. The reliable alternative is to read the id out of your rctmod datapack —
 the filename under `data/rctmod/trainers/` *is* the id.
 
 Write it down. Everything in the next step hangs off getting it byte-exact.
@@ -134,8 +140,9 @@ Reload:
 Champion config reloaded (1 champions loaded).
 ```
 
-⚠️ A count of `0` means the JSON failed to parse and the old list is still in memory. Check
-the server log for `[CobbleCap] Failed to load champions.json`.
+⚠️ If the JSON has a syntax error you get no count at all, only the vanilla *An unexpected
+error occurred trying to execute that command*, and the old list stays in memory. Check the
+server log for the exception.
 
 Now ask again as the player:
 
@@ -206,7 +213,7 @@ Confirm it stuck:
 Steve's current cap: 30.
 ```
 
-That Pikachu from step 3 will now resume levelling from 19 — from where it stopped, not
+That Pikachu from step 3 will now resume levelling from 20 — from where it stopped, not
 from a backlog.
 
 If the victory produced no message at all, the trainer id does not match. Add it by hand to
@@ -251,7 +258,8 @@ Cannot challenge Ondine — conditions not met:
   - Pokédex: 8/15 caught
 ```
 
-And try to fight Ondine *before* Pierre, from a fresh player, to see the ordering gate:
+And try to fight Ondine *before* Pierre, from a fresh player with at least 15 Pokémon caught
+(otherwise the Pokédex gate answers first), to see the ordering gate:
 
 ```text
 You cannot challenge Ondine yet — you must defeat Pierre first.

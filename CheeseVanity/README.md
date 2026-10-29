@@ -91,7 +91,7 @@ cross. Details, including why a press can be silently refused, in
 - **The `=` key is hardcoded.** It is not a Minecraft key binding, so it does not appear
   in Options → Controls and cannot be rebound in game.
 - **Nothing tells a player why a toggle was refused.** Every rejection is silent on the
-  client; the reason is printed in the server log.
+  client; a config refusal is printed in the server log, the rest leave no trace there.
 - **Trinket hiding is a trick.** The mixin empties the hidden trinket slots for the
   duration of one render call and puts the stacks back afterwards, because the Trinkets
   renderer offers no per-slot seam. It will break when Trinkets changes that method, and

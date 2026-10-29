@@ -164,7 +164,7 @@ correctif de deux lignes.
 
 **Le log de débogage est en `INFO`.** `HandledScreenMixin.onKeyPressed` journalise la classe
 du slot, son index, son id, la classe de son inventaire et `hasStack` à chaque appui sur `=`,
-puis journalise la clé résolue, et le serveur journalise chaque bascule refusée. Le
+puis journalise la clé résolue, et le serveur journalise chaque bascule refusée par la configuration. Le
 commentaire dit « INFO level for troubleshooting », donc c'était volontaire, mais c'est du
 bruit de débogage volontaire livré aux utilisateurs.
 

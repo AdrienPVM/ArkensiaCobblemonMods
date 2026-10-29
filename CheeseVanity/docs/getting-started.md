@@ -64,7 +64,8 @@ configured.
 Put a trinket in a slot — a cloak in `chest/back`, a hat in `head/hat`, a ring,
 whatever your pack provides. If you are testing armor instead, put on a helmet.
 
-Press `F5` twice to get an over-the-shoulder view of your own character, and look at it.
+Press `F5` once to get the over-the-shoulder view of your own character (twice turns the
+camera round to face you), and look at it.
 This is your reference image; you want to be able to tell the difference in a moment.
 
 ---
@@ -112,7 +113,8 @@ covers it.
 
 ## 5. Look at yourself
 
-Close the inventory and press `F5` twice again.
+Close the inventory and look at yourself in third person again (`F5` cycles first person,
+rear view, front view).
 
 The cloak is gone. Your character looks like it is wearing nothing in that slot. Check
 your armor points on the HUD if you hid a chestplate: they have not moved. The equipment

@@ -155,7 +155,7 @@ registration calling `clear()` is a two-line fix.
 
 **Debug logging is at `INFO`.** `HandledScreenMixin.onKeyPressed` logs the slot class,
 index, id, inventory class and `hasStack` on every single `=` press, then logs the
-resolved key, and the server logs every refused toggle. The comment says "INFO level for
+resolved key, and the server logs every toggle the config refuses. The comment says "INFO level for
 troubleshooting", so it was intentional, but it is intentional debug noise that ships to
 users.
 

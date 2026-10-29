@@ -93,7 +93,7 @@ surveillance de fichier, et `/reload` n'y touche pas.
 
 Si ces valeurs ne correspondent toujours pas à ton fichier, tu as modifié un autre fichier.
 Le chemin est relatif au répertoire de travail du serveur, et un client écrit sa propre copie
-inutile sous `.minecraft/config/`. [configuration.fr.md](configuration.fr.md) donne le
+sous `.minecraft/config/`, qui ne compte qu'en solo ou sur un monde LAN qu'il héberge. [configuration.fr.md](configuration.fr.md) donne le
 détail.
 
 ---
@@ -167,7 +167,8 @@ d'arrière-plan garde des fichiers distincts, sauf si ces serveurs partagent un 
 
 **Remède.** Restaure le fichier depuis une sauvegarde, serveur arrêté. Cherche dans le log
 `[CheeseVanity] Failed to load data`, qui signifie que le fichier existait mais n'a pas pu
-être parsé — dans ce cas la table en mémoire démarre vide, et la première bascule qui suit
+être parsé — dans ce cas la table en mémoire ne contient que les joueurs lus avant
+l'erreur (souvent aucun), et la première bascule qui suit
 écrase le fichier cassé : récupère-le avant de laisser qui que ce soit jouer.
 
 ---

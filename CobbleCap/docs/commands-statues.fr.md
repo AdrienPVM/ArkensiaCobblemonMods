@@ -252,27 +252,32 @@ Restyled 7 entit(y/ies) -> netherite
 
 ```text
 ─── Placed Dioramas (2) ───
-  Steve — minecraft:overworld @ (128.5, 71.0, -340.5) [7 entit(y/ies)]
-  Alex — minecraft:overworld @ (134.5, 71.0, -340.5) [7 entit(y/ies)]
+  steve — minecraft:overworld @ (128.5, 71.0, -340.5) [7 entit(y/ies)]
+  alex — minecraft:overworld @ (134.5, 71.0, -340.5) [7 entit(y/ies)]
 ```
 
 `No diorama currently placed.` quand rien n'est en scène, et la commande renvoie `0`.
 
+Les noms s'affichent **en minuscules** : la liste est construite à partir de l'étiquette
+`cobblecap_statue_legend.<nom>`, que `StatueManager` écrit avec `toLowerCase`. Les
+coordonnées sont celles de la première entité du diorama trouvée par le parcours, pas
+forcément la figure du dresseur.
+
 ## `/cobblecap statue tp <playerName>`
 
-Téléporte l'invocateur à l'ancre du diorama, un bloc plus haut, en conservant son lacet et
+Téléporte l'invocateur à la position que `statue list` affiche pour ce diorama, un bloc plus haut, en conservant son lacet et
 son tangage actuels. La correspondance ignore la casse par rapport aux noms de
 `statue list`.
 
 ```text
-TP'd to diorama of Steve
+TP'd to diorama of steve
 ```
 
 | Message | Cause |
 |---|---|
 | `Must be run by a player` | source non joueur |
 | `No diorama for <nom>` | aucune entrée dans `statue list` sous ce nom |
-| `World not loaded: <id>` | la dimension enregistrée du diorama ne se résout pas — le plus souvent une dimension CheeseGuard par joueur qui n'existe plus |
+| `World not loaded: <id>` | purement défensif : `statue list` ne parcourt que les mondes chargés, donc le monde qu'il rapporte se résout toujours et ce message ne devrait jamais apparaître |
 
 ## `/cobblecap statue stats`
 
@@ -467,15 +472,19 @@ No active chrono
 ```
 
 Met en file un morph du dresseur RCT `champion_regis_challenge` vers ce joueur, avec un
-temps enregistré de `0`. C'est une **requête**, pas une action immédiate :
-`RctTrainerMorpher` l'applique à un tick ultérieur.
+temps enregistré de `0`. C'est une **requête**, pas une action immédiate : l'équipe du
+joueur est capturée tout de suite, et `RctTrainerMorpher.tick` l'applique à la prochaine
+borne de 20 ticks (en moins d'une seconde). Malgré le libellé de la réponse ci-dessous,
+l'application **n'attend plus** la fin des combats : rctmod lit l'équipe d'un dresseur au
+début du combat, donc un combat déjà en cours garde l'ancienne équipe et seuls les suivants
+voient le morph.
 
 ```text
 Queued morph of champion_regis_challenge to Steve — applied when no battle is active
 ```
 
-Diffusée aux opérateurs. Il n'y a aucun retour quand le morph finit par aboutir — surveille
-le log serveur. Le mécanisme, et notamment pourquoi il attend, est décrit dans
+Diffusée aux opérateurs. Il n'y a aucun retour dans le chat quand le morph aboutit —
+surveille le log serveur, ligne `Trainer JSON rewritten`. Le mécanisme est décrit dans
 [le morphing du champion](champion-morphing.fr.md).
 
 ## `/cobblecap champion bind_npc <uuid>`
@@ -496,9 +505,12 @@ que rapporte le manager. `Invalid UUID` si le mot n'est pas un UUID.
 
 ## `/cobblecap champion bind_npc_closest`
 
-Lie le NPC Cobblemon le plus proche de l'invocateur. Doit être lancée par un joueur.
+Lie le NPC Cobblemon le plus proche de l'invocateur, en cherchant uniquement dans le monde
+de l'invocateur et seulement **dans un rayon de 10 blocs**. Doit être lancée par un joueur.
 
 ```text
+[NPC] bound nearest NPC <uuid> (dist=3.2)
+[NPC] no Cobblemon NPC within 10 blocks
 Must be run by a player
 ```
 
@@ -514,11 +526,15 @@ Champion NPC unbound
 
 ```text
 Champion NPC: 4f0c…-…-… in minecraft:overworld
-Last morphed champion: Steve
+Last morphed champion: (none)
 ```
 
-`(none)` à l'une ou l'autre position quand ce n'est pas défini. C'est la vérification la plus
-rapide pour savoir si le sous-système de morph a déjà fonctionné une fois.
+`(none)` à l'une ou l'autre position quand ce n'est pas défini. Ne lis pas la seconde ligne
+comme un test de bon fonctionnement du morph : elle n'est écrite que par
+`ChampionNpcManager.morphTo`, que rien dans le mod n'appelle (voir
+[le morphing du champion](champion-morphing.fr.md#le-repli--un-npc-cobblemon)), donc le
+morph du datapack RCT ne la met jamais à jour et elle reste normalement à `(none)`. Pour
+savoir si un morph a abouti, cherche `Trainer JSON rewritten` dans le log serveur.
 
 ## `/cobblecap champion refresh_dioramas`
 

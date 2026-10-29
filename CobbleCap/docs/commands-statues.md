@@ -243,26 +243,30 @@ Restyled 7 entit(y/ies) -> netherite
 
 ```text
 ─── Placed Dioramas (2) ───
-  Steve — minecraft:overworld @ (128.5, 71.0, -340.5) [7 entit(y/ies)]
-  Alex — minecraft:overworld @ (134.5, 71.0, -340.5) [7 entit(y/ies)]
+  steve — minecraft:overworld @ (128.5, 71.0, -340.5) [7 entit(y/ies)]
+  alex — minecraft:overworld @ (134.5, 71.0, -340.5) [7 entit(y/ies)]
 ```
 
 `No diorama currently placed.` with nothing staged, and the command returns `0`.
 
+Names are shown **lower-cased**: the list is built from the `cobblecap_statue_legend.<name>`
+tag, which `StatueManager` writes with `toLowerCase`. The coordinates are those of the first
+entity of the diorama found in the scan, not necessarily the trainer figure.
+
 ## `/cobblecap statue tp <playerName>`
 
-Teleports the caster to the diorama's anchor, one block up, keeping their current yaw and
+Teleports the caster to the position `statue list` shows for that diorama, one block up, keeping their current yaw and
 pitch. Matching is case-insensitive against the names in `statue list`.
 
 ```text
-TP'd to diorama of Steve
+TP'd to diorama of steve
 ```
 
 | Message | Cause |
 |---|---|
 | `Must be run by a player` | non-player source |
 | `No diorama for <name>` | no entry in `statue list` under that name |
-| `World not loaded: <id>` | the diorama's recorded dimension does not resolve — most often a CheeseGuard per-player dimension that no longer exists |
+| `World not loaded: <id>` | defensive only: `statue list` scans loaded worlds only, so the world it reports always resolves and this message should never appear |
 
 ## `/cobblecap statue stats`
 
@@ -449,15 +453,18 @@ No active chrono
 ```
 
 Queues a morph of the `champion_regis_challenge` RCT trainer onto that player, with a
-recorded time of `0`. It is a **request**, not an immediate action: `RctTrainerMorpher`
-applies it on a later tick, only once no Cobblemon battle is active.
+recorded time of `0`. It is a **request**, not an immediate action: the player's party is
+snapshotted now, and `RctTrainerMorpher.tick` flushes it at the next 20-tick boundary (within
+a second). Despite the wording of the reply below, the flush **no longer waits** for
+battles to end: rctmod reads a trainer's team at battle start, so a fight already in
+progress keeps the old team and only new ones see the morph.
 
 ```text
 Queued morph of champion_regis_challenge to Steve — applied when no battle is active
 ```
 
-Broadcast to ops. There is no feedback when the morph eventually lands — watch the server
-log. The mechanism, including why it waits, is in
+Broadcast to ops. There is no chat feedback when the morph lands — watch the server log
+for `Trainer JSON rewritten`. The mechanism is in
 [champion morphing](champion-morphing.md).
 
 ## `/cobblecap champion bind_npc <uuid>`
@@ -478,9 +485,12 @@ whatever the manager reports. `Invalid UUID` if the word is not a UUID.
 
 ## `/cobblecap champion bind_npc_closest`
 
-Binds the nearest Cobblemon NPC to the caster. Must be run by a player.
+Binds the nearest Cobblemon NPC to the caster, searching only the caster's own world and
+only **within 10 blocks**. Must be run by a player.
 
 ```text
+[NPC] bound nearest NPC <uuid> (dist=3.2)
+[NPC] no Cobblemon NPC within 10 blocks
 Must be run by a player
 ```
 
@@ -496,11 +506,14 @@ Champion NPC unbound
 
 ```text
 Champion NPC: 4f0c…-…-… in minecraft:overworld
-Last morphed champion: Steve
+Last morphed champion: (none)
 ```
 
-`(none)` in either position when unset. This is the quickest check for whether the morph
-subsystem has ever run successfully.
+`(none)` in either position when unset. Do not read the second line as a health check of the
+morph: it is written only by `ChampionNpcManager.morphTo`, which nothing in the mod calls
+(see [champion morphing](champion-morphing.md#the-fallback-a-cobblemon-npc)), so the RCT
+datapack morph never updates it and it normally stays `(none)`. To see whether a morph
+landed, look for `Trainer JSON rewritten` in the server log.
 
 ## `/cobblecap champion refresh_dioramas`
 

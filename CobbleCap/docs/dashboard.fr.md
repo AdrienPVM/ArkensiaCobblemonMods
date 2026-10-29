@@ -133,9 +133,14 @@ reconnexion.
 | 500 | `{"error":"Failed to set cap level"}` | le dispatch sur le thread serveur a levé une exception |
 
 Cela écrit via `CapStorage.setCapLevel`, qui persiste. Cela ne touche **pas**
-`championsBeaten`, donc la prochaine victoire sur un champion recalcule la limite depuis la
-liste des champions et écrasera ce que tu as posé ici. Pour un changement durable, enregistre
-aussi la progression avec `/cobblecap addbeaten <player> "<championId>"`.
+`championsBeaten`, donc la condition d'ordre des champions voit toujours l'ancienne
+progression. Une victoire ultérieure passe par `CapStorage.raiseCapLevel`, qui ne fait que
+relever : une limite posée au-dessus du `capGranted` de ce champion y survit, une limite
+posée en dessous est remontée à `capGranted`. Pour que la progression corresponde au nombre,
+enregistre-la aussi avec `/cobblecap addbeaten <player> "<championId>"`.
+
+La route ne crée pas d'entrée manquante : pour un UUID que CobbleCap n'a jamais vu,
+`setCapLevel` ne fait rien et la réponse reste `200 {"updated": true, …}`.
 
 ## `POST /api/v1/cobblecap/players/{uuid}/explock`
 
@@ -262,7 +267,7 @@ appliquées, chacune via son setter de `CapConfig`, et chaque setter appelle `sa
 | `fireworksDurationSec` | entier | `max(1, v)` |
 
 `startingCap` est **en lecture seule via l'API**. Le `GET` le renvoie, le `PUT` l'ignore.
-Pour le changer, édite `config/cobblecap/config.json` et redémarre.
+Pour le changer, édite `config/cobblecap/config.json` et lance `/cobblecap reload` (ou redémarre) ; la valeur s'applique alors aux entrées créées ensuite.
 
 ```json
 {"updated": true}

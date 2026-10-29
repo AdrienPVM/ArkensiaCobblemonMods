@@ -99,6 +99,7 @@ aides sans état, ou état statique mutable sans instance.
 | `cobblecap_chronos.json` | chaque démarrage, arrêt, annulation | **oui** |
 | `cobblecap_dioramas.json` | chaque changement d'ancre | **oui** |
 | `cobblecheesescore_external_conseil4_*.json` | chaque reconstruction de tableau | **oui** |
+| `cobblecap_champion_npc.json` | chaque `bind_npc*` / `unbind_npc` | **oui** |
 | `cobblecap_client.properties` | chaque changement de `/pasturehide` | non |
 
 « Atomique » signifie un voisin `.tmp` et un `Files.move`, en privilégiant `ATOMIC_MOVE` et
@@ -119,7 +120,7 @@ réalistement.
 | **thread serveur** | chaque commande, chaque gestionnaire d'événement Cobblemon, les deux corps de tick, tout le travail d'entités, `RctReloadHook` |
 | **thread HTTP** (CheeseDash) | les gestionnaires de `CobbleCapApi` — lecture directe, les mutations sautent vers le thread serveur |
 | **thread netty** (client) | la réception des payloads, immédiatement différée avec `context.client().execute(...)` |
-| **thread de rendu client** | `CapHudRenderer.render`, les quatre mixins client |
+| **thread de rendu client** | `CapHudRenderer.render`, les cinq mixins client |
 | démon `CobbleCap-Save` | les écritures différées de `CapStorage` |
 | `cobblecap-tenures-save` | un `new Thread` par appel à `TenureStorage.saveAsync` |
 | le thread des feux d'artifice | un `new Thread` par spectacle, qui dort entre les fusées |
@@ -282,6 +283,10 @@ Dit clairement, parce que lire le source sans cette liste est déroutant :
   automatiquement.
 - **`PastureHideClient.debugLog` et `lastDebugLog`** — restes de l'approche par réflexion
   côté client qui ne pouvait pas marcher.
+- **`ChampionEntry.allowRefight`** — lu uniquement par la branche « déjà battu » de
+  `ChampionManager.handlePreBattle`, qu'aucun appelant n'atteint : `CapListener` et le hook
+  `BATTLE_STARTED_PRE` traitent tous deux les champions battus avant de l'appeler. Le champ
+  est chargé, sauvegardé et affiché par `/cobblecap status`, et ne change rien.
 - **`ChampionManager.allChallengesBeaten`** est privée et *est* utilisée, par
   `handleChallengeVictory` ; mentionnée seulement parce qu'elle a l'air morte à côté du
   reste.

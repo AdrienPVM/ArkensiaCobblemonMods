@@ -7,9 +7,9 @@ champion est un PNJ de dresseur rctmod pour lequel CobbleCap possède une entré
 battre relève la limite et débloque l'entrée suivante de la liste.
 
 ⚠️ C'est dans ce sous-système que CobbleCap cesse d'être générique. Il attend **Radical
-Cobblemon Trainers** (`rctmod`), éventuellement **FTB Quests**, et — à deux endroits — un
+Cobblemon Trainers** (`rctmod`), éventuellement **FTB Quests**, et — à quatre endroits — un
 champion dont l'identifiant de dresseur est littéralement `champion_regis_challenge`. Ces
-deux codages en dur sont listés au bas de cette page, sous
+quatre codages en dur sont listés au bas de cette page, sous
 [ce que tu dois changer](#ce-que-tu-dois-changer-pour-ton-propre-serveur).
 
 ## Le modèle
@@ -46,7 +46,7 @@ Chaque champ de `ChampionEntry`, avec sa valeur par défaut en cas d'absence du 
 | `requiredScoreboard` | chaîne | `""` | objectif vanilla conditionnant le combat |
 | `requiredScoreMin` | entier | `0` | score minimum sur cet objectif |
 | `challengeRequiredScoreMin` | entier | `0` | score minimum pour le combat de défi ; `0` désactive |
-| `allowRefight` | booléen | `true` | si un champion battu peut être réaffronté |
+| `allowRefight` | booléen | `true` | censé permettre de réaffronter un champion battu ; en pratique **sans effet** (voir la condition ci-dessous) |
 | `challengeRequiresAllBeaten` | booléen | `true` | le défi exige que tous les champions normaux soient battus |
 | `challengeCapGranted` | entier | `0` | limite accordée à la victoire en défi ; `0` signifie aucune |
 
@@ -106,7 +106,9 @@ Deux points d'entrée, et ils se recouvrent :
 `ChampionManager.handlePreBattle` est le contrôle de conditions :
 
 1. Déjà dans `championsBeaten` ? Avec `allowRefight` à faux, c'est `FAIL` avec
-   `cobblecap.msg.already_beaten` ; à vrai, c'est `PASS`.
+   `cobblecap.msg.already_beaten` ; à vrai, c'est `PASS`. Cette branche est inatteignable :
+   les deux points d'entrée ci-dessus n'appellent `handlePreBattle` que pour un champion **pas
+   encore** battu, donc `allowRefight` ne décide jamais rien.
 2. `requiredPokedex` non atteint → une ligne non remplie, `Pokédex : %d/%d capturés`.
 3. `requiredQuestId` non terminée → `Complétez une quête requise d'abord`.
 4. Score de `requiredScoreboard` inférieur à `requiredScoreMin` →
@@ -152,8 +154,8 @@ rctmod ; `BATTLE_STARTED_PRE` opère ensuite le **basculement** :
    `setTrainerId(challengeId)`, puis `startBattleWith(player)`.
 4. L'UUID du joueur entre dans `challengeSwapInProgress` pour que le
    `BATTLE_STARTED_PRE` redéclenché ne rebascule pas.
-5. L'identifiant d'origine est restauré deux sauts de `server.execute` plus tard, et l'UUID
-   est retiré de l'ensemble de garde.
+5. Un saut de `server.execute` plus tard, l'UUID est retiré de l'ensemble de garde, et
+   l'identifiant d'origine est restauré au saut suivant.
 
 ⚠️ Cette restauration est la partie fragile. Si le serveur se bloque ou si l'entité se
 décharge entre les étapes 3 et 5, le TrainerMob conserve l'identifiant de défi
@@ -167,7 +169,9 @@ dimension — et traite l'interaction comme un combat normal, en journalisant :
 ```
 
 Une victoire en défi enregistre `challengeBeaten`, horodate le cooldown, relève la limite
-seulement si `challengeCapGranted > 0`, et accorde `cobblecap:challenge/<clé>`. Les combats
+seulement si `challengeCapGranted > 0`, et accorde `cobblecap:challenge/<clé>` — ainsi que
+`cobblecap:milestone/challengers_complete` dès que chaque entrée ayant un `challengeId` figure
+dans `challengeBeaten`. Les combats
 de défi sautent entièrement le contrôle de limite d'équipe — c'est du contenu post-game et
 la limite n'est pas censée s'y appliquer. Un défi est **à usage unique** : une fois dans
 `challengeBeaten`, une nouvelle interaction est refusée avec la réplique post-victoire.

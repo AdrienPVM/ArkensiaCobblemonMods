@@ -50,7 +50,8 @@ time you press the toggle key.
 2. The server receives it in `CheeseVanityMod.onInitialize`. It rejects the key if it is
    null, empty, longer than 64 characters, or not toggleable under the current config
    (see [configuration.md](configuration.md)). A rejected key produces no feedback to the
-   player at all, only a server log line.
+   player at all. Only the config refusal leaves a server log line (`Slot '…' not
+   toggleable …`); a null, empty or over-long key is dropped without any log.
 3. On the server thread, `VanityData.toggle` flips membership of that key in your set,
    and `VanityData.save` rewrites `config/cheesevanity_data.json` immediately.
 4. You get an action-bar message: `[CheeseVanity] chest/back hidden` in red, or

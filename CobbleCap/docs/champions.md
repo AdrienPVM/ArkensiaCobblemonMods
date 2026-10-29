@@ -7,8 +7,8 @@ trainer NPC that CobbleCap has an entry for, and beating it both raises the cap 
 the next entry in the list.
 
 ⚠️ This subsystem is where CobbleCap stops being generic. It expects **Radical Cobblemon
-Trainers** (`rctmod`) NPCs, optionally **FTB Quests**, and — in two places — a champion
-whose trainer id is literally `champion_regis_challenge`. Those two hard-codings are listed
+Trainers** (`rctmod`) NPCs, optionally **FTB Quests**, and — in four places — a champion
+whose trainer id is literally `champion_regis_challenge`. Those four hard-codings are listed
 at the bottom of this page under [what you must change](#what-you-must-change-for-your-own-server).
 
 ## The model
@@ -45,7 +45,7 @@ Every `ChampionEntry` field, with its default when absent from the JSON:
 | `requiredScoreboard` | string | `""` | vanilla objective gating the fight |
 | `requiredScoreMin` | int | `0` | minimum score on that objective |
 | `challengeRequiredScoreMin` | int | `0` | minimum score for the challenge fight; `0` disables |
-| `allowRefight` | bool | `true` | whether a beaten champion can be fought again |
+| `allowRefight` | bool | `true` | meant to allow re-fighting a beaten champion; in practice **no effect** (see the gate below) |
 | `challengeRequiresAllBeaten` | bool | `true` | challenge needs every normal champion beaten |
 | `challengeCapGranted` | int | `0` | cap granted on challenge victory; `0` means none |
 
@@ -98,7 +98,9 @@ Two entry points, and they overlap:
 `ChampionManager.handlePreBattle` is the condition check:
 
 1. Already in `championsBeaten`? `allowRefight` false gives `FAIL` with
-   `cobblecap.msg.already_beaten`; true gives `PASS`.
+   `cobblecap.msg.already_beaten`; true gives `PASS`. This branch is unreachable: both
+   entry points above only call `handlePreBattle` for a champion that is **not** beaten yet, so
+   `allowRefight` never decides anything.
 2. `requiredPokedex` not met → one unmet line, `Pokédex: %d/%d caught`.
 3. `requiredQuestId` not complete → `Complete a required quest first`.
 4. `requiredScoreboard` score below `requiredScoreMin` → `You must talk to Alfred first`.
@@ -142,8 +144,8 @@ rctmod; `BATTLE_STARTED_PRE` then performs the **swap**:
    `startBattleWith(player)`.
 4. The player's UUID goes into `challengeSwapInProgress` so the re-fired
    `BATTLE_STARTED_PRE` does not swap again.
-5. The original id is restored two `server.execute` hops later, and the UUID is removed
-   from the guard set.
+5. One `server.execute` hop later the UUID is removed from the guard set, and the original
+   id is restored on the hop after that.
 
 ⚠️ That restore is the fragile part. If the server stalls or the entity unloads between
 steps 3 and 5, the TrainerMob keeps the challenge id permanently. `CapListener` has a
@@ -156,7 +158,9 @@ per-dimension suffix — and treats the interaction as a normal fight, logging:
 ```
 
 A challenge victory records `challengeBeaten`, stamps the cooldown, raises the cap only if
-`challengeCapGranted > 0`, and grants `cobblecap:challenge/<key>`. Challenge battles skip
+`challengeCapGranted > 0`, and grants `cobblecap:challenge/<key>` — plus
+`cobblecap:milestone/challengers_complete` once every entry that has a `challengeId` is in
+`challengeBeaten`. Challenge battles skip
 the party cap check entirely — they are post-game content and the cap is not meant to apply.
 A challenge is **one-time**: once in `challengeBeaten`, interacting again is refused with
 the post-victory line.

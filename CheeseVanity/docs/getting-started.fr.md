@@ -64,7 +64,8 @@ configuré que soit le serveur.
 Place un trinket dans un slot — une cape dans `chest/back`, un chapeau dans `head/hat`, une
 bague, ce que ton pack propose. Si tu testes plutôt une armure, mets un casque.
 
-Appuie deux fois sur `F5` pour obtenir une vue par-dessus l'épaule de ton personnage, et
+Appuie une fois sur `F5` pour obtenir la vue par-dessus l'épaule de ton personnage (deux
+fois retourne la caméra face à toi), et
 regarde-le. C'est ton image de référence ; tu veux pouvoir faire la différence dans un
 instant.
 
@@ -115,7 +116,8 @@ genre de slot. L'étape 0 s'en occupe.
 
 ## 5. Regarde-toi
 
-Ferme l'inventaire et appuie deux fois sur `F5`.
+Ferme l'inventaire et regarde-toi de nouveau à la troisième personne (`F5` fait défiler
+première personne, vue de dos, vue de face).
 
 La cape a disparu. Ton personnage a l'air de ne rien porter dans ce slot. Regarde tes points
 d'armure sur l'ATH si tu as masqué un plastron : ils n'ont pas bougé. L'équipement

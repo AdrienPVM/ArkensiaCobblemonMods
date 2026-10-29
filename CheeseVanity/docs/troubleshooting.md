@@ -88,8 +88,8 @@ reload command, no file watcher, and `/reload` does not touch it.
 ```
 
 If those values still do not match your file, you edited a different file. The path is
-relative to the server's working directory, and a client writes its own useless copy under
-`.minecraft/config/`. [configuration.md](configuration.md) has the detail.
+relative to the server's working directory, and a client writes its own copy under
+`.minecraft/config/`, which only counts in singleplayer or on a LAN world it hosts. [configuration.md](configuration.md) has the detail.
 
 ---
 
@@ -160,7 +160,8 @@ unless the servers share a `config/` directory.
 
 **Fix.** Restore the file from a backup with the server stopped. Check the log for
 `[CheeseVanity] Failed to load data`, which means the file existed but could not be
-parsed — in that case the in-memory map starts empty, and the first toggle afterwards
+parsed — in that case the in-memory map holds only the players read before the error
+(often none), and the first toggle afterwards
 overwrites the broken file, so recover it before letting anyone play.
 
 ---

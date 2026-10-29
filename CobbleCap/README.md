@@ -78,9 +78,9 @@ Full walkthrough: [installation](docs/installation.md).
 | [Statues and dioramas](docs/statues.md) | Invisible trackers and fake-player overlays, the thirteen styles, the dynamic champion diorama, test mode |
 | [Commands](docs/commands.md) | `/cobblecap` cap, player and config subcommands, `/explock`, `/pasturehide` — arguments, permissions, output and every failure message |
 | [Statue, chrono and champion commands](docs/commands-statues.md) | The three large subtrees, argument by argument |
-| [Configuration](docs/configuration.md) | All eight files, every key with its default and clamp, two complete annotated examples, and a list of what is *not* configurable |
+| [Configuration](docs/configuration.md) | All nine files, every key with its default and clamp, two complete annotated examples, and a list of what is *not* configurable |
 | [The client side](docs/client.md) | The cap badge, `/pasturehide` and why the server has to help, the four statue mixins |
-| [Dashboard API](docs/dashboard.md) | The nine routes under `/api/v1/cobblecap`, request and response shapes, the role each one requires |
+| [Dashboard API](docs/dashboard.md) | The ten routes under `/api/v1/cobblecap`, request and response shapes, the role each one requires |
 | [Architecture](docs/architecture.md) | Package layout, who owns what, threading and hand-offs, every mixin, extension points, dead code and known weaknesses |
 | [Troubleshooting](docs/troubleshooting.md) | Symptom, cause, fix — thirty of them, plus how to file a report that can be acted on |
 
@@ -96,9 +96,9 @@ Full walkthrough: [installation](docs/installation.md).
 | `/cobblecap get\|set\|reset <player>` | 2 | read, write or wipe a cap |
 | `/cobblecap addbeaten\|removebeaten <player> <id>` | 2 | repair champion progress |
 | `/cobblecap reload` · `enable` · `disable` | 2 | re-read the configs, flip the master switch |
-| `/cobblecap statue …` | 2 | 17 subcommands for dioramas |
+| `/cobblecap statue …` | 2 | 18 subcommands for dioramas |
 | `/cobblecap chrono …` | 2 | 7 subcommands for the run timers |
-| `/cobblecap champion …` | 2 | 7 subcommands for morphing and the NPC fallback |
+| `/cobblecap champion …` | 2 | 8 subcommands for morphing and the NPC fallback |
 | `/explock [player]` | any player / 2 | toggle XP lock for yourself, or for someone else |
 | `/pasturehide [on\|off\|toggle\|status]` | client-side | hide Pokémon tethered to a pasture, for framerate |
 

@@ -58,9 +58,11 @@ coupé, ou il n'y a pas d'entrée joueur.
 3. Lis `Cap level` sur le même écran. Si le joueur n'est pas du tout dans les données tu
    obtiens `Joueur <nom> introuvable dans les données CobbleCap.` — fais-le se reconnecter,
    ce qui appelle `ensureExists`.
-4. Rappelle-toi que les mixins tournent même quand les hooks d'événement échouent. Si la
-   montée de niveau est bloquée mais qu'aucun message n'apparaît, c'est la couche mixin qui
-   fonctionne et `CapManager` qui n'est pas atteint, ce qui ramène à l'étape 1.
+4. Ne juge pas d'après le message de la barre d'action. L'XP de combat d'un Pokémon
+   plafonné est mise à zéro par `PokemonAddExperienceMixin` avant que Cobblemon ne déclenche
+   son événement d'XP : elle est donc refusée **sans message** même quand tout fonctionne ;
+   le message n'apparaît que lorsqu'un bonbon exp est utilisé sur un Pokémon à la limite ou
+   au-dessus. Teste avec un bonbon.
 
 ## Un Pokémon reste à un niveau sous la limite
 
@@ -88,11 +90,12 @@ pas à l'entité.
 
 **Remède.**
 
-1. `/cobblecap reload` et lis le compte.
-   `Config champions rechargée (0 champions chargés).` après avoir édité un fichier rempli
-   signifie que le JSON n'a pas pu être analysé — le log contient
-   `[CobbleCap] Failed to load champions.json: <message>` et l'ancienne liste est encore
-   active.
+1. `/cobblecap reload` et lis le compte. Aucun compte, seulement l'erreur vanilla
+   *An unexpected error occurred trying to execute that command*, signifie que le JSON
+   contient une erreur de syntaxe et que l'ancienne liste est encore active — l'exception est
+   dans le log serveur. Un compte inférieur au nombre d'entrées du fichier signifie qu'une
+   entrée a une valeur mal typée et que seules les entrées qui la précèdent ont été
+   chargées.
 2. Clic droit sur le dresseur et cherche la ligne de diagnostic :
 
    ```text
@@ -102,9 +105,10 @@ pas à l'entité.
    Compare `trainerId` à ton `id` caractère par caractère. Si `raw` diffère de `trainerId`,
    un suffixe de dimension a été retiré — c'est attendu à l'intérieur d'une dimension
    Conseil 4 par joueur.
-3. Aucune ligne du tout signifie que `extractRctmodTrainerId` n'a rien trouvé. L'entité doit
-   être dans le namespace `rctmod` pour que `UseEntityCallback` la regarde ne serait-ce
-   qu'une fois.
+3. `trainerId=null` signifie que `extractRctmodTrainerId` n'a rien trouvé sur cette entité.
+   Aucune ligne du tout signifie qu'aucun combat n'a démarré, ou que le hook de pré-combat
+   ne s'est pas branché (voir [plus haut](#la-limite-dxp-ne-fait-rien)). L'entité doit aussi être dans le
+   namespace `rctmod` pour que `UseEntityCallback` la regarde ne serait-ce qu'une fois.
 4. Confirme que l'entrée est chargée avec `/cobblecap status <player>` — la liste des
    champions y est affichée en entier avec `✓`/`✗` par entrée.
 
@@ -120,8 +124,13 @@ pas à l'entité.
 | `Vous ne pouvez pas défier X — conditions non remplies :` puis `Pokédex : n/m capturés` | `requiredPokedex` | en capturer plus, ou baisser le champ |
 | `… Complétez une quête requise d'abord` | `requiredQuestId` | terminer la quête FTB |
 | `… Tu dois d'abord parler à Alfred` | `requiredScoreboard` / `requiredScoreMin` | relever le score. Le texte du message est spécifique à Arkensia — voir plus bas |
-| `Vous avez déjà vaincu X.` | `allowRefight: false` | rien ; c'est un combat unique |
-| `X — «Quel beau combat c'était ! …»` | déjà battu, aucun défi débloqué | rien |
+| `X — «Quel beau combat c'était ! …»` | déjà battu, aucun défi débloqué | rien ; `allowRefight` n'y change rien |
+
+`Vous avez déjà vaincu X.` n'est pas un refus que tu rencontreras ici. `handlePreBattle`
+l'afficherait pour un champion battu avec `allowRefight: false`, mais chaque appelant vérifie
+d'abord `championsBeaten` et ne lui transmet jamais un champion battu : en pratique, la ligne
+n'apparaît que lors d'une **première** victoire quand la limite était déjà égale ou
+supérieure à `capGranted`.
 
 `/cobblecap status <player>` affiche chaque condition avec `OK`/`FAIL` et la valeur courante,
 ce qui est plus rapide que de devenir devin. Noter que le `/cobblecap` côté joueur **n'affiche
@@ -351,12 +360,15 @@ un changement de pseudo orpheline le diorama.
 [CobbleCap-Client] /pasturehide last 1s: checked 42 Pokémon entities, hid 7
 ```
 
-- `checked 0` — le mixin ne voit aucune entité Pokémon. Cobblemon est absent sur le client, ou
-  le nom de classe de l'entité n'est pas `…PokemonEntity`.
+- aucune ligne alors que la bascule est active et que des Pokémon sont en vue — le mixin ne
+  voit aucune entité Pokémon. La ligne n'est affichée que si au moins un Pokémon a été
+  vérifié, donc `checked 0` n'apparaît jamais. Cobblemon est absent sur le client, ou le nom
+  de classe de l'entité n'est pas `…PokemonEntity`.
 - `checked 42, hid 0` — le mixin fonctionne et l'ensemble côté client est vide. Le serveur n'a
   pas envoyé d'instantané : il n'a pas CobbleCap, ou `PastureTracker` n'a pas fait son premier
   parcours (toutes les 40 ticks), ou les Pokémon ne sont réellement pas attachés.
-- aucune ligne du tout — la bascule est coupée. `/pasturehide status`.
+- aucune ligne et rien en vue non plus — vérifie que la bascule est active :
+  `/pasturehide status`.
 
 À la connexion, le client devrait journaliser
 `[CobbleCap-Client] Pasture snapshot received: N tethered Pokémon`. En son absence, le
@@ -400,7 +412,7 @@ avec la valeur que tu as envoyée tout en stockant la valeur plafonnée. Refais 
 `GET /api/v1/cobblecap/config` pour voir ce qui a réellement été retenu.
 
 `startingCap` est un cas différent : le `GET` le renvoie, le `PUT` l'ignore entièrement.
-Édite `config/cobblecap/config.json` et redémarre.
+Édite `config/cobblecap/config.json` et lance `/cobblecap reload` (ou redémarre).
 
 ## Les feux d'artifice ne partent jamais
 
@@ -409,15 +421,17 @@ avec la valeur que tu as envoyée tout en stockant la valeur plafonnée. Refais 
 **Remède.**
 
 ```text
-[CobbleCap] Fireworks enabled but no zone configured — skipped
+[CobbleCap] Fireworks enabled but no zone configured — skipped        (niveau debug)
 [CobbleCap] Fireworks zone 'league_arena' not found via CheeseGuard — show aborted
 [CobbleCap] Fireworks show already running — new request coalesced
 [CobbleCap] Fireworks show hit duration cap at rocket 12/200
 ```
 
 Règle le tir avec `POST /api/v1/cobblecap/fireworks/test`, qui ignore `fireworksEnabled` mais
-exige quand même un identifiant de zone. CheeseGuard est atteint par réflexion, donc sans
-CheeseGuard le spectacle est ignoré en niveau debug sans erreur visible. Et rappelle-toi que
+exige quand même un identifiant de zone. CheeseGuard est atteint par réflexion ; sans lui la
+zone ne peut pas se résoudre, et tu obtiens le même avertissement
+`Fireworks zone '…' not found via CheeseGuard — show aborted` (plus une ligne de debug
+indiquant que CheeseGuard n'est pas installé). Et rappelle-toi que
 le spectacle ne se déclenche que sur une victoire **compétitive**, jamais sur une classique.
 
 ## Les scoreboards Conseil 4 sont vides ou faux

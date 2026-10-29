@@ -19,7 +19,7 @@ A player's row is created the first time they join (`CapListener` calls
 
 ## How the cap is calculated
 
-There is no formula. The cap is a stored integer, and it changes in exactly four ways:
+There is no formula. The cap is a stored integer, and it changes in exactly five ways:
 
 1. **A champion victory.** `ChampionManager` resolves the champion's `capGranted` and calls
    `CapStorage.raiseCapLevel`. That method only ever raises: if the player's cap is already
@@ -31,6 +31,8 @@ There is no formula. The cap is a stored integer, and it changes in exactly four
    `POST /api/v1/cobblecap/players/{uuid}/cap`. Both write the value directly with no
    raise-only guard, so an admin can lower a cap.
 4. **A reset** — `/cobblecap reset <player>` puts it back to `startingCap`.
+5. **A repair** — `/cobblecap addbeaten <player> <championId>` calls the same raise-only
+   `raiseCapLevel` with that champion's `capGranted`, without any battle.
 
 The order of `champions.json` is the progression. `ChampionConfig.nextUnbeaten` returns the
 first entry whose `id` is not in the player's `championsBeaten` list, and that entry is the
@@ -146,7 +148,12 @@ That same handler is where champion ordering and the challenge swap are enforced
 ## What a capped player sees
 
 An action-bar message, rate-limited to one per **30 seconds** per (player, Pokémon) pair by
-`CapManager.XP_MSG_COOLDOWN_MS`. Two variants, from `assets/cobblecap/lang/en_us.json`:
+`CapManager.XP_MSG_COOLDOWN_MS` — but in practice **only when an exp candy is used** on a
+Pokémon at or above the cap. Cobblemon fires `EXPERIENCE_GAINED_EVENT_PRE` from inside
+`Pokemon.addExperience`, and layer 2 has already returned zero XP at the head of that method
+for a capped Pokémon, so battle XP is refused without any message. The candy event fires in
+the candy item, before any XP is added, so it does reach `CapManager`. Two variants, from
+`assets/cobblecap/lang/en_us.json`:
 
 ```text
 Pikachu cannot gain XP — level cap is 45. Next champion: Erika
@@ -167,7 +174,7 @@ Alongside that, the [client HUD](client.md) shows `Cap: 45` and `Next: Erika` pe
 
 `expLocked` on `PlayerCapData` blocks **all** XP gain for that player, at any level, and it
 is checked *before* the `enabled` flag in all three enforcement layers. Turning the cap
-system off with `/cobblecap toggle` does not release an XP lock.
+system off with `/cobblecap disable` does not release an XP lock.
 
 It is enforced three ways: `CapManager` cancels the event and sends
 `cobblecap.msg.xp_locked`, `PokemonAddExperienceMixin` returns an effective cap of `0`
@@ -189,7 +196,7 @@ expectation from other cap mods is the opposite.
 
 ## What `enabled: false` turns off
 
-`/cobblecap toggle` flips `CapConfig.enabled` and saves. With it off:
+`/cobblecap disable` (and `/cobblecap enable`) flips `CapConfig.enabled` and saves. With it off:
 
 - XP cap enforcement stops in all three layers
 - the `BATTLE_STARTED_PRE` handler returns at its first line, so banned species and party

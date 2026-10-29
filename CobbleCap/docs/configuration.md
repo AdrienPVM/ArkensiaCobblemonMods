@@ -2,8 +2,8 @@
 
 # Configuration
 
-CobbleCap keeps eight files. Two are configuration you edit, one is a champion list you
-author, and five are state the mod owns and you should only touch with the server stopped.
+CobbleCap keeps nine files. Two are configuration you edit, one is a champion list you
+author, and six are state the mod owns and you should only touch with the server stopped.
 
 | Path | Kind | Written by |
 |---|---|---|
@@ -14,6 +14,7 @@ author, and five are state the mod owns and you should only touch with the serve
 | `config/cobblecap_tenures.json` | state | `TenureStorage` — on every change |
 | `config/cobblecap_chronos.json` | state | `ChronoManager` — on every change |
 | `config/cobblecap_dioramas.json` | state | `StatueManager` — on anchor change |
+| `config/cobblecap_champion_npc.json` | state | `ChampionNpcState` — on `bind_npc*` / `unbind_npc` |
 | `config/cobblecap_client.properties` | **client** configuration | `PastureHideClient` |
 
 Note the inconsistency in layout: `config.json`, `champions.json` and `players.json` live in
@@ -21,7 +22,7 @@ a `cobblecap/` subdirectory; everything else sits directly in `config/` with a
 `cobblecap_` prefix. That is historical and the mod does not care, but it means a backup
 script has to cover both shapes.
 
-A ninth and tenth set of files are **outputs**, not configuration:
+A tenth and eleventh set of files are **outputs**, not configuration:
 `config/cobblecheesescore_external_conseil4_*.json` and
 `config/cobblecap_regis_backup/`. See
 [the Conseil 4 leaderboards](champions.md#json-export-for-cobblecheesescore) and
@@ -32,7 +33,9 @@ A ninth and tenth set of files are **outputs**, not configuration:
 ## `config/cobblecap/config.json`
 
 Written with defaults on first start if it does not exist. Every key is read only when
-present, so deleting a key restores its default rather than breaking the parse.
+present, so deleting a key does not break the parse: at startup the key takes its default,
+but on `/cobblecap reload` it simply keeps the value already in memory until the next
+restart.
 
 | Key | Type | Default | What it does |
 |---|---|---|---|
@@ -101,7 +104,8 @@ silently disables the ban list.
 
 All five feed `FireworksManager`, which launches rockets inside a CheeseGuard zone when a
 **ranked** champion is crowned. CheeseGuard is reached by reflection, so with CheeseGuard
-absent the show is skipped with a debug line and nothing else happens.
+absent the zone never resolves: the show is skipped with a debug line and the
+`Fireworks zone '…' not found via CheeseGuard — show aborted` warning shown below.
 
 The setters clamp, and they clamp silently — a dashboard `PUT` reports success with the
 value you sent while storing the clamped one:
@@ -249,9 +253,11 @@ Things worth knowing about that example:
   list without blocking challenge unlocks.
 - `requiredScoreMin` and `challengeRequiredScoreMin` are only read when `requiredScoreboard`
   is non-empty. Both gate against the **same** objective.
-- `allowRefight: false` makes the fight one-time; `true` lets a beaten champion be fought
-  again, though `CapListener` still refuses the interaction once the champion is beaten and
-  no challenge is unlocked, so the practical effect of `true` is narrow.
+- `allowRefight` has **no practical effect**, whatever its value. It is only read by
+  `handlePreBattle` for an already-beaten champion, and no caller ever passes one:
+  `CapListener` refuses a beaten champion (unless its challenge is unlocked) before reaching
+  it, and the `BATTLE_STARTED_PRE` hook sends beaten champions to the challenge swap
+  instead. A beaten champion is never re-fought in normal mode.
 - the id `champion_regis_challenge` is hard-coded in four places as "the final champion".
   See [what you must change](champions.md#what-you-must-change-for-your-own-server).
 
@@ -261,14 +267,13 @@ Things worth knowing about that example:
 list** and rewrites the file — there is no merge and no undo, so always `PUT` the result of
 a `GET` with your edits applied.
 
-A parse failure leaves the in-memory list untouched and logs:
-
-```text
-[CobbleCap] Failed to load champions.json: <message>
-```
-
-The chat reply to `/cobblecap reload` reports a count. A count of `0` right after editing a
-populated file means the parse failed — read the log.
+`[CobbleCap] Failed to load champions.json: <message>` is logged only for an I/O error.
+A JSON syntax error is not caught by `ChampionConfig.load`: the in-memory list is left
+untouched, but the exception escapes — at startup it escapes `onInitialize` and the server fails to start, and on
+`/cobblecap reload` the command fails with the vanilla *An unexpected error occurred trying
+to execute that command* and no count. A well-formed file with a wrongly typed value (say
+`"capGranted": "thirty"`) is worse: the list has already been emptied when the entry
+throws, so only the entries before it remain loaded. Read the log after every edit.
 
 `ChampionEntry.toJson` omits conditional fields, so a `GET` followed by a `PUT`
 is lossless but not byte-identical to a hand-written file: `requiredScoreboard` and friends
@@ -364,6 +369,15 @@ affected chronos.
 Dynamic champion diorama anchors. Shape in
 [statues and dioramas](statues.md#the-dynamic-champion-diorama). Cleared by
 `/cobblecap statue wipe_all`.
+
+### `config/cobblecap_champion_npc.json`
+
+The [Cobblemon NPC fallback](champion-morphing.md#the-fallback-a-cobblemon-npc) binding:
+`npcEntityUuid`, `dimensionId`, and the `lastChampionUuid`/`lastChampionName`/`lastMorphAt`
+of the last NPC morph, each key written only when set. Created by the first
+`/cobblecap champion bind_npc` or `bind_npc_closest`, emptied of its binding by
+`unbind_npc`, written atomically through a `.tmp` sibling. It does not exist on a server
+that never used those commands.
 
 ---
 

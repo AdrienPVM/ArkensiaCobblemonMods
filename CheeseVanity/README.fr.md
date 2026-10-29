@@ -94,7 +94,7 @@ et une croix rouge. Détails, y compris les raisons d'un refus silencieux, dans
 - **La touche `=` est codée en dur.** Ce n'est pas un raccourci Minecraft : elle n'apparaît
   pas dans Options → Commandes et ne peut pas être réassignée en jeu.
 - **Rien n'explique à un joueur pourquoi une bascule a été refusée.** Chaque rejet est
-  silencieux côté client ; la raison est écrite dans le log serveur.
+  silencieux côté client ; un refus de la configuration est écrit dans le log serveur, les autres n'y laissent aucune trace.
 - **Le masquage des trinkets est une astuce.** Le mixin vide les slots de trinkets masqués
   le temps d'un appel de rendu et y remet les piles ensuite, parce que le renderer de
   Trinkets n'offre aucune prise par slot. Il cassera quand Trinkets changera cette méthode,

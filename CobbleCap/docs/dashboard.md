@@ -162,9 +162,14 @@ without a relog.
 | 500 | `{"error":"Failed to set cap level"}` | the server-thread dispatch threw |
 
 This writes through `CapStorage.setCapLevel`, which persists. It does **not** touch
-`championsBeaten`, so the next champion victory recomputes the cap from the champion list
-and will overwrite whatever you set here. For a lasting change, record the
-progress too with `/cobblecap addbeaten <player> "<championId>"`.
+`championsBeaten`, so the champion-ordering gate still sees the old progress. A later
+victory goes through `CapStorage.raiseCapLevel`, which only ever raises: a cap set above
+that champion's `capGranted` survives it, a cap set below is lifted to `capGranted`. To make
+the progress match the number, record it too with
+`/cobblecap addbeaten <player> "<championId>"`.
+
+The route does not create a missing row: for a UUID CobbleCap has never seen,
+`setCapLevel` does nothing and the answer is still `200 {"updated": true, …}`.
 
 ## `POST /api/v1/cobblecap/players/{uuid}/explock`
 
@@ -287,7 +292,7 @@ keys rewrites `config.json` five times.
 | `fireworksDurationSec` | integer | `max(1, v)` |
 
 `startingCap` is **read-only over the API**. The `GET` returns it, the `PUT` ignores it.
-To change it, edit `config/cobblecap/config.json` and restart.
+To change it, edit `config/cobblecap/config.json` and run `/cobblecap reload` (or restart); it then applies to rows created afterwards.
 
 ```json
 {"updated": true}

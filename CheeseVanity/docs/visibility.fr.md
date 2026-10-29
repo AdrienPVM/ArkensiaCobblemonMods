@@ -49,7 +49,9 @@ chaque appui sur la touche de bascule.
 2. Le serveur le reçoit dans `CheeseVanityMod.onInitialize`. Il rejette la clé si elle est
    nulle, vide, plus longue que 64 caractères, ou non basculable selon la configuration
    courante (voir [configuration.fr.md](configuration.fr.md)). Une clé rejetée ne produit
-   aucun retour pour le joueur, seulement une ligne dans le log serveur.
+   aucun retour pour le joueur. Seul le refus de la configuration laisse une ligne dans le
+   log serveur (`Slot '…' not toggleable …`) ; une clé nulle, vide ou trop longue est
+   écartée sans aucun log.
 3. Sur le thread serveur, `VanityData.toggle` inverse l'appartenance de cette clé à ton
    ensemble, et `VanityData.save` réécrit immédiatement
    `config/cheesevanity_data.json`.

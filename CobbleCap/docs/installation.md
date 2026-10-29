@@ -94,22 +94,23 @@ Server log, during startup:
 
 ```text
 [CobbleCap] Config loaded (startingCap=20, enabled=true)
-[CobbleCap] Created empty champions.json
 [CobbleCap] No players.json found — starting with empty storage
+[CobbleCap] Created empty champions.json
 [CobbleCap] No legends file — starting fresh hall of fame
-[CobbleCap] Tenures loaded: 0 (0 current)
 [CobbleCap] Initialized — startingCap=20, enabled=true, champions=0
 ```
 
-That last line is the one to grep for. Then, once the world is up:
+`TenureStorage` logs nothing on a first start: with no file it just writes an empty one.
+That last line is the one to grep for. Then, once the world is up, in the order the
+`SERVER_STARTED` listeners were registered:
 
 ```text
-[CobbleCap] Conseil 4 scoreboards ready: 4 boards (classic ×2 + ranked ×2)
-[CobbleCap] StatueManager initialized (0 current-champion anchor(s), 0 doppel(s) reattached)
 [CobbleCap] Cobblemon XP hook registered on field: EXPERIENCE_GAINED_EVENT_PRE
 [CobbleCap] Cobblemon candy XP hook registered on field: EXPERIENCE_CANDY_USE_PRE
 [CobbleCap] Battle pre-check hook registered on field: BATTLE_STARTED_PRE
 [CobbleCap] Battle victory hook registered on field: BATTLE_VICTORY
+[CobbleCap] StatueManager initialized (0 current-champion anchor(s), 0 doppel(s) reattached)
+[CobbleCap] Conseil 4 scoreboards ready: 4 boards (classic ×2 + ranked ×2)
 ```
 
 Those four hook lines are the real health check, because they prove the reflective

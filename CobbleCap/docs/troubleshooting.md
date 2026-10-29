@@ -55,9 +55,10 @@ player row.
 3. Read `Cap level` on the same screen. If the player is not in the data at all you get
    `Player <name> not found in CobbleCap data.` — have them rejoin, which calls
    `ensureExists`.
-4. Remember the mixins still run even when the event hooks fail. If levelling is blocked but
-   no message appears, that is the mixin layer working and `CapManager` not being reached,
-   which still points at step 1.
+4. Do not judge by the action-bar message. Battle XP on a capped Pokémon is zeroed by
+   `PokemonAddExperienceMixin` before Cobblemon fires its XP event, so it is refused
+   **silently** even when everything works; the message only appears when an exp candy is
+   used on a Pokémon at or above the cap. Test with a candy.
 
 ## A Pokémon sits at one level below the cap
 
@@ -83,9 +84,11 @@ tell-apart.
 
 **Fix.**
 
-1. `/cobblecap reload` and read the count. `Champion config reloaded (0 champions loaded).`
-   after editing a populated file means the JSON failed to parse — the log has
-   `[CobbleCap] Failed to load champions.json: <message>` and the old list is still live.
+1. `/cobblecap reload` and read the count. No count at all, only the vanilla *An unexpected
+   error occurred trying to execute that command*, means the JSON has a syntax error and the
+   old list is still live — the exception is in the server log. A count lower than the
+   number of entries in the file means an entry has a wrongly typed value and only the
+   entries before it were loaded.
 2. Right-click the trainer and look for the diagnostic line:
 
    ```text
@@ -95,8 +98,10 @@ tell-apart.
    Compare `trainerId` against your `id` byte for byte. If `raw` differs from `trainerId`, a
    per-dimension suffix was stripped — that is expected inside a per-player Conseil 4
    dimension.
-3. No line at all means `extractRctmodTrainerId` found nothing. The entity must be in the
-   `rctmod` namespace for `UseEntityCallback` to even look at it.
+3. `trainerId=null` means `extractRctmodTrainerId` found nothing on that entity. No line at
+   all means no battle started, or the battle pre-check hook did not bind (see
+   [above](#the-xp-cap-does-nothing)). The entity must also be in the `rctmod` namespace
+   for `UseEntityCallback` to even look at it.
 4. Confirm the entry is loaded with `/cobblecap status <player>` — the champion list is
    printed in full with `✓`/`✗` per entry.
 
@@ -112,8 +117,12 @@ tell-apart.
 | `Cannot challenge X — conditions not met:` then `Pokédex: n/m caught` | `requiredPokedex` | catch more, or lower the field |
 | `… Complete a required quest first` | `requiredQuestId` | complete the FTB quest |
 | `… You must talk to Alfred first` | `requiredScoreboard` / `requiredScoreMin` | raise the score. The message text is Arkensia-specific — see below |
-| `You have already defeated X.` | `allowRefight: false` | nothing; it is one-time |
-| `X — "What a great battle! …"` | already beaten, no challenge unlocked | nothing |
+| `X — "What a great battle! …"` | already beaten, no challenge unlocked | nothing; `allowRefight` does not change this |
+
+`You have already defeated X.` is not a refusal you will meet here. `handlePreBattle` would
+print it for a beaten champion with `allowRefight: false`, but every caller checks
+`championsBeaten` first and never hands it a beaten champion, so in practice the line only
+appears on a **first** victory when the cap was already at or above `capGranted`.
 
 `/cobblecap status <player>` prints every gate with `OK`/`FAIL` and the current value, which
 is faster than guessing. The player-facing `/cobblecap` does **not** show the
@@ -340,12 +349,14 @@ rename orphans the diorama.
 [CobbleCap-Client] /pasturehide last 1s: checked 42 Pokémon entities, hid 7
 ```
 
-- `checked 0` — the mixin is not seeing Pokémon entities at all. Cobblemon is absent on the
-  client, or the entity class name is not `…PokemonEntity`.
+- no line at all while the toggle is on and Pokémon are in view — the mixin is not seeing
+  Pokémon entities. The line is only printed when at least one was checked, so `checked 0`
+  never appears. Cobblemon is absent on the client, or the entity class name is not
+  `…PokemonEntity`.
 - `checked 42, hid 0` — the mixin works and the client set is empty. The server has not sent
   a snapshot: it does not have CobbleCap, or `PastureTracker` has not run its first scan
   (every 40 ticks), or the Pokémon are genuinely not tethered.
-- no line at all — the toggle is off. `/pasturehide status`.
+- no line and nothing in view either — check the toggle is on: `/pasturehide status`.
 
 On join the client should log
 `[CobbleCap-Client] Pasture snapshot received: N tethered Pokémon`. Absent, the server side
@@ -389,7 +400,7 @@ value you sent while storing the clamped one. Re-`GET /api/v1/cobblecap/config` 
 was actually kept.
 
 `startingCap` is a different case: `GET` returns it, `PUT` ignores it entirely. Edit
-`config/cobblecap/config.json` and restart.
+`config/cobblecap/config.json` and run `/cobblecap reload` (or restart).
 
 ## The fireworks never fire
 
@@ -398,15 +409,16 @@ was actually kept.
 **Fix.**
 
 ```text
-[CobbleCap] Fireworks enabled but no zone configured — skipped
+[CobbleCap] Fireworks enabled but no zone configured — skipped        (debug level)
 [CobbleCap] Fireworks zone 'league_arena' not found via CheeseGuard — show aborted
 [CobbleCap] Fireworks show already running — new request coalesced
 [CobbleCap] Fireworks show hit duration cap at rocket 12/200
 ```
 
 Aim it with `POST /api/v1/cobblecap/fireworks/test`, which ignores `fireworksEnabled` but
-still needs a zone id. CheeseGuard is reached by reflection, so without CheeseGuard the show
-is skipped at debug level with no visible error. And remember the show only triggers on a
+still needs a zone id. CheeseGuard is reached by reflection; without it the zone cannot
+resolve, so you get the same `Fireworks zone '…' not found via CheeseGuard — show aborted`
+warning (plus a debug line saying CheeseGuard is not installed). And remember the show only triggers on a
 **ranked** win, never a classic one.
 
 ## Conseil 4 scoreboards are blank or wrong

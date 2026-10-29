@@ -14,7 +14,7 @@ CobbleCap registers three command roots:
 any server as long as the player has CobbleCap installed, and typing it in a console does
 nothing because the console has no client.
 
-The `/cobblecap` tree is mostly level 2 (operator), with four exceptions that any player
+The `/cobblecap` tree is mostly level 2 (operator), with five exceptions that any player
 can run: the bare root, `status` without a target, `hud …`, `legends …` and
 `mode classic|ranked`. Brigadier hides a subcommand a player cannot use, so a non-op who
 types `/cobblecap ` sees only those; typing a gated one anyway gives the vanilla *Unknown
@@ -87,9 +87,14 @@ System enabled: true
 ─── Next champion gating ───
 Next: gym_leader_erika_0399 (Erika)
   cap granted: 50 | allowRefight: true
+  victoryQuestId: 0123456789ABCDEF
+  challengeId: ''
   scoreboard arkensia_tour >= 12 (current=9) FAIL
   ftb quest: (none)
   pokedex: 61/80 FAIL
+─── Last challenge times (0) ───
+  (none)
+…
 ═════ end status ═════
 ```
 
@@ -295,10 +300,13 @@ What `reload` does **not** pick up: `startingCap` is read fresh into `CapConfig`
 joiners get the new value, but existing rows keep theirs. Player data (`players.json`) is
 not re-read — it is the authority in memory, and reloading would lose unsaved changes.
 
-A malformed JSON file logs `[CobbleCap] Failed to load champions.json: …` and leaves the
-in-memory list as it was. Check the server log after every edit; the chat line reports a
-count, and a count of `0` after editing a file with thirteen champions in it means the
-parse failed.
+A malformed JSON file does **not** produce the `[CobbleCap] Failed to load champions.json: …`
+line: that one is only logged for an I/O error. A syntax error throws a
+`JsonSyntaxException` that neither `CapConfig.load` nor `ChampionConfig.load` catches; it
+propagates to Brigadier, chat shows the vanilla *An unexpected error occurred trying to
+execute that command*, no count is reported and no client is re-synced. If the broken file
+is `champions.json`, the in-memory list stays as it was. Check the server log after every
+edit.
 
 ## `/cobblecap enable` · `/cobblecap disable`
 
@@ -386,6 +394,12 @@ or, when the requested variant was already the live one:
 Conseil 4 mode → classic for Steve (already live)
 ```
 
+`(already live)` is printed whenever `applyMode` returns `false`, which also covers the
+failures: no snapshot in `config/cobblecap_regis_backup/`, no datapack root found, or the
+copy failing. When the line says `already live` and the fight did not change, read the log
+for `[CobbleCap] … swap aborted` or `Régis JSON copy failed`. A `ranked` request with no
+ranked snapshot yet silently falls back to the classic file.
+
 ⚠️ The JSON swap is **server-global**, while the scoreboard score is per-player. Two
 players picking different modes at the same time fight whichever variant was written last.
 This is a real limitation of the design, not a bug to be worked around from the command
@@ -422,7 +436,9 @@ them:
 🔓 XP lock disabled — your Pokémon can gain experience again.
 ```
 
-And when an admin targeted someone else, the admin additionally sees, broadcast to ops:
+And when an admin **player** targeted someone else, the admin additionally sees, broadcast to
+ops (run from the console or a command block, `/explock <player>` prints no confirmation at
+all — only the target is told):
 
 ```text
 XP lock for Steve: ON

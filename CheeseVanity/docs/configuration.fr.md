@@ -12,8 +12,11 @@ pour un lancement de serveur normal est le dossier du serveur, à côté de `wor
 `mods/`. En pratique c'est le même endroit que celui désigné par
 `FabricLoader.getConfigDir()`, mais ce n'est pas le même code : démarre le serveur avec un
 répertoire de travail différent de sa racine et le fichier sera créé ailleurs. Un client
-écrit aussi ce fichier, sous `.minecraft/config/`, où il n'a aucun effet — la configuration
-n'est jamais lue que par le côté serveur.
+écrit aussi ce fichier, sous `.minecraft/config/`. Cette copie n'a aucun effet sur un
+serveur dédié, dont le propre fichier est celui qui compte ; elle **est** la configuration
+active en solo et sur un monde LAN que tu héberges, parce que le serveur intégré tourne dans
+le processus du client et que son gestionnaire de bascule lit la `VanityConfig` chargée par
+ce client.
 
 Le fichier est écrit avec un objet aux valeurs par défaut la première fois que le mod
 démarre sans lui, donc tu n'as jamais à le créer à la main.

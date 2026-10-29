@@ -19,7 +19,7 @@ L'entrée d'un joueur est créée à sa première connexion (`CapListener` appel
 
 ## Comment la limite est calculée
 
-Il n'y a pas de formule. La limite est un entier stocké, et il change par exactement quatre
+Il n'y a pas de formule. La limite est un entier stocké, et il change par exactement cinq
 voies :
 
 1. **Une victoire sur un champion.** `ChampionManager` résout le `capGranted` du champion et
@@ -34,6 +34,8 @@ voies :
    `POST /api/v1/cobblecap/players/{uuid}/cap`. Les deux écrivent la valeur directement sans
    garde de montée seule, donc un admin peut abaisser une limite.
 4. **Une réinitialisation** — `/cobblecap reset <player>` la ramène au `startingCap`.
+5. **Une réparation** — `/cobblecap addbeaten <player> <championId>` appelle le même
+   `raiseCapLevel` en montée seule avec le `capGranted` de ce champion, sans aucun combat.
 
 L'ordre de `champions.json` **est** la progression. `ChampionConfig.nextUnbeaten` renvoie la
 première entrée dont l'`id` n'est pas dans la liste `championsBeaten` du joueur, et cette
@@ -156,7 +158,12 @@ voir [le système de champion](champions.fr.md#la-barrière-davant-combat).
 ## Ce que voit un joueur plafonné
 
 Un message dans la barre d'action, limité à un par **30 secondes** et par couple (joueur,
-Pokémon) grâce à `CapManager.XP_MSG_COOLDOWN_MS`. Deux variantes, depuis
+Pokémon) grâce à `CapManager.XP_MSG_COOLDOWN_MS` — mais en pratique **uniquement quand un
+bonbon exp est utilisé** sur un Pokémon déjà à la limite ou au-dessus. Cobblemon déclenche
+`EXPERIENCE_GAINED_EVENT_PRE` depuis l'intérieur de `Pokemon.addExperience`, et la couche 2 a
+déjà renvoyé zéro XP en tête de cette méthode pour un Pokémon plafonné : l'XP de combat est
+donc refusée sans aucun message. L'événement des bonbons part de l'objet bonbon, avant tout
+ajout d'XP, et atteint donc bien `CapManager`. Deux variantes, depuis
 `assets/cobblecap/lang/fr_fr.json` :
 
 ```text
@@ -202,7 +209,7 @@ l'attente habituelle avec les autres mods de limite est l'inverse.
 
 ## Ce que `enabled: false` coupe
 
-`/cobblecap toggle` bascule `CapConfig.enabled` et sauvegarde. Désactivé :
+`/cobblecap disable` (et `/cobblecap enable`) bascule `CapConfig.enabled` et sauvegarde. Désactivé :
 
 - l'application de la limite d'XP s'arrête sur les trois couches
 - le gestionnaire `BATTLE_STARTED_PRE` retourne à sa première ligne, donc les contrôles

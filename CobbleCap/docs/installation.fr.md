@@ -95,22 +95,23 @@ Log serveur, pendant le démarrage :
 
 ```text
 [CobbleCap] Config loaded (startingCap=20, enabled=true)
-[CobbleCap] Created empty champions.json
 [CobbleCap] No players.json found — starting with empty storage
+[CobbleCap] Created empty champions.json
 [CobbleCap] No legends file — starting fresh hall of fame
-[CobbleCap] Tenures loaded: 0 (0 current)
 [CobbleCap] Initialized — startingCap=20, enabled=true, champions=0
 ```
 
-C'est cette dernière ligne qu'il faut chercher. Puis, une fois le monde démarré :
+`TenureStorage` ne journalise rien au premier démarrage : sans fichier, il en écrit
+simplement un vide. C'est cette dernière ligne qu'il faut chercher. Puis, une fois le monde
+démarré, dans l'ordre d'enregistrement des écouteurs `SERVER_STARTED` :
 
 ```text
-[CobbleCap] Conseil 4 scoreboards ready: 4 boards (classic ×2 + ranked ×2)
-[CobbleCap] StatueManager initialized (0 current-champion anchor(s), 0 doppel(s) reattached)
 [CobbleCap] Cobblemon XP hook registered on field: EXPERIENCE_GAINED_EVENT_PRE
 [CobbleCap] Cobblemon candy XP hook registered on field: EXPERIENCE_CANDY_USE_PRE
 [CobbleCap] Battle pre-check hook registered on field: BATTLE_STARTED_PRE
 [CobbleCap] Battle victory hook registered on field: BATTLE_VICTORY
+[CobbleCap] StatueManager initialized (0 current-champion anchor(s), 0 doppel(s) reattached)
+[CobbleCap] Conseil 4 scoreboards ready: 4 boards (classic ×2 + ranked ×2)
 ```
 
 Ces quatre lignes de hook sont le vrai test de santé, parce qu'elles prouvent que

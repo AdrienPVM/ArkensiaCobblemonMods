@@ -65,24 +65,31 @@ HUD déplacé vers top-left.
 
 ## 3. Voir la limite mordre pour de vrai
 
-Amène un Pokémon au niveau 20. Le plus rapide est une poignée de bonbons exp, ou :
+Donne au joueur un Pokémon pile à la limite (`pokegiveother` cible un autre joueur ;
+`/pokegive` donne à celui qui la lance) :
 
 ```mcfunction
-/pokegive Steve pikachu level=19
+/pokegiveother Steve pikachu level=20
 ```
 
-Puis fais-le combattre, ou donne-lui un bonbon. Dès qu'il atteint la limite, l'expérience
-suivante est refusée et le joueur reçoit une ligne dans la barre d'action :
+Puis donne-lui un bonbon exp. Le bonbon est refusé et le joueur reçoit une ligne dans la
+barre d'action :
 
 ```text
 Pikachu ne peut pas gagner d'XP — limite de niveau : 20. Tous les champions ont été vaincus !
 ```
 
+L'XP de combat de ce Pokémon est refusée elle aussi, mais **sans message** :
+`PokemonAddExperienceMixin` renvoie zéro XP avant que Cobblemon ne déclenche son événement
+d'XP, donc le crochet d'événement ne la voit jamais. Le message ne vient que du chemin des
+bonbons, dont l'événement se déclenche avant tout ajout d'XP.
+
 Deux détails à remarquer, parce qu'ils résument toute la conception :
 
-- Le Pokémon reste au **niveau 19** avec une barre d'XP presque pleine, pas au niveau 20. La
-  couche de rognage le laisse volontairement à un point d'expérience du niveau plafond pour
-  que le chemin de montée de niveau de Cobblemon ne se déclenche jamais. Voir
+- Un Pokémon qui monte *vers* la limite ne l'atteint jamais par l'XP : il reste au
+  **niveau 19** avec une barre d'XP presque pleine. La couche de rognage le laisse
+  volontairement à un point d'expérience du niveau plafond, et comme il est encore sous la
+  limite, aucun message ne s'affiche. Voir
   [la limite de niveau](level-cap.fr.md#2-pokemonaddexperiencemixin--la-couche-de-rognage).
 - L'expérience excédentaire est **jetée**, pas mise de côté. Relever la limite plus tard ne
   fait pas gagner plusieurs niveaux d'un coup au Pokémon.
@@ -99,8 +106,9 @@ le log serveur :
 [CobbleCap] BATTLE_PRE: entity=TrainerMob trainerId=gym_leader_pierre_0395 (raw=gym_leader_pierre_0395)
 ```
 
-Cette ligne n'apparaît que lorsqu'un combat de champion est en cours d'évaluation : sur une
-installation neuve tu ne verras peut-être rien. La solution fiable est de lire
+La ligne est journalisée au début du combat, pour tout dresseur dont CobbleCap sait lire
+l'identifiant, champion ou non — elle apparaît donc aussi sur une installation neuve, du
+moment que le clic droit lance bien un combat. La solution fiable est de lire
 l'identifiant dans ton datapack rctmod — le nom de fichier sous `data/rctmod/trainers/`
 *est* l'identifiant.
 
@@ -138,8 +146,9 @@ Recharge :
 Config champions rechargée (1 champions chargés).
 ```
 
-⚠️ Un compte de `0` signifie que le JSON n'a pas pu être analysé et que l'ancienne liste est
-toujours en mémoire. Cherche `[CobbleCap] Failed to load champions.json` dans le log.
+⚠️ Si le JSON contient une erreur de syntaxe, tu n'obtiens aucun compte, seulement l'erreur
+vanilla *An unexpected error occurred trying to execute that command*, et l'ancienne liste
+reste en mémoire. Cherche l'exception dans le log serveur.
 
 Redemande maintenant côté joueur :
 
@@ -210,7 +219,7 @@ Confirme que c'est bien enregistré :
 Limite actuelle de Steve : 30.
 ```
 
-Le Pikachu de l'étape 3 reprend maintenant sa progression depuis 19 — depuis là où il s'est
+Le Pikachu de l'étape 3 reprend maintenant sa progression depuis 20 — depuis là où il s'est
 arrêté, pas depuis un stock accumulé.
 
 Si la victoire n'a produit aucun message, l'identifiant du dresseur ne correspond pas.
@@ -255,8 +264,8 @@ Vous ne pouvez pas défier Ondine — conditions non remplies :
   - Pokédex : 8/15 capturés
 ```
 
-Et essaie d'affronter Ondine *avant* Pierre, depuis un joueur neuf, pour voir la condition
-d'ordre :
+Et essaie d'affronter Ondine *avant* Pierre, depuis un joueur neuf ayant capturé au moins
+15 Pokémon (sinon la condition de Pokédex répond d'abord), pour voir la condition d'ordre :
 
 ```text
 Vous ne pouvez pas défier Ondine — vous devez d'abord vaincre Pierre.

@@ -9,7 +9,7 @@ la seule chose capable d'agir dessus. Un côté sans l'autre te donne la moitié
 | Où est le jar | Ce qui se passe |
 |---|---|
 | serveur et client | le mod fonctionne comme documenté |
-| serveur seulement | les préférences peuvent être stockées mais rien n'est jamais masqué, sur aucun écran, pour personne |
+| serveur seulement | la touche `=` vit dans un mixin client, donc aucun joueur ne peut envoyer de bascule : rien de nouveau n'est stocké, et rien n'est jamais masqué, sur aucun écran, pour personne |
 | client seulement | appuyer sur `=` envoie un paquet que le serveur ne comprend pas et jette ; rien n'est stocké, rien n'est masqué |
 
 Il déclare `"environment": "*"` dans `fabric.mod.json`, donc le même jar couvre les deux
@@ -95,12 +95,13 @@ config/cheesevanity.json
 
 `config/cheesevanity_data.json` n'est **pas** créé au démarrage. Il n'apparaît que la
 première fois qu'un joueur bascule quelque chose, parce que `VanityData.save()` est appelé
-depuis le gestionnaire de bascule et nulle part ailleurs. Un `config/` vide après un
-premier lancement sans joueur est normal.
+depuis le gestionnaire de bascule et nulle part ailleurs. Un `config/` qui ne contient
+que `cheesevanity.json` après un premier lancement sans joueur est normal.
 
-Un client écrit aussi `config/cheesevanity.json`, sous `.minecraft/config/`. Personne ne le
-lit à cet endroit ; le fichier est un effet de bord de l'entrypoint principal exécuté sur un
-client intégré. Le modifier n'a aucun effet sur un serveur multijoueur.
+Un client écrit aussi `config/cheesevanity.json`, sous `.minecraft/config/`, parce que
+l'entrypoint principal s'exécute aussi sur un client. Le modifier n'a aucun effet sur un
+serveur multijoueur, mais c'est la configuration réellement utilisée en solo et sur un monde
+LAN hébergé par ce client : le serveur intégré vit dans le même processus et la lit.
 
 ---
 
