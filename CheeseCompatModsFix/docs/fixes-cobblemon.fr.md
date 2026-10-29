@@ -115,14 +115,16 @@ classe par nom, lit le champ `mega_aspects` par réflexion et ajoute `"mega_z"` 
 vivant. Le bytecode décompilé confirme qu'il s'agit d'un `HashSet` ordinaire, donc la
 mutation est sûre.
 
-**Inerte en l'absence du mod.** Oui — `Class.forName` échoue, le patch journalise et
-rend la main. Il n'y a aucun mixin et aucune dépendance de compilation vers MegaShowdown.
+**Inerte en l'absence du mod.** Oui — `apply()` rend la main en silence quand
+`mega_showdown` n'est pas chargé ; si le mod est là mais que la classe ou le champ a bougé,
+il journalise et rend la main. Il n'y a aucun mixin et aucune dépendance de compilation vers
+MegaShowdown.
 
 **État.** Actif.
 
 ## 4. Méga-gemmes custom non reconnues par le simulateur
 
-**Symptôme.** Un joueur tient l'une des 42 méga-gemmes CacademyMons, et le bouton Méga est
+**Symptôme.** Un joueur tient l'une des méga-gemmes custom, et le bouton Méga est
 grisé, sans message et sans rien dans le log.
 
 **Cause.** Le datapack CacademyMons livre ses méga-gemmes sous forme de simples
@@ -141,9 +143,14 @@ Cobblemon la consulte ensuite à chaque recherche d'objet tenu pendant la mise e
 combat, et les entrées existantes de `items.js` / `held_items.js` qui déclarent `megaStone`
 et `megaEvolves` prennent effet toutes seules.
 
-Périmètre : seulement les 42 gemmes qui ont un couple `(item_id, cmd)` unique. Les entrées
-où `cmd == 0` sur `minecraft:brick` entrent en collision entre elles et sont ignorées —
-c'étaient des bouchons dans le datapack.
+Périmètre : la table `REMAP` compte 70 entrées, chacune un couple `(item_id, cmd)` unique.
+56 sont des gemmes CacademyMons : 41 d'origine, plus 15 qui partageaient `minecraft:brick`
+avec `cmd == 0` — une collision qui les rendait impossibles à mapper — et ont reçu leurs
+propres valeurs, de `261037` à `261051`, le datapack ayant été mis à jour en conséquence.
+Les 14 autres sont des gemmes de deux autres packs qui reposent aussi sur des items
+vanilla : 10 de Z-A Megas Server-Side et 4 d'AllTheMons x Mega Showdown. Tout item hors des
+18 items vanilla qu'utilisent ces gemmes est écarté avant même la lecture de son
+`custom_model_data`.
 
 **Inerte en l'absence du mod.** Oui, deux fois : sans Cobblemon la résolution par
 réflexion échoue et le patch rend la main ; sans le datapack CacademyMons la table de remap
@@ -151,8 +158,8 @@ ne correspond jamais à rien.
 
 **État.** Actif. ⚠️ Ce correctif est spécifique à un datapack. Les ids d'items et les
 numéros de `custom_model_data` sont codés en dur dans `REMAP`. Sur tout autre serveur il ne
-fait rien — ce qui est le mode d'échec voulu, mais autant le savoir avant de lire les 241
-lignes de table.
+fait rien — ce qui est le mode d'échec voulu, mais autant le savoir avant de lire ce
+fichier de 241 lignes.
 
 ## 5. Trials Edition crashe sur Cobblemon 1.6.1
 
@@ -193,8 +200,10 @@ remet à zéro, pas une incohérence d'échelle ou de hitbox.
 **Moyen.** `AlphaScaleHitboxFixMixin`, cible par chaîne
 (`com.cobblemon.mod.common.entity.pokemon.PokemonEntity`, `remap = false`), `@Inject` en
 `HEAD` de `method_5773` — le nom intermédiaire de `Entity.tick()`, écrit explicitement
-parce que les noms Yarn ne sont pas traduits quand `remap = false`. Au premier tick d'une
-entité marquée `IS_ALPHA: true` dans son `Pokemon.PersistentData`, il effectue un
+parce que les noms Yarn ne sont pas traduits quand `remap = false`. Les Pokémon possédés
+sont ignorés — un alpha envoyé depuis une balle est une entité neuve sans la corruption, et
+l'aller-retour l'empêcherait de s'afficher. Au premier tick d'une entité sauvage marquée
+`IS_ALPHA: true` dans son `Pokemon.PersistentData`, il effectue un
 aller-retour NBT (`writeNbt` puis `readNbt`), ce que `/data merge` fait en interne.
 L'échelle, l'AABB, le drapeau `IS_ALPHA`, les IV, les talents et les butins survivent tous
 intacts.
@@ -237,9 +246,11 @@ compilation vers la hiérarchie d'entités de Cobblemon.
 
 **État.** Actif.
 
-## 8. Raid dens : quatre correctifs
+## 8. Raid dens : cinq correctifs
 
-Tous les quatre sont conditionnés à `cobblemonraiddens` dans le plugin mixin.
+Les quatre mixins (8a–8d) sont conditionnés à `cobblemonraiddens` dans le plugin mixin ;
+`RaidDenFix` (8e) n'est enregistré que si `isModLoaded("cobblemonraiddens")` dans
+`CheeseCompatMod`.
 
 ### 8a. Téracristallisation pendant un raid
 
@@ -289,22 +300,31 @@ qu'il fait.
 **Symptôme.** Un cristal de raid reste ouvert après que tout le monde est parti, mort ou
 déconnecté, donc personne ne peut relancer un raid là.
 
-**Cause.** Raid Dens suivait l'état par id de dimension, et les ids de dimension sont
-réutilisés par joueur. Deux raids rapprochés du même joueur écrasaient mutuellement leur
-entrée dans la map, et le premier cristal était oublié.
+**Cause.** Raid Dens ne libère pas toujours un cristal (son `raidHost` reste posé) quand
+le dernier joueur quitte la dimension de raid. Les versions précédentes de ce correctif
+suivaient les cristaux bloqués par id de dimension, et les ids de dimension sont réutilisés
+par joueur : deux raids rapprochés du même joueur écrasaient mutuellement leur entrée dans
+la map, et le premier cristal était oublié.
 
 **Moyen.** `RaidDenFix`, un gestionnaire piloté au tick et indexé par **position du
-cristal** plutôt que par id de dimension. Quand un joueur sort d'un raid, il planifie une
-vérification sur ce cristal dans `FAST_CHECK_DELAY` (20 ticks, 1 s), en force-loadant le
-chunk du cristal si nécessaire, et sinon il scanne toutes les `SCAN_INTERVAL` (100 ticks,
-5 s). Échelle d'escalade : `GRACE_PERIOD` 100 ticks avant toute action,
+cristal** plutôt que par id de dimension. Quand le dernier joueur quitte une dimension de
+raid (changement de monde ou déconnexion), il marque le cristal de cette dimension. Les
+cristaux marqués sont traités au scan `SCAN_INTERVAL` (toutes les 100 ticks, 5 s), en
+force-loadant le chunk du cristal si nécessaire. Une constante `FAST_CHECK_DELAY`
+(20 ticks) est déclarée, et le commentaire de la classe promet une vérification une seconde
+après la sortie, mais rien ne l'utilise : la première vérification tombe au scan de
+5 secondes suivant. Échelle d'escalade : `GRACE_PERIOD` 100 ticks avant toute action,
 `MEDIUM_THRESHOLD` 200 ticks, `NUCLEAR_THRESHOLD` 300 ticks, et `GIVE_UP_THRESHOLD` 1200
 ticks (60 s) après quoi il cesse de suivre ce cristal. L'abandon est voulu : un cristal que
 ce mod n'arrive pas à fermer vaut mieux être laissé tranquille que réessayé indéfiniment.
 
+En pratique, la réinitialisation « nucléaire », au premier scan après 15 s, met fin au
+suivi de tout cristal qu'elle atteint ; l'abandon à 60 secondes ne concerne qu'un cristal
+dont le block entity n'a jamais été trouvé.
+
 **État.** Les cinq sont actifs.
 
-## 9. Rad Gyms : quatre correctifs
+## 9. Rad Gyms : cinq correctifs
 
 **Cible :** `rad-gyms`. Pas sur le classpath de compilation — tous les accès passent par
 réflexion sur `lol.gito.radgyms.*`. Conditionné à `isModLoaded("rad-gyms")` dans
@@ -318,8 +338,10 @@ réflexion sur `lol.gito.radgyms.*`. Conditionné à `isModLoaded("rad-gyms")` d
 **Cause.** Rad Gyms garde ses instances de gym dans une `LinkedHashMap` `PLAYER_GYMS`
 uniquement en mémoire. Un crash perd la map, et avec elle toute voie de sortie.
 
-**Moyen.** À la connexion, les joueurs trouvés dans la dimension de gym sans instance sont
-téléportés dehors et informés, via `cheesecompat.radgyms.rescued` :
+**Moyen.** À la connexion, tout joueur qui se connecte dans la dimension de gym est
+téléporté au point d'apparition de l'Overworld et informé, via
+`cheesecompat.radgyms.rescued` — sans vérifier s'il reste une instance, puisqu'après un
+redémarrage il n'y en a jamais :
 
 ```text
 Vous avez été rescapé d'une dimension de gym après un redémarrage serveur. Votre progression de gym a été perdue.
@@ -342,7 +364,7 @@ battent dessus.
 
 **Moyen.** La clé du type de gym d'origine est suivie par joueur, et le bon `GymTemplate`
 est restauré avant la distribution du butin. Le gestionnaire s'abonne à l'évènement
-`BATTLE_VICTORY` de Cobblemon en priorité `HIGHEST` — Rad Gyms s'abonne en `NORMAL`, donc
+`BATTLE_VICTORY` de Cobblemon en priorité `HIGH` — Rad Gyms s'abonne en `NORMAL`, donc
 celui-ci passe d'abord. L'abonnement est construit par réflexion : la valeur de l'énum
 `Priority` est résolue par nom et la méthode `subscribe(Priority, Function1)` est trouvée
 en cherchant un `subscribe` à deux paramètres.
@@ -365,7 +387,19 @@ Vous n'avez pas de session de gym active. Quittez la dimension et réessayez.
 Ce dresseur n'appartient pas à votre session de gym.
 ```
 
-**État.** Les quatre sont actifs.
+### 9e. Dresseurs orphelins dans une dimension de gym vide
+
+**Symptôme.** Un joueur qui rentre dans la dimension de gym gèle le serveur (une recherche
+de chunk c2me qui tourne en boucle dans `Entity.move`).
+
+**Cause.** Les entités `Trainer` de Rad Gyms restent dans la dimension après le départ de
+tout le monde, et maintiennent chunks et suivi d'entités en vie.
+
+**Moyen.** Toutes les 600 ticks (30 s), si `rad-gyms:rad-gyms_dim` ne contient aucun joueur,
+chaque entité `lol.gito.radgyms.entity.Trainer` qui s'y trouve est supprimée, avec une ligne
+`INFO` donnant le nombre quand il y en avait au moins une.
+
+**État.** Les cinq sont actifs.
 
 ---
 

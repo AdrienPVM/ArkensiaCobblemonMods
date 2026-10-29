@@ -2,7 +2,7 @@
 
 > 🇫🇷 [Lire en français](README.fr.md)
 
-> Forty patches into fifteen other people's mods, written for one modpack.
+> Forty patches into seventeen other people's mods, written for one modpack.
 
 > ## ⚠️ These are patches, not a mod
 >
@@ -40,7 +40,7 @@ and fragile.
 | | |
 |---|---|
 | **Required** | Fabric Loader ≥ 0.16.0 · Fabric API (`fabric-command-api-v2`) · Java 21 |
-| **Optional** | all fifteen mods it patches — each enables a group of fixes and is ignored if absent |
+| **Optional** | all seventeen mods it patches — each enables a group of fixes and is ignored if absent |
 
 Everything it patches is optional at runtime. `CheeseCompatMixinPlugin` checks
 `FabricLoader.isModLoaded(...)` for each target and switches the relevant mixins off
@@ -96,7 +96,7 @@ log for `CheeseCompat` — a missing activation line means a missing fix. Full w
 | [Installation](docs/installation.md) | Prerequisites, the two CurseForge jars, build, what the first launch creates, the log lines that prove it loaded, clean removal and what the world keeps |
 | [Getting started](docs/getting-started.md) | A tutorial: build it, find out which fixes activated on your stack, then switch one off and watch it land in game |
 | [Commands](docs/commands.md) | `/stopbattle`, and how `/stopbattle <player>` is taken away from non-operators by reflecting into Brigadier |
-| [Configuration](docs/configuration.md) | The three booleans, one of which does nothing, plus every number that looks configurable and is hard-coded |
+| [Configuration](docs/configuration.md) | The three booleans, plus every number that looks configurable and is hard-coded |
 | [Architecture](docs/architecture.md) | Package layout, how mixins are gated, reflection patterns, threading, and a candid list of known weaknesses |
 | [Troubleshooting](docs/troubleshooting.md) | Symptom, cause, fix — built around the fact that the normal failure mode here is silence |
 
@@ -130,12 +130,13 @@ The targeted form is not added here, only locked down. Details in
 |---|---|
 | **Battle Tower** | forced NPC levels, double-battle guard, stale team locks, IV/EV corruption, full team restore, disconnect backup, arena offsets, chunk preload, party-screen aspects, shutdown restore, BP shop overflow |
 | **Cobblemon** | silently uncatchable alphas, Tera blocked in raids |
-| **MegaShowdown** | `mega_z` added to the aspect set so Mega-Z forms devolve; 42 custom mega stones mapped to Showdown ids |
+| **Trials Edition** | `IncompatibleClassChangeError` on Cobblemon 1.6.1 when resolving a nature |
+| **MegaShowdown** | `mega_z` added to the aspect set so Mega-Z forms devolve; 70 custom mega stones mapped to Showdown ids |
 | **CobbleSafari** | back-port to Cobblemon 1.6.1: spawn influences, dimensional bans, teleporter and dungeon portals outside the Overworld, two missing Cobblemon blocks, a portal block |
 | **StarAcademy** | safari balls unblocked in safari dimensions, slingshot blocked there, uncatchable bosses protected from slingshot hits |
 | **Daycare+** | IV inheritance rewritten, fertility clamped and decaying, one-shot breeding with a GUI toggle |
 | **Raid Dens** | boss facing, an entity-clear crash, fire spread, crystals that never close |
-| **Rad Gyms** | players stranded after a crash, a concurrency hang, wrong badge type, an NPE on trainer interaction |
+| **Rad Gyms** | players stranded after a crash, a concurrency hang, wrong badge type, an NPE on trainer interaction, orphan trainers purged from an empty gym dimension |
 | **Legendary Monuments** | sanctuary radius integer overflow, Arc Phone heal and PC toggles, entrepreneur profession lock |
 | **Minerally** | NPE crash when JustHammers area-breaks an `OrePile` |
 | **Enhanced Celestials** | `cheeseguard:*` dimensions inherit lunar settings; lazy per-level data forced to materialise |
@@ -189,8 +190,6 @@ normally. Verified on a 475-mod test server. It is noise in the log and nothing 
   be deleted. Read the one under `src/main/resources/`.
 - **Two classes are dead code**: `DaycareDestinyKnotConsumeMixin` (not listed in the
   mixin config) and `DungeonDimensionsMixin` (an empty class carrying a comment).
-- **`sanctuaryOverflowFix` is a vestigial config key.** It is read and logged and
-  switches nothing; the fix it names is unconditional.
 - **A new Daycare+ pasture produces one egg and stops.** That is this mod's default and
   the opposite of Daycare+'s own.
 - **`BattleArenaPositionMixin` hard-codes an 18-block arena.** On any other arena
@@ -202,10 +201,11 @@ normally. Verified on a 475-mod test server. It is noise in the log and nothing 
 
 ## Arkensia specifics
 
-`CacademyMegaStoneRemapPatch` maps 42 custom mega stones from the `CacademyMons`
-datapack — shipped as `minecraft:brick` and a handful of other vanilla items,
-distinguished by `custom_model_data` — onto MegaShowdown's Showdown simulator ids. It is
-entirely specific to that datapack and does nothing without it.
+`CacademyMegaStoneRemapPatch` maps 70 custom mega stones — 56 from the `CacademyMons`
+datapack, the rest from Z-A Megas Server-Side and AllTheMons x Mega Showdown, all shipped
+as `minecraft:brick` and a handful of other vanilla items, distinguished by
+`custom_model_data` — onto MegaShowdown's Showdown simulator ids. It is entirely specific
+to those packs and does nothing without them.
 
 `EnhancedCelestialsFactoryFallbackMixin` is specific to
 [CheeseGuard](../CheeseGuard/)'s runtime-created dimensions: any `cheeseguard:*`

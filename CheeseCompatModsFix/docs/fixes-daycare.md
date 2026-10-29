@@ -16,9 +16,10 @@ any mixin whose class name contains `Daycare` or `Fertility`, and
 `DaycareSimpleModeStore` is only wired to the lifecycle events behind an
 `isModLoaded("daycareplus")` check in `CheeseCompatMod`.
 
-Read this page as a whole before changing any one mixin. Eight of them touch two
-methods — `PotentialPokemonProperties.setIVs` and `PastureExtension.produceEgg` — and
-the result is the product of all of them, not the sum.
+Read this page as a whole before changing any one mixin. Eight of them are registered,
+and they stack: two rewrite `PotentialPokemonProperties.setIVs`, two more hook
+`PastureExtension.produceEgg`, and the rest touch the methods those two call or are
+called from. The result is the product of all of them, not the sum.
 
 ---
 
@@ -226,8 +227,9 @@ importing `PokemonPastureBlockEntity` would force javac to resolve `class_2586`.
 
 `DaycareSimpleModeStore` keeps it in a side table, not on the block entity, keyed by
 `(dimension id, BlockPos as a long)` and persisted to
-`config/cheesecompat_daycare.json`. It is initialised on
-`ServerLifecycleEvents.SERVER_STARTED` and flushed on `SERVER_STOPPING`.
+`config/cheesecompat_daycare.json`. It is loaded on
+`ServerLifecycleEvents.SERVER_STARTED`, rewritten on every state change (each click and
+each disarm), and saved once more on `SERVER_STOPPING`.
 
 Defaults are `simpleMode = true`, `simpleArmed = true`, so a **new pasture produces one
 egg and then stops**. That is the opposite of Daycare+'s own default, and it is the

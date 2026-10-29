@@ -5,7 +5,7 @@
 > ⚠️ Même avertissement que sur les autres pages du catalogue : chaque correctif est lié à
 > une version d'un mod tiers, et rien ici n'est testé contre une autre.
 
-Huit correctifs répartis sur six mods, plus l'unique fonctionnalité côté client qui ne soit
+Dix correctifs répartis sur six mods, plus l'unique fonctionnalité côté client qui ne soit
 pas un mixin.
 
 **Mods visés sur cette page**
@@ -40,9 +40,11 @@ devient négatif, ce qui est toujours `<= radiusSq`. Toute position lointaine se
 
 **Moyen.** `SanctuaryDistanceMixin` — `@Inject` en `HEAD` de `isWithinRadius`,
 `cancellable`, `require = 0`, qui refait la comparaison en arithmétique `long` et renvoie la
-bonne réponse.
+bonne réponse. Il consulte d'abord `sanctuaryOverflowFix` : à `false`, il rend la main sans
+annuler et le code `int` d'origine s'exécute.
 
-**État.** Actif.
+**État.** Actif, et **activé** par défaut (`sanctuaryOverflowFix = true`). Voir
+[configuration](configuration.fr.md#sanctuaryoverflowfix).
 
 Un débordement d'entier d'école, et une bonne illustration de la raison pour laquelle il est
 passé inaperçu : le bug n'apparaît qu'à une distance où personne ne teste, et quand il
@@ -227,7 +229,7 @@ preuves ».
 
 La journalisation, ajoutée en 1.2.39, est construite pour le diagnostic : un `WARN` à chaque
 blocage, limité aux cinq premiers puis un sur cinquante, plus un `INFO` la première fois
-qu'il bloque et un la première fois que FTB est de nouveau prêt. Ça te dit si la course se
+que FTB est de nouveau prêt après au moins un blocage. Ça te dit si la course se
 produit réellement sur ton serveur, et à quelle fréquence.
 
 **Inerte en l'absence du mod.** Oui — conditionné à `extraquests`. FTB Quests lui-même
@@ -303,7 +305,9 @@ personnalisé. La coupure vanilla par défaut est de 64 blocs, donc ça fait O(N
 `renderItem` par image à travers un marché.
 
 **Moyen.** `client.NumismaticShopCullMixin` — `@Inject` en `HEAD` de `render`,
-`cancellable`, qui annule au-delà d'une distance fixe (environ 24 blocs) de la caméra. Le
+`cancellable`, qui annule au-delà d'une distance fixe de 10 blocs de la caméra
+(`CCMF_CULL_DIST_SQ = 10 × 10`, resserrée de 24 à 10 en juin 2026 ; à exactement 10 blocs,
+l'item est encore dessiné). Le
 modèle statique du bloc boutique est toujours dessiné par le mesh du chunk ; seul l'item
 flottant du block entity renderer est sauté. Toute exception retombe sur le rendu d'origine,
 donc le pire cas est le comportement actuel.
@@ -336,10 +340,10 @@ entrypoint `client` dans `src/main/resources/fabric.mod.json` :
 Sur `CLIENT_STARTED`, il vérifie si `file/CacademyMons` est déjà dans la liste des packs
 activés, et rend la main immédiatement si c'est le cas — cette unique vérification est ce
 qui en fait une mise en place unique plutôt que quelque chose qui combat les choix du joueur
-à chaque lancement. Sinon il lit la liste ordonnée des packs depuis
-`config/resourcepackoverrides.json` (synchronisé depuis le serveur par AutoModpack, ce qui
-garde le serveur comme source unique de vérité), retombe sur une liste codée en dur d'une
-cinquantaine de packs si ce fichier est absent, rescanne le dossier des packs, les active via
+à chaque lancement. Sinon il lit la liste ordonnée des packs dans le tableau `default_packs`
+de `config/resourcepackoverrides.json` (synchronisé depuis le serveur par AutoModpack, ce qui
+garde le serveur comme source unique de vérité), retombe sur une liste codée en dur de
+51 packs si ce fichier est absent, illisible ou si le tableau est vide, rescanne le dossier des packs, les active via
 le `ResourcePackManager`, resynchronise l'état du manager dans les options, les écrit, et
 recharge les ressources.
 

@@ -158,10 +158,11 @@ Tous renvoient `0`.
 
 Un nombre hors plage est rejeté par Brigadier avant l'exécution du handler, avec le
 message vanilla *Integer must not be less than 1, found 0* ou *Integer must not be more
-than 252, found 300*. Un pseudo hors ligne ou inconnu produit le vanilla *No player was
-found*. Ce sont des erreurs d'analyse : elles lèvent une exception, donc la commande
-n'est pas seulement « sans succès », elle échoue franchement, et un
-`/execute store result` laisse sa cible intacte.
+than 252, found 300*. C'est une erreur d'analyse : la ligne entière est refusée avant
+toute exécution, donc un `/execute store result` laisse sa cible intacte. Un pseudo hors
+ligne ou inconnu produit le vanilla *No player was found*, mais seulement au moment où le
+handler résout l'argument, à l'exécution : la commande échoue franchement et la cible
+d'un `/execute store result` ou `store success` reçoit `0`.
 
 ---
 
@@ -335,15 +336,21 @@ C'est la partie qu'un système de quêtes consomme réellement.
 | Situation | Résultat | Lève | Ce que l'appelant observe |
 |---|---|---|---|
 | Vérification réussie | `1` | non | score écrit, `store result` → `1`, `store success` → `1`, un bloc de commande conditionnel s'enchaîne |
-| Vérification échouée | `0` | non | rien d'écrit, `store result` → `0`, `store success` → `0`, la chaîne s'arrête |
+| Vérification échouée | `0` | non | rien d'écrit, `store result` → `0`, mais `store success` → **`1`** et un bloc de commande conditionnel **s'enchaîne quand même** : la commande n'a rien levé |
 | Cobblemon absent | `0` | non | identique à une vérification échouée. **Rien ne permet de les distinguer au seul résultat** |
-| Joueur hors ligne | — | oui | erreur d'analyse ; les cibles de `store result` et `store success` restent telles quelles |
-| Entier hors plage | — | oui | erreur d'analyse, idem |
+| Joueur hors ligne | — | oui | erreur d'exécution ; les cibles de `store result` et `store success` reçoivent toutes deux `0` |
+| Entier hors plage | — | oui | erreur d'analyse ; rien ne s'exécute, les cibles de `store` restent telles quelles |
 | Sous-commande inconnue ou argument manquant | — | oui | vanilla *Unknown or incomplete command* |
 
 Le fait de renvoyer `0` aussi bien pour un échec légitime que pour un Cobblemon absent
 est le point faible de cette interface. Les distinguer depuis un bloc de commande est
 impossible ; regarde plutôt le chat du joueur ou le log du serveur.
+
+Depuis Minecraft 1.20.3, « succès » signifie « n'a rien levé », et non « a renvoyé une
+valeur non nulle » (le `ContextChain.runExecutable` de Brigadier signale un succès `true`
+quelle que soit la valeur renvoyée). Une vérification ratée est donc une commande
+*réussie* qui a renvoyé `0`. Fais tes branchements sur `store result`, ou sur l'objectif
+que la vérification écrit, jamais sur `store success`.
 
 ## Schémas d'intégration
 
@@ -390,10 +397,16 @@ score change.
 
 ### Une chaîne de blocs de commande
 
-Place la vérification dans un bloc **Impulsion, Inconditionnel**, et la récompense dans un
-bloc **Chaîne, Conditionnel** derrière lui. Le bloc chaîné ne se déclenche que si la
-vérification a renvoyé une valeur non nulle, le drapeau de succès d'un bloc de commande
-étant dérivé du résultat.
+Ne place **pas** la vérification dans un bloc impulsion avec la récompense dans un bloc
+**Chaîne, Conditionnel** derrière lui. En 1.21.1, le `SuccessCount` d'un bloc de commande
+augmente dès que sa commande se termine sans lever d'exception (`CommandBlockExecutor`
+compte le drapeau `successful`, pas la valeur renvoyée) : le bloc conditionnel se
+déclenche donc aussi sur une vérification ratée. Fais plutôt tester le score par le bloc
+chaîné :
+
+```mcfunction
+execute if score @p quest_iv matches 4 run give @p cobblemon:master_ball 1
+```
 
 ## Le piège de la création automatique
 

@@ -154,10 +154,11 @@ All of them return `0`.
 
 An out-of-range number is rejected by Brigadier before the handler runs, with the
 vanilla message *Integer must not be less than 1, found 0* or *Integer must not be more
-than 252, found 300*. An offline or unknown player name produces the vanilla *No player
-was found*. Those are parse errors: they throw, so the command is **not** merely
-unsuccessful, it fails outright, and `/execute store result` leaves its target
-untouched.
+than 252, found 300*. That is a parse error: the whole line is refused before anything
+runs, so `/execute store result` leaves its target untouched. An offline or unknown
+player name produces the vanilla *No player was found*, but only when the handler
+resolves the argument, at execution time: the command fails outright and an
+`/execute store result` or `store success` target receives `0`.
 
 ---
 
@@ -326,15 +327,21 @@ This is the part a quest system actually consumes.
 | Situation | Result | Throws | What a caller observes |
 |---|---|---|---|
 | Check passes | `1` | no | score written, `store result` → `1`, `store success` → `1`, conditional command block chains |
-| Check fails | `0` | no | nothing written, `store result` → `0`, `store success` → `0`, chain stops |
+| Check fails | `0` | no | nothing written, `store result` → `0`, but `store success` → **`1`** and a conditional command block **still chains**: the command did not throw |
 | Cobblemon absent | `0` | no | identical to a failed check. **There is no way to tell them apart from the result alone** |
-| Player not online | — | yes | parse error; `store result` and `store success` targets are left as they were |
-| Integer out of range | — | yes | parse error, same as above |
+| Player not online | — | yes | execution error; `store result` and `store success` targets both receive `0` |
+| Integer out of range | — | yes | parse error; nothing runs, `store` targets are left as they were |
 | Unknown subcommand or missing argument | — | yes | vanilla *Unknown or incomplete command* |
 
 `0` being returned for both a legitimate failure and a missing Cobblemon is the weakest
 point of the interface. Distinguishing them from a command block is impossible; check
 the player's chat or the server log instead.
+
+Since Minecraft 1.20.3, "success" means "did not throw", not "returned non-zero"
+(Brigadier's `ContextChain.runExecutable` reports success `true` with whatever the
+command returned). A failed check is therefore a *successful* command that returned
+`0`. Branch on `store result`, or on the objective the check writes, never on
+`store success`.
 
 ## Integration patterns
 
@@ -379,9 +386,15 @@ passes, because that is the moment the score changes.
 
 ### A command block chain
 
-Put the check in an **Impulse, Unconditional** block, and the reward in a **Chain,
-Conditional** block behind it. The chain block fires only when the check returned
-non-zero, since a command block's success flag is derived from the result.
+Do **not** put the check in an impulse block and the reward in a **Chain,
+Conditional** block behind it. On 1.21.1 a command block's `SuccessCount` goes up
+whenever its command completes without throwing (`CommandBlockExecutor` counts the
+`successful` flag, not the return value), so the conditional block fires on a failed
+check too. Make the chain block test the score instead:
+
+```mcfunction
+execute if score @p quest_iv matches 4 run give @p cobblemon:master_ball 1
+```
 
 ## The auto-creation trap
 

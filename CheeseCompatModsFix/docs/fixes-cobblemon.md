@@ -111,14 +111,15 @@ class by name, reads the `mega_aspects` field reflectively and appends `"mega_z"
 live `HashSet`. The decompiled bytecode confirms it is a plain `HashSet`, so mutating it
 is safe.
 
-**Inert when absent.** Yes — `Class.forName` fails, the patch logs and returns. There is
-no mixin and no compile-time dependency on MegaShowdown at all.
+**Inert when absent.** Yes — `apply()` returns silently when `mega_showdown` is not
+loaded; if the mod is there but the class or field has moved, it logs and returns. There
+is no mixin and no compile-time dependency on MegaShowdown at all.
 
 **Status.** Active.
 
 ## 4. Custom mega stones not recognised by the simulator
 
-**Symptom.** A player holds one of the 42 CacademyMons mega stones, and the Mega button
+**Symptom.** A player holds one of the custom mega stones, and the Mega button
 is greyed out with no message and nothing in the log.
 
 **Cause.** The CacademyMons datapack ships its mega stones as plain
@@ -137,9 +138,13 @@ stone id. Cobblemon then consults it on every held-item lookup during battle set
 the existing `items.js` / `held_items.js` entries that declare `megaStone` and
 `megaEvolves` take effect on their own.
 
-Scope: only the 42 stones that have a unique `(item_id, cmd)` pair. Entries where
-`cmd == 0` on `minecraft:brick` collide with each other and are skipped — they were
-placeholders in the datapack.
+Scope: the `REMAP` table holds 70 entries, each a unique `(item_id, cmd)` pair. 56 are
+CacademyMons stones: 41 original ones, plus 15 that used to share `minecraft:brick` with
+`cmd == 0` — a collision that made them unmappable — and were given their own values,
+`261037` to `261051`, with the datapack updated to match. The other 14 are stones from
+two other packs that also ride on vanilla items: 10 from Z-A Megas Server-Side and 4 from
+AllTheMons x Mega Showdown. Any item outside the 18 vanilla items those stones use is
+rejected before the `custom_model_data` is even read.
 
 **Inert when absent.** Yes, twice over: without Cobblemon the reflective lookup fails
 and the patch returns; without the CacademyMons datapack the remap table never matches
@@ -147,8 +152,8 @@ anything.
 
 **Status.** Active. ⚠️ This fix is specific to one datapack. The item ids and
 `custom_model_data` numbers are hard-coded in `REMAP`. On any other server it does
-nothing — which is the intended failure mode, but worth knowing before you read the 241
-lines of table.
+nothing — which is the intended failure mode, but worth knowing before you read the
+241-line file.
 
 ## 5. Trials Edition crashes on Cobblemon 1.6.1
 
@@ -188,8 +193,10 @@ resets, not a scale or hitbox mismatch.
 **How.** `AlphaScaleHitboxFixMixin`, `@Pseudo`-style target by string
 (`com.cobblemon.mod.common.entity.pokemon.PokemonEntity`, `remap = false`), `@Inject`
 at `HEAD` of `method_5773` — the intermediary name for `Entity.tick()`, written out
-because Yarn names are not translated when `remap = false`. On the first tick of an
-entity flagged `IS_ALPHA: true` in its `Pokemon.PersistentData`, it performs an NBT
+because Yarn names are not translated when `remap = false`. Owned Pokémon are skipped —
+an alpha sent out from a ball is a fresh entity without the corruption, and the
+round-trip would stop it from rendering. On the first tick of a wild entity flagged
+`IS_ALPHA: true` in its `Pokemon.PersistentData`, it performs an NBT
 round-trip (`writeNbt` then `readNbt`), which is what `/data merge` does internally.
 Scale, AABB, the `IS_ALPHA` flag, IVs, abilities and loot drops all survive unchanged.
 
@@ -231,9 +238,10 @@ entity hierarchy.
 
 **Status.** Active.
 
-## 8. Raid dens: four fixes
+## 8. Raid dens: five fixes
 
-All four are gated on `cobblemonraiddens` in the mixin plugin.
+The four mixins (8a–8d) are gated on `cobblemonraiddens` in the mixin plugin; `RaidDenFix`
+(8e) is registered only when `isModLoaded("cobblemonraiddens")` in `CheeseCompatMod`.
 
 ### 8a. Terastallisation during a raid
 
@@ -280,22 +288,30 @@ to every fire tick on the server; the namespace check is the first thing it does
 **Symptom.** A raid crystal stays open after everyone has left, died or disconnected,
 so nobody can start a new raid there.
 
-**Cause.** Raid Dens tracked state by dimension id, and dimension ids are reused per
-player. Two rapid raids by the same player overwrote each other's entry in the map, and
-the first crystal was forgotten.
+**Cause.** Raid Dens does not always release a crystal (its `raidHost` stays set) when
+the last player leaves the raid dimension. Earlier versions of this fix tracked stuck
+crystals by dimension id, and dimension ids are reused per player: two rapid raids by the
+same player overwrote each other's entry in the map, and the first crystal was forgotten.
 
 **How.** `RaidDenFix`, a tick-driven handler keyed by **crystal position** instead of
-dimension id. When a player exits a raid it schedules a check on that crystal in
-`FAST_CHECK_DELAY` (20 ticks, 1 s), force-loading the crystal's chunk if needed, and
-otherwise scans every `SCAN_INTERVAL` (100 ticks, 5 s). Escalation ladder:
+dimension id. When the last player leaves a raid dimension (changing world or
+disconnecting), it flags that dimension's crystal. Flagged crystals are processed on the
+`SCAN_INTERVAL` scan (every 100 ticks, 5 s), force-loading the crystal's chunk if needed.
+A `FAST_CHECK_DELAY` constant (20 ticks) is declared, and the class comment promises a
+check one second after the exit, but nothing uses it: the first check comes at the next
+5-second scan. Escalation ladder:
 `GRACE_PERIOD` 100 ticks before any action, `MEDIUM_THRESHOLD` 200 ticks,
 `NUCLEAR_THRESHOLD` 300 ticks, and `GIVE_UP_THRESHOLD` 1200 ticks (60 s) after which it
 stops tracking that crystal entirely. Giving up is deliberate: a crystal this mod cannot
 close is better left alone than retried forever.
 
+In practice the nuclear reset, at the first scan past 15 s, ends the tracking of any
+crystal it can reach; the 60-second give-up only applies to a crystal whose block entity
+was never found.
+
 **Status.** All five active.
 
-## 9. Rad Gyms: four fixes
+## 9. Rad Gyms: five fixes
 
 **Target:** `rad-gyms`. Not on the compile classpath — every access is by reflection on
 `lol.gito.radgyms.*`. Gated on `isModLoaded("rad-gyms")` in `CheeseCompatMod`, so the
@@ -309,8 +325,9 @@ with no way out.
 **Cause.** Rad Gyms keeps gym instances in a `PLAYER_GYMS` `LinkedHashMap` in memory
 only. A crash loses the map, and with it every exit route.
 
-**How.** On join, players found in the gym dimension with no instance are teleported out
-and told what happened, via `cheesecompat.radgyms.rescued`:
+**How.** On join, any player who logs in inside the gym dimension is teleported to the
+Overworld world spawn and told what happened, via `cheesecompat.radgyms.rescued` — there
+is no check for a surviving instance, since after a restart there never is one:
 
 ```text
 You were rescued from a gym dimension after a server restart. Your gym progress was lost.
@@ -332,7 +349,7 @@ race on it.
 
 **How.** The original gym type key is tracked per player, and the correct `GymTemplate`
 is restored before loot is handed out. The handler subscribes to Cobblemon's
-`BATTLE_VICTORY` at `HIGHEST` priority — Rad Gyms subscribes at `NORMAL`, so this runs
+`BATTLE_VICTORY` at `HIGH` priority — Rad Gyms subscribes at `NORMAL`, so this runs
 first. The subscription is built by reflection: the `Priority` enum value is resolved by
 name and the `subscribe(Priority, Function1)` method is found by scanning for a
 two-parameter `subscribe`.
@@ -355,7 +372,19 @@ You don't have an active gym session. Leave the gym dimension and try again.
 This trainer doesn't belong to your gym session.
 ```
 
-**Status.** All four active.
+### 9e. Orphan trainers left in an empty gym dimension
+
+**Symptom.** A player re-entering the gym dimension freezes the server (a c2me chunk
+lookup spinning inside `Entity.move`).
+
+**Cause.** Rad Gyms `Trainer` entities stay in the dimension after everyone has left,
+keeping chunks and entity tracking alive.
+
+**How.** Every 600 ticks (30 s), if `rad-gyms:rad-gyms_dim` has no player in it, every
+`lol.gito.radgyms.entity.Trainer` entity there is discarded, with an `INFO` line giving
+the count when there was at least one.
+
+**Status.** All five active.
 
 ---
 

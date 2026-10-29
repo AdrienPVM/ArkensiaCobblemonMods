@@ -65,7 +65,7 @@ la liste réelle des noms. Si les deux divergent un jour (un dialogue qui incré
 
 L'ordre ci-dessous est celui d'`IslandTourTracker.NPCS`, une `LinkedHashMap`, et c'est
 l'ordre dans lequel le HUD les liste. Il est alphabétique par nom affiché, avec une
-exception : `alfred_main` passe en tête sous le nom affiché `Alfred`.
+exception : `Sven` passe avant `Suzy`.
 
 | Clé | Nom affiché | Objectif lu |
 |---|---|---|
@@ -166,9 +166,11 @@ Envoyer `total` sur le fil au lieu de l'écrire en dur côté client permet à u
 la map `NPCS` a été modifiée de fonctionner avec un jar client intact. Cela n'aide que si
 les noms viennent aussi du serveur, ce qui est le cas.
 
-L'envoi est enveloppé dans un `try/catch` qui écrit en niveau DEBUG. Un client dépourvu du
-mod ne sait pas décoder le canal, et cet échec est avalé délibérément : le HUD est une
-décoration optionnelle, pas de quoi déconnecter un joueur.
+L'envoi est enveloppé dans un `try/catch` qui écrit en niveau DEBUG : un échec d'envoi
+côté serveur ne sort donc jamais du gestionnaire de tick. Le HUD est une décoration
+optionnelle, pas de quoi casser le tick. Ce `catch` ne couvre que le côté serveur ; ce
+qu'un client dépourvu du mod fait du canal inconnu se décide sur le client, hors de
+portée de ce mod.
 
 ## Le rendu
 
@@ -233,9 +235,9 @@ Trois modifications, puis une reconstruction :
 
 1. Remplace les entrées du bloc statique d'`IslandTourTracker` par tes propres paires
    `clé → nom affiché`. `TOTAL` suit.
-2. Renomme `jenny_intro` et `spawn_tour` dans `onServerTick` si ta donneuse de quête ne
-   s'appelle pas Jenny, ou crée des objectifs portant ces noms et laisse le code
-   tranquille.
+2. Renomme `jenny_intro` et `spawn_tour` dans `onServerTick` et `onPlayerJoin` (les deux
+   les cherchent par leur nom) si ta donneuse de quête ne s'appelle pas Jenny, ou crée des
+   objectifs portant ces noms et laisse le code tranquille.
 3. Change la chaîne `title` dans `IslandTourHud.render` si le français ne convient pas.
 
 Garde des noms affichés sous une dizaine de caractères, ou élargis `COL_WIDTH` en

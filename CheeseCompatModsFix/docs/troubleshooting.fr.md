@@ -92,10 +92,10 @@ journalisent. Sers-toi de ce tableau :
 
 | Si tu attends | Cherche |
 |---|---|
-| les correctifs CobbleSafari | quatre ou cinq lignes `[CheeseCompat] Safari …` / `Dungeon …` / `tatami` |
+| les correctifs CobbleSafari | six ou sept lignes `[CheeseCompat]` qui mentionnent `Safari`, `CobbleSafari`, `Dungeon` ou `tatami` (celle de `tatami` seulement sur Cobblemon 1.6.1) |
 | les correctifs Enhanced Celestials | `EnhancedCelestials lunar warmup registered` puis une ligne `Warmed lunar data for …` par dimension |
 | la restriction de `/stopbattle <player>` | `Restricted /stopbattle <player> to operators` |
-| les correctifs Battle Tower | rien au démarrage — ils journalisent par combat, sur `startBattle` et `applyForcedLevelFallback` |
+| les correctifs Battle Tower | `BattleTower foolproof disconnect/reconnect fix registered (v2 hardened)` au démarrage ; les mixins eux-mêmes journalisent par combat, sur `startBattle` et `applyForcedLevelFallback` |
 | les correctifs Daycare+ | rien. Teste le comportement à la place (voir plus bas) |
 | les correctifs Legendary Monuments | rien. Mets une clé de config à `false` et teste |
 | les correctifs client | rien. Teste visuellement |
@@ -113,8 +113,8 @@ fonctionne toujours.
 
 **Cause 1 — tu as modifié le fichier serveur en marche.** La config est lue une fois, comme
 première instruction d'`onInitialize()`. Il n'y a pas de commande de rechargement et pas de
-surveillance de fichier. Pire : le démarrage suivant **réécrit** le fichier, donc une
-modification faite serveur en marche est écrasée.
+surveillance de fichier. La modification n'est pas perdue — rien n'écrit le fichier
+pendant que le serveur tourne — mais elle ne prend effet qu'au démarrage suivant.
 
 **Remède.** Arrête le serveur, modifie, démarre. Confirme avec la ligne de démarrage, qui
 reprend les valeurs :
@@ -138,10 +138,11 @@ fonctionner.
 s'appelle la lambda du receveur serveur dans ce build. Il n'y a aucun contournement depuis
 la config.
 
-**Cause 3 — tu as posé `sanctuaryOverflowFix` en attendant un effet.** Elle n'en a pas.
-Elle est lue, affichée dans la ligne de log, et lue par rien ;
-`SanctuaryDistanceMixin` s'applique inconditionnellement. Voir
-[configuration](configuration.fr.md#sanctuaryoverflowfix).
+**Cause 3 — `sanctuaryOverflowFix` est à `false`.** Cette clé fonctionne bel et bien :
+`SanctuaryDistanceMixin` la consulte à chaque appel et, à `false`, laisse tourner
+l'arithmétique d'origine de Legendary Monuments, celle qui déborde — un sanctuaire peut de
+nouveau sembler couvrir le monde entier. La ligne de log affiche `Sanctuary fix=OFF`.
+Remets-la à `true`. Voir [configuration](configuration.fr.md#sanctuaryoverflowfix).
 
 ## Symptôme : `/stopbattle` est refusée ou absente
 
@@ -150,7 +151,7 @@ Elle est lue, affichée dans la ligne de log, et lue par rien ;
 | `No player was found` | tu l'as exécutée depuis la console ou un bloc de commande ; le gestionnaire appelle `getPlayerOrThrow()` en premier | exécute-la en tant que joueur |
 | `Unknown command` | le module de l'API de commandes de Fabric manque, donc `CommandRegistrationCallback` ne s'est jamais déclenché — mais alors le mod ne se serait pas chargé du tout | installe l'API Fabric complète |
 | `Incorrect argument for command` sur `/stopbattle <player>` | tu es sous le niveau de permission 2 ; le nœud d'argument est caché de ton arbre de commandes | c'est le comportement voulu, voir [commandes](commands.fr.md#stopbattle-player--restreinte-pas-ajoutée) |
-| `Battle stop requested.` mais le combat continue | le `/stopbattle <name>` interne n'a trouvé aucun combat, ou Battle Tower n'est pas installé | le message est envoyé avant que la commande interne tourne et n'est pas conditionné à son résultat |
+| `Battle stop requested.` mais le combat continue | le `/stopbattle <name>` interne n'a trouvé aucun combat, ou Battle Tower n'est pas installé | le message est envoyé après l'exécution de la commande interne mais ignore son résultat |
 
 ⚠️ Un cas à surveiller : la ligne de log
 `[CheeseCompat] Could not restrict /stopbattle <player>: <message>` signifie que la
@@ -244,9 +245,11 @@ ls config/cheesecompat_bt_backups/
 
 Un `<uuid>.dat` présent signifie que la restauration n'a jamais abouti et que la vraie équipe
 du joueur est **encore dans ce fichier**. Ne le supprime pas. La restauration réessaie 60
-fois à raison d'une par seconde à partir de sa connexion, et ne se déclenche que lorsque tous
-les UUID de la sauvegarde sont présents dans l'équipe vivante — donc un chargement d'équipe
-Cobblemon lent peut la pousser hors de la fenêtre.
+fois à raison d'une par seconde à partir de sa connexion, et attend que tous les UUID de la
+sauvegarde soient présents dans l'équipe vivante. Si l'équipe ne se charge jamais dans cette
+fenêtre, le fichier est conservé et la connexion suivante réessaie ; si elle se charge mais
+qu'il manque encore des Pokémon à la 60e tentative, le mod restaure ceux qu'il trouve puis
+**supprime la sauvegarde** malgré tout.
 
 Fais reconnecter le joueur et surveille le log. S'il revient et court immédiatement à la
 tour, la garde `cheesecompat.bt.restore_pending` doit l'arrêter :
@@ -301,9 +304,12 @@ Cobblemon à la place, comme le fait `CacademyMegaStoneRemapPatch`. Voir
 CobblemonAlphas est de retour : les balles rebondissent sans animation, sans message et sans
 rien dans le log.
 
-**Remède.** Le mixin se déclenche au premier tick d'une entité et seulement pour les entités
-marquées `IS_ALPHA: true` dans `Pokemon.PersistentData`. Un alpha qui a déjà tické une fois
-avant le chargement du mod ne sera pas retraité. L'équivalent manuel, que le correctif
+**Remède.** Le mixin se déclenche au premier tick d'une entité après son apparition ou son
+chargement, et seulement pour les entités sauvages (sans propriétaire) marquées
+`IS_ALPHA: true` dans `Pokemon.PersistentData`. Le drapeau « déjà traité » vit sur l'objet
+entité et n'est pas sauvegardé, donc un alpha est retraité à chaque chargement — mais une
+seule fois par chargement : s'il est toujours incapturable après ce premier tick, le mixin
+ne réessaie pas avant que le chunk soit rechargé. L'équivalent manuel, que le correctif
 automatise, est un aller-retour NBT :
 
 ```mcfunction

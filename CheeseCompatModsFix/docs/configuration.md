@@ -12,10 +12,12 @@ fix on your server is unwanted, there is no flag for it; the only lever is remov
 jar.
 
 The path is resolved as `Path.of("config", "cheesecompatmodsfix.json")`, relative to the
-server's working directory. The three other files this mod writes go through
+server's working directory, and so is the shrieker cooldown file
+(`Path.of("config", "cheesecompatmodsfix_shrieker_cooldowns.json")`). The two other files
+this mod writes — the Battle Tower backups and the daycare store — go through
 `FabricLoader.getConfigDir()` instead. On a normal launch these are the same folder; on a
-launcher that sets a different working directory they are not, and this file alone will
-land somewhere else.
+launcher that sets a different working directory they are not, and the files will be
+split between two places.
 
 ---
 
@@ -25,7 +27,7 @@ land somewhere else.
 |---|---|---|---|
 | `arcPhoneHealEnabled` | boolean | `true` | when `false`, the Legendary Monuments Arc Phone cannot heal a party |
 | `arcPhonePCEnabled` | boolean | `true` | when `false`, the Arc Phone cannot open the Pokémon PC |
-| `sanctuaryOverflowFix` | boolean | `true` | read at startup and logged; see the warning below |
+| `sanctuaryOverflowFix` | boolean | `true` | when `false`, the Legendary Monuments sanctuary radius check runs unpatched, with its integer overflow |
 
 ### `arcPhoneHealEnabled`
 
@@ -62,15 +64,14 @@ L'accès au PC via l'Arc Phone est désactivé sur ce serveur.
 
 ### `sanctuaryOverflowFix`
 
-⚠️ **This key does not switch anything off.** It is loaded, and its value is printed in
-the startup log line, but `SanctuaryDistanceMixin` does not read it — the integer
-overflow fix in `SanctuaryBlock.isWithinRadius()` is applied unconditionally whenever
-Legendary Monuments is installed.
+Switches the integer overflow fix in `SanctuaryBlock.isWithinRadius()` on or off.
+`SanctuaryDistanceMixin` reads it at the head of every call: at `true` it computes the
+distance in `long` and returns the result itself; at `false` it returns without
+cancelling, and Legendary Monuments' original `int` arithmetic runs — the version that
+overflows for a far-away player and makes the sanctuary appear to cover the world. Its
+value is also printed in the startup log line (`Sanctuary fix=ON` / `OFF`).
 
-Setting it to `false` changes the word in one log line from `ON` to `OFF` and nothing
-else. It is documented here as a vestigial key rather than quietly omitted, because a
-key that looks like a switch and is not is worse than no key at all. Treat the fix as
-always on.
+There is no good reason to turn it off. Leave it at `true`.
 
 ---
 
@@ -105,8 +106,9 @@ start with that version, already set to its default. You do not have to delete t
 to pick up new keys.
 
 The same mechanism rewrites the file every single start, which means **comments and
-formatting you add by hand are lost**. Gson's `JsonObject` parser also rejects JSON
-comments outright, so there is nowhere to put a note.
+formatting you add by hand are lost**. Gson parses this file leniently, so a `//`
+comment does not break the load — but the re-save that follows erases it, so there is
+nowhere to keep a note.
 
 ## What happens when the file is malformed
 
@@ -142,8 +144,8 @@ Reading that back, line by line:
   Players get a red message. Pokémon Centers and healers are unaffected.
 - `arcPhonePCEnabled: false` — the Arc Phone PC packet is refused the same way. Physical
   PC blocks are unaffected.
-- `sanctuaryOverflowFix: true` — no effect either way, as described above. Left at the
-  default so the log line reads `ON` and matches what the code actually does.
+- `sanctuaryOverflowFix: true` — the sanctuary radius check keeps its overflow fix.
+  Left at the default, which is the only sensible value.
 
 Both Arc Phone keys are no-ops on a server without Legendary Monuments: the mixins are
 never applied, so the packets they guard do not exist.
@@ -166,9 +168,9 @@ file to edit them if you are willing to rebuild.
 | `COOLDOWN_MILLIS` / `COOLDOWN_RADIUS` | 10 min / 200 blocks | `ShriekerBossState` | shrieker boss spawn cooldown |
 | `RADIUS` | `50` | `BossDarknessAura` | range of the boss darkness aura |
 | Repel range | `80` blocks | `SafariSpawnInfluenceFix` | safari Repel effect radius |
-| shop cull distance | ~`24` blocks | `client.NumismaticShopCullMixin` | when a Numismatic shop stops rendering its item |
+| shop cull distance | `10` blocks | `client.NumismaticShopCullMixin` | when a Numismatic shop stops rendering its item |
 | `FAKEMON_NAMESPACES` | `seavlbizarremon` | `client.JourneyMapSeavlianIconMixin` | which namespaces get their minimap icon path rewritten |
-| `REMAP` | 42 entries | `CacademyMegaStoneRemapPatch` | custom mega stone → Showdown stone id table |
+| `REMAP` | 70 entries | `CacademyMegaStoneRemapPatch` | custom mega stone → Showdown stone id table |
 
 ## Other files this mod writes
 

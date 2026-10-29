@@ -62,7 +62,7 @@ because `met` is computed as `TOTAL - remaining.size()`.
 
 The order below is the order in `IslandTourTracker.NPCS`, a `LinkedHashMap`, and it is
 the order the HUD lists them in. It is alphabetical by display name, with one exception:
-`alfred_main` sorts first under the display name `Alfred`.
+`Sven` comes before `Suzy`.
 
 | Key | Display name | Objective read |
 |---|---|---|
@@ -159,9 +159,10 @@ Sending `total` over the wire instead of hardcoding it client-side means a serve
 `NPCS` map was edited works with an unmodified client jar. That only helps if the names
 also come from the server, which they do.
 
-The send is wrapped in a `try/catch` that logs at DEBUG. A client without the mod cannot
-decode the channel, and that failure is swallowed deliberately: the HUD is optional
-decoration, not something worth disconnecting a player over.
+The send is wrapped in a `try/catch` that logs at DEBUG, so a server-side failure to send
+never escapes the tick handler: the HUD is optional decoration, not something worth
+breaking the tick over. That `catch` only covers the server side; what a client without
+the mod does with the unknown channel is decided on the client, out of this mod's reach.
 
 ## The renderer
 
@@ -223,8 +224,9 @@ Three edits, then rebuild:
 
 1. Replace the entries in `IslandTourTracker`'s static block with your own
    `key → display name` pairs. `TOTAL` follows.
-2. Rename `jenny_intro` and `spawn_tour` in `onServerTick` if your quest giver is not
-   called Jenny, or create objectives with those names and leave the code alone.
+2. Rename `jenny_intro` and `spawn_tour` in `onServerTick` and `onPlayerJoin` (both look
+   them up by name) if your quest giver is not called Jenny, or create objectives with
+   those names and leave the code alone.
 3. Change the `title` string in `IslandTourHud.render` if French does not suit.
 
 Keep display names under roughly ten characters or widen `COL_WIDTH` to match.

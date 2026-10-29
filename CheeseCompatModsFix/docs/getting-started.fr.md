@@ -87,15 +87,24 @@ l'étape 2, et le message dit quel fichier il voulait.
 
 ## 4. Dépose-le dans un serveur
 
-Un serveur Fabric 1.21.1 simple avec Fabric API suffit pour démarrer. Ajoute aussi Legendary
-Monuments, parce que l'étape 8 en a besoin :
+Ce mod seul n'a besoin de rien d'autre que Fabric API. L'étape 8, en revanche, a besoin de
+Legendary Monuments, et Legendary Monuments 7.2 ne se charge pas seul : son
+`fabric.mod.json` exige Fabric Loader 0.16.10 ou plus, Cobblemon, MegaShowdown, Trinkets,
+Chipped et CobbleFurnies. La plus petite pile qui fait tourner ce tutoriel est donc :
 
 ```text
 mods/
-├── fabric-api-0.103.0+1.21.1.jar
-├── legendary-monuments-7.2.jar
+├── fabric-api-<version>+1.21.1.jar
+├── cobblemon-<version>.jar
+├── mega_showdown-<version>.jar
+├── trinkets-<version>.jar
+├── chipped-<version>.jar          (et ce que Chipped exige lui-même)
+├── cobblefurnies-<version>.jar
+├── LegendaryMonuments-7.2.jar
 └── cheesecompatmodsfix-1.2.53+1.21.1.jar
 ```
+
+Si tu en oublies un, Fabric refuse de démarrer et nomme celui qui manque.
 
 Démarre-le :
 
@@ -127,18 +136,21 @@ correctif ne marche pas.
 grep CheeseCompat logs/latest.log
 ```
 
-Sur la pile minimale de l'étape 4, tu devrais voir deux lignes et pas plus :
+Sur la pile de l'étape 4, les lignes qui comptent sont ces trois-là, dans cet ordre :
 
 ```text
+[CheeseCompat][MegaPatch] Added 1 aspect(s) to mega_aspects (now 4 entries: [...])
+[CheeseCompat][MegaStoneRemap] Registered 70 CacademyMons stone remaps (includes lucarionitez=261023, ...)
 [CheeseCompat] Loaded (v1.2.53). Arc Phone heal=enabled, PC=enabled, Sanctuary fix=ON
-[CheeseCompat] Restricted /stopbattle <player> to operators
 ```
 
-— et en réalité même pas la seconde, parce qu'elle n'apparaît que si Battle Tower a
-enregistré une commande `stopbattle` avec des nœuds d'argument à restreindre. Sur un serveur
-sans Battle Tower, une ligne est la sortie correcte et complète.
+Les deux premières sont les rustines MegaShowdown et Cobblemon, qui tournent juste avant la
+ligne `Loaded`. Il n'y a pas de ligne `Restricted /stopbattle <player> to operators` : elle
+n'apparaît que si Battle Tower a enregistré une commande `stopbattle` avec des nœuds
+d'argument à restreindre. (`grep` peut renvoyer quelques lignes de plus, parce que certaines
+classes journalisent sous un logger nommé `CheeseCompatModsFix`.)
 
-Ajoute CobbleSafari et redémarre, et quatre lignes de plus apparaissent :
+Ajoute CobbleSafari et redémarre, et des lignes comme celles-ci apparaissent :
 
 ```text
 [CheeseCompat] Registered cobblemon:tatami_mat and tatami_block for CobbleSafari compatibility
@@ -146,6 +158,8 @@ Ajoute CobbleSafari et redémarre, et quatre lignes de plus apparaissent :
 [CheeseCompat] Safari ball fix registered for CobbleSafari dimensions
 [CheeseCompat] Slingshot block registered for CobbleSafari dimensions
 [CheeseCompat] Dungeon capture block registered for dungeon_underground
+[CheeseCompat] Registered CobbleSafari portal frame and portal blocks
+[CheeseCompat] Registered CobbleSafari spawn influences (1.6.1 compat)
 ```
 
 **La règle à retenir : une ligne manquante signifie un correctif manquant.** Le plugin mixin
@@ -230,8 +244,8 @@ laquelle il n'a pas de mixin client.
 
 **Le serveur doit être redémarré.** Il n'y a pas de rechargement pour cette config ; elle
 est lue une fois à l'init. Si tu as modifié le fichier pendant que le serveur tournait, rien
-ne s'est passé, et le prochain arrêt a réécrit ta modification. L'éditer serveur arrêté est
-le seul moyen.
+ne s'est encore passé : la modification reste dans le fichier et prend effet au démarrage
+suivant. L'éditer serveur arrêté, puis démarrer, est la façon propre de faire.
 
 Si le message n'apparaît pas après un redémarrage, voir
 [une clé de configuration n'a aucun effet](troubleshooting.fr.md#symptôme--une-clé-de-configuration-na-aucun-effet) —
@@ -270,7 +284,7 @@ et la version visés, le symptôme qu'il traite, le moyen employé, et s'il est 
   sur Cobblemon 1.6.1, et les patches bytecode pour Cobblewarden Boss.
 - [Daycare+](fixes-daycare.fr.md) — neuf mixins qui réécrivent les règles de reproduction.
   ⚠️ Un nouveau pâturage produit un œuf puis s'arrête, l'inverse du défaut de Daycare+.
-- [Tout le reste](fixes-misc.fr.md) — six autres mods, un correctif chacun ou presque.
+- [Tout le reste](fixes-misc.fr.md) — six autres mods, dix correctifs à eux tous.
 
 Puis [architecture](architecture.fr.md) pour comprendre le filtrage et ce qui est connu
 comme fragile, et [dépannage](troubleshooting.fr.md) quand quelque chose ne se produit pas

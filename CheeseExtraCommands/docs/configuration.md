@@ -107,7 +107,7 @@ There is no `assets/cheeseextra/lang/` directory, so none of this is translatabl
 player-facing string is a `Text.literal` in French, written inline in
 `CheeseCheckCommand` and `IslandTourHud`. The log lines, by contrast, are in English.
 
-If you need English messages, the strings to change are the nine `sendMessage` calls in
+If you need English messages, the strings to change are the seventeen `sendMessage` calls in
 `CheeseCheckCommand` and the `title` local in `IslandTourHud.render`. Converting them to
 `Text.translatable` with proper lang files would be a welcome contribution; the mod does
 not do it today.

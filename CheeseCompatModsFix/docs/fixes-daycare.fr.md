@@ -17,9 +17,11 @@ place.
 `Fertility`, et `DaycareSimpleModeStore` n'est relié aux évènements de cycle de vie que
 derrière un `isModLoaded("daycareplus")` dans `CheeseCompatMod`.
 
-Lis cette page en entier avant de changer un seul mixin. Huit d'entre eux touchent deux
-méthodes — `PotentialPokemonProperties.setIVs` et `PastureExtension.produceEgg` — et le
-résultat est le produit de tous, pas leur somme.
+Lis cette page en entier avant de changer un seul mixin. Huit d'entre eux sont
+enregistrés, et ils s'empilent : deux réécrivent `PotentialPokemonProperties.setIVs`, deux
+autres s'accrochent à `PastureExtension.produceEgg`, et les autres touchent les méthodes que
+ces deux-là appellent ou qui les appellent. Le résultat est le produit de tous, pas leur
+somme.
 
 ---
 
@@ -229,8 +231,9 @@ correctif 8 : importer `PokemonPastureBlockEntity` obligerait javac à résoudre
 
 `DaycareSimpleModeStore` le garde dans une table annexe, pas sur le block entity, indexé par
 `(id de dimension, BlockPos en long)` et persisté dans
-`config/cheesecompat_daycare.json`. Il est initialisé sur
-`ServerLifecycleEvents.SERVER_STARTED` et vidé sur `SERVER_STOPPING`.
+`config/cheesecompat_daycare.json`. Il est chargé sur
+`ServerLifecycleEvents.SERVER_STARTED`, réécrit à chaque changement d'état (chaque clic et
+chaque désarmement), et sauvegardé une dernière fois sur `SERVER_STOPPING`.
 
 Les défauts sont `simpleMode = true`, `simpleArmed = true`, donc **un nouveau pâturage
 produit un œuf puis s'arrête**. C'est l'inverse du défaut de Daycare+, et c'est la raison la

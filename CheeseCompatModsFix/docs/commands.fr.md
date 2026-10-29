@@ -86,18 +86,20 @@ et voit :
 Battle stop requested.
 ```
 
-Le combat se termine un ou deux ticks plus tard, quand la commande ciblée a tourné. Note la
-formulation : *requested*, demandé. Le message est envoyé immédiatement et sans condition,
-**avant** que le résultat de la commande interne soit connu. Si le gestionnaire de Battle
-Tower ne trouve aucun combat à arrêter, le joueur reçoit quand même « Battle stop
-requested. » et rien ne se passe. Il n'y a aucun retour pour ce cas.
+La commande ciblée s'exécute de façon synchrone, dans le gestionnaire, avant l'envoi du
+message. Note quand même la formulation : *requested*, demandé. Le message est envoyé sans
+condition — le gestionnaire ignore le résultat de la commande interne. Si le gestionnaire de
+Battle Tower ne trouve aucun combat à arrêter, ou échoue, le joueur reçoit quand même
+« Battle stop requested. » et rien ne se passe ; une éventuelle erreur de la commande interne
+part vers la source de commande serveur, pas vers le joueur. Il n'y a aucun retour pour ce
+cas.
 
 ### Messages d'échec
 
 | Message | Cause |
 |---|---|
 | `No player was found` | exécutée depuis la console ou un bloc de commande au lieu d'un joueur |
-| `Unknown command...` | Battle Tower n'est pas installé, donc il n'y a pas d'arbre `stopbattle` auquel ce mod puisse accrocher utilement sa forme sans argument — le littéral s'enregistre, mais l'appel ciblé interne n'a rien à exécuter |
+| `Battle stop requested.`, le combat continue | Battle Tower n'est pas installé : le littéral s'enregistre, mais le `stopbattle <name>` interne n'a aucun nœud d'argument à exécuter, échoue côté source serveur, et le joueur n'en est pas informé |
 | *(silence, le combat continue)* | le `/stopbattle <name>` interne n'a trouvé aucun combat pour ce joueur |
 
 ### Complétions

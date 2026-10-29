@@ -173,12 +173,14 @@ Mets un Pokémon qualifiant dans l'équipe. Sur un serveur de test, le plus rapi
 commande de Cobblemon elle-même :
 
 ```mcfunction
-/pokegive @s magikarp ivs=hp_iv:31,attack_iv:31,defence_iv:31,special_attack_iv:31,speed_iv:31
+/pokegive magikarp hp_iv=31 attack_iv=31 defence_iv=31 special_attack_iv=31 speed_iv=31
 ```
 
 ⚠️ `pokegive` et la syntaxe de ses arguments appartiennent à Cobblemon, pas à ce mod. La
-forme ci-dessus correspond à Cobblemon 1.6.1 ; vérifie `/pokegive` en jeu si ta version
-diffère.
+forme ci-dessus correspond à Cobblemon 1.6.1 : `/pokegive` donne à celui qui la lance
+(`/pokegiveother <player>` cible quelqu'un d'autre), chaque IV est une propriété
+`<stat>_iv=<valeur>` distincte, et l'IV que tu ne fixes pas (ici la Défense Spéciale) reste
+aléatoire. Vérifie `/pokegive` en jeu si ta version diffère.
 
 Reparle ensuite à Mira :
 
@@ -208,7 +210,7 @@ Relance la fonction et tu n'obtiens plus que `Mira: merci encore.` La quête est
 Le log du serveur garde la trace de l'écriture :
 
 ```text
-[CheeseExtra] IVs values: HP=31 ATK=31 DEF=31 SPA=31 SPD=0 SPE=31
+[CheeseExtra] IVs values: HP=31 ATK=31 DEF=31 SPA=31 SPD=12 SPE=31
 [CheeseExtra] Set mira_progress = 2 for Steve
 ```
 

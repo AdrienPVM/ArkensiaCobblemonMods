@@ -87,15 +87,24 @@ message says which file it wanted.
 
 ## 4. Drop it in a server
 
-A plain Fabric 1.21.1 server with Fabric API is enough to start. Add Legendary Monuments
-as well, because step 8 needs it:
+This mod alone needs nothing more than Fabric API. Step 8, though, needs Legendary
+Monuments, and Legendary Monuments 7.2 will not load on its own: its `fabric.mod.json`
+requires Fabric Loader 0.16.10 or later, Cobblemon, MegaShowdown, Trinkets, Chipped and
+CobbleFurnies. So the smallest stack that runs this tutorial is:
 
 ```text
 mods/
-├── fabric-api-0.103.0+1.21.1.jar
-├── legendary-monuments-7.2.jar
+├── fabric-api-<version>+1.21.1.jar
+├── cobblemon-<version>.jar
+├── mega_showdown-<version>.jar
+├── trinkets-<version>.jar
+├── chipped-<version>.jar          (and whatever Chipped itself requires)
+├── cobblefurnies-<version>.jar
+├── LegendaryMonuments-7.2.jar
 └── cheesecompatmodsfix-1.2.53+1.21.1.jar
 ```
+
+Fabric refuses to start and names the missing one if you leave any of them out.
 
 Start it:
 
@@ -126,18 +135,21 @@ This is the step people skip, and then spend an hour wondering why a fix is not 
 grep CheeseCompat logs/latest.log
 ```
 
-On the minimal stack from step 4, you should see two lines and no more:
+On the stack from step 4, the lines that matter are these three, in this order:
 
 ```text
+[CheeseCompat][MegaPatch] Added 1 aspect(s) to mega_aspects (now 4 entries: [...])
+[CheeseCompat][MegaStoneRemap] Registered 70 CacademyMons stone remaps (includes lucarionitez=261023, ...)
 [CheeseCompat] Loaded (v1.2.53). Arc Phone heal=enabled, PC=enabled, Sanctuary fix=ON
-[CheeseCompat] Restricted /stopbattle <player> to operators
 ```
 
-— and in fact not even the second one, because that only appears when Battle Tower has
-registered a `stopbattle` command with argument nodes to restrict. On a server with no
-Battle Tower, one line is the correct and complete output.
+The first two are the MegaShowdown and Cobblemon patches, which run just before the
+`Loaded` line. There is no `Restricted /stopbattle <player> to operators` line: that one
+only appears when Battle Tower has registered a `stopbattle` command with argument nodes
+to restrict. (`grep` may return a few more lines, because some classes log under a logger
+named `CheeseCompatModsFix`.)
 
-Add CobbleSafari and restart, and four more lines appear:
+Add CobbleSafari and restart, and lines like these appear:
 
 ```text
 [CheeseCompat] Registered cobblemon:tatami_mat and tatami_block for CobbleSafari compatibility
@@ -145,6 +157,8 @@ Add CobbleSafari and restart, and four more lines appear:
 [CheeseCompat] Safari ball fix registered for CobbleSafari dimensions
 [CheeseCompat] Slingshot block registered for CobbleSafari dimensions
 [CheeseCompat] Dungeon capture block registered for dungeon_underground
+[CheeseCompat] Registered CobbleSafari portal frame and portal blocks
+[CheeseCompat] Registered CobbleSafari spawn influences (1.6.1 compat)
 ```
 
 **The rule to carry away: a missing line means a missing fix.** The mixin plugin gates
@@ -225,8 +239,9 @@ handler is blocked. That asymmetry is normal for a server-side patch and worth
 internalising — this mod never changes a client UI it does not have a client mixin for.
 
 **The server has to be restarted.** There is no reload for this config; it is read once
-at init. If you edited the file while the server was running, nothing happened, and the
-next shutdown rewrote your edit. Editing it stopped is the only way.
+at init. If you edited the file while the server was running, nothing happened yet: the
+edit stays in the file and takes effect at the next start. Editing it while the server is
+stopped and then starting it is the clean way.
 
 If the message does not appear after a restart, see
 [a config key has no effect](troubleshooting.md#symptom-a-config-key-has-no-effect) —
@@ -266,7 +281,7 @@ active:
   back-ported onto Cobblemon 1.6.1, and the bytecode patches for Cobblewarden Boss.
 - [Daycare+](fixes-daycare.md) — nine mixins that rewrite the breeding rules. ⚠️ A new
   pasture produces one egg and stops, which is the opposite of Daycare+'s own default.
-- [Everything else](fixes-misc.md) — six more mods, one fix each.
+- [Everything else](fixes-misc.md) — six more mods, ten fixes between them.
 
 Then [architecture](architecture.md) for how the gating works and what is known to be
 weak, and [troubleshooting](troubleshooting.md) when something is silently not

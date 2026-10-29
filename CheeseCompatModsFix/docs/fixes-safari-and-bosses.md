@@ -153,7 +153,8 @@ Not a fix — an addition, grouped here because it only loads with CobbleSafari.
 
 `CobbleSafariBlocks` registers two blocks in the mod's own `cheesecompat` namespace:
 `cheesecompat:cobblesafari_portal_frame` (with an item) and
-`cheesecompat:cobblesafari_portal`. A `UseBlockCallback` lights a frame. The frame
+`cheesecompat:cobblesafari_portal`. A `UseBlockCallback` lights a frame when a player uses
+flint and steel on it. The frame
 detection in `CobbleSafariPortalHelper` follows the vanilla Nether portal pattern:
 width `MIN_WIDTH` 2 to `MAX_WIDTH` 21, height `MIN_HEIGHT` 3 to `MAX_HEIGHT` 21. Walking
 into the portal runs the same teleport logic as stepping on
@@ -302,7 +303,8 @@ the Python snippets in that README.
 `src/main/java/com/ace/cobbleboss/BossSpawner.java` is in the `com.ace.cobbleboss`
 package, which is **Cobblewarden Boss's own package**, not this mod's. It exists to be
 compiled here and then *extracted* and injected into the other mod's jar (patch 3). The
-`cheesecompatmodsfix` jar carries the class but never calls it.
+`cheesecompatmodsfix` jar carries the class too, and calls it in one place: the direct-spawn
+fallback of fix 14, when `PortalAnimator` is unavailable or fails.
 
 It spawns through the Cobblemon API by reflection —
 `PokemonProperties.Companion.parse`, `props.createEntity(level)`,
@@ -312,7 +314,8 @@ step is there because `fightorflight.do_pokemon_attack_unprovoked=false` suppres
 spontaneous aggression, but a directed `setTarget` is not "unprovoked", so the AI
 switches to combat immediately on spawn.
 
-**Status.** Compiled, unused by this mod, used by the patched jar.
+**Status.** Compiled, used by the patched jar, and by this mod only as the fallback of
+fix 14.
 
 ### 14. Instant boss spawn on a sculk shriek
 
@@ -321,7 +324,11 @@ switches to combat immediately on spawn.
 entity. It ignores creative and spectator players, checks
 `SculkShriekerBlock.CAN_SUMMON` on the cached state, and then starts the boss sequence —
 through `com.ace.cobbleboss.PortalAnimator.startPortalCreation` when that class is
-present, or a direct spawn as a fallback.
+present, or a direct `BossSpawner.spawnBoss` as a fallback. The species is `giratina` in
+a `deep_dark` biome below Y 0, `exploud` everywhere else. Players within 64 blocks get a
+title and subtitle (hard-coded French: `⚠ Un être ancien s'éveille...`). If a cooldown
+centre within 200 blocks is still active, the shriek is cancelled and the player sees, on
+the action bar, `Cette zone se repose encore (<n> min)...`.
 
 State lives in `ShriekerBossState`, persisted to
 `config/cheesecompatmodsfix_shrieker_cooldowns.json`:
@@ -342,9 +349,12 @@ State lives in `ShriekerBossState`, persisted to
 
 ### 15. Bosses losing aggression
 
-**How.** `ShriekerBossAggroKeeper`, on `END_SERVER_TICK`, every 2 seconds: for each
-active cooldown centre, find spawned uncatchable boss Pokémon in range and force-retarget
-the nearest living player. This keeps a shrieker-summoned boss hostile after its original
+**How.** `ShriekerBossAggroKeeper`, on `END_SERVER_TICK`, every 20 ticks (one second —
+the class comment says two): for each active cooldown centre, find boss Pokémon (tagged
+`cheesecompat_boss` or uncatchable) within 96 blocks and, if their target is gone, dead
+or a spectator, retarget the nearest survival player within 256 blocks. When the target
+is between 24 and 256 blocks away, the boss is teleported to 6 blocks from it, at most
+once every 5 seconds. This keeps a shrieker-summoned boss hostile after its original
 target dies or respawns.
 
 **Status.** Active.

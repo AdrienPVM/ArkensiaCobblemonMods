@@ -167,11 +167,14 @@ Put a qualifying Pokémon in the party. On a test server the fastest route is Co
 own command:
 
 ```mcfunction
-/pokegive @s magikarp ivs=hp_iv:31,attack_iv:31,defence_iv:31,special_attack_iv:31,speed_iv:31
+/pokegive magikarp hp_iv=31 attack_iv=31 defence_iv=31 special_attack_iv=31 speed_iv=31
 ```
 
 ⚠️ `pokegive` and its argument syntax belong to Cobblemon, not to this mod. The form
-above matches Cobblemon 1.6.1; check `/pokegive` in game if your version differs.
+above matches Cobblemon 1.6.1: `/pokegive` gives to whoever runs it (`/pokegiveother <player>`
+targets someone else), each IV is its own `<stat>_iv=<value>` property, and the IV you do
+not set (here Special Defence) stays random. Check `/pokegive` in game if your version
+differs.
 
 Then talk to Mira again:
 
@@ -200,7 +203,7 @@ the function once more and all you get is `Mira: merci encore.` The quest is clo
 The server log records the write:
 
 ```text
-[CheeseExtra] IVs values: HP=31 ATK=31 DEF=31 SPA=31 SPD=0 SPE=31
+[CheeseExtra] IVs values: HP=31 ATK=31 DEF=31 SPA=31 SPD=12 SPE=31
 [CheeseExtra] Set mira_progress = 2 for Steve
 ```
 

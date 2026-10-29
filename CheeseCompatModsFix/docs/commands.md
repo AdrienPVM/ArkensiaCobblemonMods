@@ -84,18 +84,19 @@ and sees:
 Battle stop requested.
 ```
 
-The battle ends a tick or two later, when the targeted command has run. Note the
-wording: *requested*. The message is sent immediately and unconditionally, **before**
-the result of the inner command is known. If Battle Tower's handler finds no battle to
-stop, the player still gets "Battle stop requested." and nothing happens. There is no
-feedback path for that case.
+The targeted command runs synchronously, inside the handler, before the message is
+sent. Note the wording all the same: *requested*. The message is sent unconditionally —
+the handler ignores the inner command's result. If Battle Tower's handler finds no
+battle to stop, or fails, the player still gets "Battle stop requested." and nothing
+happens; any error the inner command produces goes to the server command source, not to
+the player. There is no feedback path for that case.
 
 ### Failure messages
 
 | Message | Cause |
 |---|---|
 | `No player was found` | run from the console or a command block instead of by a player |
-| `Unknown command...` | Battle Tower is not installed, so there is no `stopbattle` tree for this mod to hang its no-argument form on in a useful way — the literal registers, but the inner targeted call has nothing to execute |
+| `Battle stop requested.`, battle continues | Battle Tower is not installed: the literal registers, but the inner `stopbattle <name>` has no argument node to run, fails on the server source, and the player is not told |
 | *(silence, battle continues)* | the inner `/stopbattle <name>` found no battle for that player |
 
 ### Completions

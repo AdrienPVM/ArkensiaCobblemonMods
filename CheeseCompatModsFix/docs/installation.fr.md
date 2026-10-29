@@ -25,7 +25,7 @@ optionnel au runtime.** Il n'y a ni `cobblemon`, ni `cobblesafari`, ni
 `CheeseCompatMixinPlugin` interroge `FabricLoader.isModLoaded(...)` pour chaque cible et
 éteint les mixins concernés quand le mod est absent, et les correctifs sans mixin sont
 derrière la même vérification dans `CheeseCompatMod.onInitialize()`. L'installer ne t'oblige
-pas à installer les quinze mods qu'il connaît.
+pas à installer le moindre des mods qu'il connaît.
 
 ### Optionnels — les mods qu'il corrige
 
@@ -50,7 +50,7 @@ colonne version est celle contre laquelle le code a été écrit.
 | FTB Quests | `ftbquests` | 2101.1.13 (CurseForge) |
 | StarAcademy | `academy` | v1.4.0+build.467 (CurseForge) |
 | Cobblewarden Boss | `cobblewarden_boss` | 1.0.0 |
-| MegaShowdown | — | atteint par réflexion seule, jamais déclaré |
+| MegaShowdown | `mega_showdown` | atteint par réflexion seule, jamais déclaré |
 | CobblemonAlphas | — | atteint par réflexion seule, jamais déclaré |
 | Rad Gyms | `rad-gyms` | atteint par réflexion seule, jamais déclaré |
 
@@ -237,7 +237,7 @@ complète, tu devrais voir une sélection de :
 ```
 
 **C'est l'absence d'une ligne qui est le signal important.** Si tu as installé CobbleSafari
-et que tu ne vois pas les quatre lignes safari, l'id du mod n'a pas correspondu et aucun de
+et que tu ne vois pas les lignes safari, l'id du mod n'a pas correspondu et aucun de
 ces correctifs ne tourne. La ligne `Loaded (v1.2.53)` apparaît dans les deux cas, donc elle
 ne t'apprend rien sur l'application des correctifs.
 

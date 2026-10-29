@@ -16,7 +16,7 @@
 `isModLoaded("cobblemon_battle_tower")` dans `CheeseCompatMod`. Sans le mod, aucune de
 ces lignes n'est atteinte.
 
-C'est la plus grosse famille du mod — huit correctifs — parce que la Battle Tower
+C'est la plus grosse famille du mod — douze correctifs — parce que la Battle Tower
 confisque l'équipe entière d'un joueur pour la durée d'une série. Elle copie l'équipe,
 force chaque Pokémon à un niveau fixe, puis restaure l'originale. Tout ce qui interrompt
 ce cycle (une déconnexion, un crash, un abandon, un deuxième combat lancé trop vite)
@@ -55,7 +55,10 @@ du côté serveur, Showdown a deux sessions qui croient toutes deux posséder la
 gestionnaire lit le `BattleRegistry` de Cobblemon par réflexion (la classe est résolue par
 nom et mise en cache, avec un drapeau `reflectionFailed` pour qu'un échec de résolution
 dégrade vers « pas de vérification » plutôt que vers une exception par appel). Si le
-joueur a un combat actif, l'injection pose la valeur de retour à `null` et envoie
+joueur a encore un combat dans le registre, l'injection le considère comme périmé et **le
+ferme de force** — `BattleRegistry.closeBattle`, ou `battle.end()` si cette méthode est
+introuvable — puis laisse le combat de tour se lancer. Ce n'est que si aucune des deux
+fermetures ne réussit qu'elle pose la valeur de retour à `null` et envoie
 `cheesecompat.bt.already_in_battle` :
 
 ```text
@@ -93,13 +96,18 @@ Restauration de l'équipe de la Tour de Combat en cours — patientez quelques s
 un combat parce qu'elle croit que l'équipe a changé — un verrou fantôme qu'aucune action
 en jeu ne libère.
 
-**Moyen.** L'injection `HEAD` sur `startBattle` compare les UUID des Pokémon de l'équipe
-courante à ceux du `TeamSnapshot` stocké (`cheesecompat$validateTeam`). Si le snapshot est
-périmé, elle libère le verrou et laisse le combat se lancer. Le mixin tient aussi deux
-maps `@Unique` — un numéro d'étage et un compteur de combats par joueur, tous deux en
-mémoire et perdus au redémarrage — et en dérive un délai adaptatif : 1500 ms jusqu'à
-l'étage 5, 2000 ms jusqu'au 10, 2500 ms jusqu'au 15, 3000 ms au-delà. Ce délai donne à
-Showdown plus de temps pour démonter son état à mesure qu'une série l'accumule.
+**Moyen.** Quand l'équipe est verrouillée et que le joueur est encore à l'étage 1 ou
+moins, l'injection `HEAD` sur `startBattle` compare les UUID des Pokémon de l'équipe
+courante à ceux du `TeamSnapshot` stocké (`cheesecompat$validateTeam`). S'ils diffèrent,
+elle **reverrouille** l'équipe : elle recapture le snapshot à partir de l'équipe courante
+non K.O., sauvegarde les données de la tour, réécrit la sauvegarde disque, et laisse le
+combat se lancer. Le mixin tient aussi deux maps `@Unique` — un numéro d'étage et un
+compteur de combats par joueur, tous deux en mémoire et perdus au redémarrage — et, à
+partir de l'étage 2, applique un délai adaptatif : 1500 ms jusqu'à l'étage 5, 2000 ms
+jusqu'au 10, 2500 ms jusqu'au 15, 3000 ms au-delà. Ce délai est un `Thread.sleep` dans
+`startBattle`, suivi d'une seconde vérification de combat périmé (et de 500 ms de plus s'il
+a fallu en fermer un). Il donne à Showdown plus de temps pour démonter son état à mesure
+qu'une série l'accumule.
 
 **État.** Actif.
 
@@ -146,7 +154,12 @@ et appelle `heal()`. Tout le reste du snapshot est ignoré.
   prouvée réussie.
 - `@Inject` en `HEAD` de `restoreForcedLevelsSnapshot` — reconstruit chaque Pokémon de
   l'équipe sur place via `Pokemon.loadFromNBT`, le même chemin de code que Cobblemon
-  utilise au chargement depuis le disque. Une injection en `RETURN` journalise le résultat.
+  utilise au chargement depuis le disque, à partir du snapshot en mémoire d'abord, puis de
+  la sauvegarde disque si ça échoue. Il journalise le résultat, supprime la sauvegarde en
+  cas de succès, et ferme de force tout combat encore enregistré pour le joueur. Il
+  n'annule **pas** : la restauration de niveaux et le `heal()` de Battle Tower tournent
+  toujours ensuite, comme filet de sécurité. Une injection en `RETURN` se contente de
+  retirer le contournement CobbleCap posé en `HEAD`.
 
 Les joueurs hors ligne sont volontairement ignorés : le chemin de reconnexion appartient à
 `BattleTowerDisconnectFix`, qui lit le fichier de sauvegarde intact à la place.
@@ -165,22 +178,26 @@ mixin :
 | Hook | Effet |
 |---|---|
 | `ServerLifecycleEvents.SERVER_STARTED` | balaie les sauvegardes de plus de 30 jours (`BACKUP_MAX_AGE_MS`) |
-| `ServerPlayConnectionEvents.DISCONNECT` | marque le joueur comme ayant besoin d'une restauration |
-| `ServerPlayConnectionEvents.JOIN` | met la restauration en file |
+| `ServerPlayConnectionEvents.DISCONNECT` | si Battle Tower détient encore des niveaux forcés pour le joueur, appelle tout de suite son `restoreForcedLevels` |
+| `ServerPlayConnectionEvents.JOIN` | la même restauration en mémoire, puis met en file la restauration disque si un fichier de sauvegarde existe |
 | `ServerTickEvents.END_SERVER_TICK` | fait tourner la boucle de restauration |
 
 Les sauvegardes vivent dans `config/cheesecompat_bt_backups/<uuid>.dat`, écrites avec
 `NbtIo.writeCompressed` dans un `.dat.tmp` puis renommées atomiquement, donc un crash en
 cours d'écriture ne peut pas laisser un demi-fichier. La boucle réessaie toutes les
 `WAIT_INTERVAL_TICKS` (20 ticks, une seconde) jusqu'à `MAX_ATTEMPTS` (60, soit une minute)
-et ne déclenche que lorsque **tous** les UUID de la sauvegarde sont présents dans l'équipe
-vivante. Cette condition existe parce que Cobblemon charge une équipe de façon asynchrone :
-restaurer trop tôt écrit dans une liste encore en cours de remplissage. La sauvegarde n'est
-supprimée qu'après que chaque UUID a été retrouvé et rechargé.
+et attend que **tous** les UUID de la sauvegarde soient présents dans l'équipe vivante.
+Cette condition existe parce que Cobblemon charge une équipe de façon asynchrone :
+restaurer trop tôt écrit dans une liste encore en cours de remplissage. Après 60 tentatives,
+elle cesse d'attendre et restaure ce qu'elle trouve. La sauvegarde est supprimée quand
+chaque UUID a été retrouvé et rechargé — mais aussi quand cette restauration partielle de
+dernière chance échoue, quand le fichier est illisible, et quand il n'a pas de clé `team` ou
+une équipe vide. Elle n'est **conservée** que si l'équipe ne s'est jamais chargée dans la
+minute, ou si une restauration échoue avant le point d'abandon.
 
-Le code distingue une clé `team` absente d'une liste d'équipe vide — un changement de
-schéma en amont qui supprimerait la clé ne doit pas se lire comme « ce joueur n'avait
-aucun Pokémon ».
+Une clé `team` absente et une liste d'équipe vide sont journalisées différemment (un
+`ERROR` qui évoque une dérive de schéma, un `WARN` pour la liste vide), mais les deux se
+terminent par la suppression de la sauvegarde.
 
 **État.** Actif.
 
@@ -237,7 +254,8 @@ le reste est perdu.
 
 **Cause.** `BattleTowerScreen.renderPokemonInSlot` ne passe que `Set.of("shiny")` (ou un
 ensemble vide) à `FloatingState.setCurrentAspects()`. Les vrais aspects n'ont jamais
-traversé le réseau : `BattleTowerNetwork$PartyEntry` ne porte que `speciesId` et `shiny`.
+traversé le réseau : `BattleTowerNetwork$PartyEntry` porte un emplacement, un `speciesId`
+et le drapeau chromatique, et aucun aspect.
 
 **Moyen.** `client.BattleTowerScreenAspectMixin`, côté client uniquement. Un `@Inject` en
 `HEAD` de `renderPokemonInSlot` pour savoir quel emplacement est en train d'être dessiné,
@@ -279,8 +297,11 @@ non `null` dans une `DefaultedRegistry`. Le stack vide s'insère « avec succès
 exception n'est levée, aucun rollback n'a lieu. BP partis, rien livré, aucun message.
 
 **Moyen.** `NetworkHelperImplMixin` — `@Inject` en `HEAD` de `handlePurchase`,
-`cancellable`. Il borne la quantité à `[1, 64]` et valide l'item avant tout débit ;
-annuler en `HEAD` signifie que la méthode entière, débit inclus, ne tourne jamais.
+`cancellable`. Une quantité hors de `[1, 64]` est annulée d'office, sans message ; puis il
+valide l'item avant tout débit et, en cas d'échec, l'annonce au joueur en français codé en
+dur : `[Battle Tower] <raison>. Achat annulé, aucun BP débité.` Annuler en `HEAD` signifie
+que la méthode entière, débit inclus, ne tourne jamais. Si la validation elle-même lève une
+exception, l'achat passe (fail-open).
 
 La subtilité qui mérite d'être répétée, parce que la première tentative l'avait prise à
 l'envers : le paramètre `itemId` de `handlePurchase` est le **slug du `ShopItem`**

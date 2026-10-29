@@ -92,10 +92,10 @@ table:
 
 | If you expect | Look for |
 |---|---|
-| the CobbleSafari fixes | four or five `[CheeseCompat] Safari …` / `Dungeon …` / `tatami` lines |
+| the CobbleSafari fixes | six or seven `[CheeseCompat]` lines mentioning `Safari`, `CobbleSafari`, `Dungeon` or `tatami` (the `tatami` one only on Cobblemon 1.6.1) |
 | the Enhanced Celestials fixes | `EnhancedCelestials lunar warmup registered` plus a `Warmed lunar data for …` line per dimension |
 | the `/stopbattle <player>` restriction | `Restricted /stopbattle <player> to operators` |
-| the Battle Tower fixes | nothing at startup — they log per battle, on `startBattle` and `applyForcedLevelFallback` |
+| the Battle Tower fixes | `BattleTower foolproof disconnect/reconnect fix registered (v2 hardened)` at startup; the mixins themselves log per battle, on `startBattle` and `applyForcedLevelFallback` |
 | the Daycare+ fixes | nothing. Test behaviour instead (see below) |
 | the Legendary Monuments fixes | nothing. Set a config key to `false` and test |
 | the client fixes | nothing. Test visually |
@@ -113,8 +113,8 @@ Phone still works.
 
 **Cause 1 — you edited the file while the server was running.** The config is read once,
 as the first statement of `onInitialize()`. There is no reload command and no file
-watcher. Worse: the next start **re-saves** the file, so an edit made on a running server
-is overwritten.
+watcher. The edit is not lost — nothing writes the file while the server runs — but it
+only takes effect at the next start.
 
 **Fix.** Stop the server, edit, start. Confirm with the startup line, which echoes the
 values:
@@ -135,9 +135,10 @@ release that merely reorders lambdas in that method renames the target. With
 **Fix.** Decompile your Legendary Monuments jar, find `HealPacket`, and check what the
 server receiver lambda is called in that build. There is no workaround from the config.
 
-**Cause 3 — you set `sanctuaryOverflowFix` and expected it to do something.** It does
-not. It is loaded, printed in the log line, and read by nothing;
-`SanctuaryDistanceMixin` applies unconditionally. See
+**Cause 3 — `sanctuaryOverflowFix` is `false`.** That key does work:
+`SanctuaryDistanceMixin` checks it on every call and, at `false`, lets Legendary
+Monuments' original overflowing arithmetic run, so a sanctuary can again appear to cover
+the whole world. The log line shows `Sanctuary fix=OFF`. Set it back to `true`. See
 [configuration](configuration.md#sanctuaryoverflowfix).
 
 ## Symptom: `/stopbattle` is refused or missing
@@ -147,7 +148,7 @@ not. It is loaded, printed in the log line, and read by nothing;
 | `No player was found` | you ran it from the console or a command block; the handler calls `getPlayerOrThrow()` first | run it as a player |
 | `Unknown command` | Fabric's command API module is missing, so `CommandRegistrationCallback` never fired — but then the mod would not have loaded at all | install the full Fabric API |
 | `Incorrect argument for command` on `/stopbattle <player>` | you are below permission level 2; the argument node is hidden from your command tree | that is the intended behaviour, see [commands](commands.md#stopbattle-player--restricted-not-added) |
-| `Battle stop requested.` but the battle continues | the inner `/stopbattle <name>` found no battle, or Battle Tower is not installed | the message is sent before the inner command runs and is not conditional on its result |
+| `Battle stop requested.` but the battle continues | the inner `/stopbattle <name>` found no battle, or Battle Tower is not installed | the message is sent after the inner command runs but ignores its result |
 
 ⚠️ One case to watch for: the log line
 `[CheeseCompat] Could not restrict /stopbattle <player>: <message>` means the reflection
@@ -239,8 +240,10 @@ ls config/cheesecompat_bt_backups/
 
 A `<uuid>.dat` present means the restore never completed and the player's real party is
 **still in that file**. Do not delete it. The restore retries for 60 attempts at one per
-second from the moment they join, and fires only when every UUID in the backup is present
-in the live party — so a slow Cobblemon party load can push it past the window.
+second from the moment they join, and waits for every UUID in the backup to be present in
+the live party. If the party never loads within that window, the file is kept and the
+next login tries again; if it loads but some Pokémon are still missing at the 60th
+attempt, the mod restores the ones it finds and then **deletes the backup** anyway.
 
 Have the player reconnect and watch the log. If they come back and immediately run to
 the tower, the `cheesecompat.bt.restore_pending` guard should stop them:
@@ -294,10 +297,12 @@ instead, the way `CacademyMegaStoneRemapPatch` does. See
 **Cause.** If `AlphaScaleHitboxFixMixin` is not applying, the underlying CobblemonAlphas
 bug is back: balls bounce off with no animation, no message and nothing in the log.
 
-**Fix.** The mixin fires on an entity's first tick and only for entities flagged
-`IS_ALPHA: true` in `Pokemon.PersistentData`. An alpha that has already ticked once
-before the mod loaded will not be re-processed. The manual equivalent, which is what the
-fix automates, is an NBT round-trip:
+**Fix.** The mixin fires on an entity's first tick after it is spawned or loaded, and
+only for wild entities (no owner) flagged `IS_ALPHA: true` in `Pokemon.PersistentData`.
+The "already processed" flag lives on the entity object and is not saved, so an alpha
+is processed again every time it is loaded — but only once per load: if it is still
+uncatchable after that first tick, the mixin will not retry until the chunk reloads. The
+manual equivalent, which is what the fix automates, is an NBT round-trip:
 
 ```mcfunction
 /data merge entity <target> {Pokemon:{ScaleModifier:2.5f}}

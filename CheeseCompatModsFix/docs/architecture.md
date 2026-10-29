@@ -19,10 +19,10 @@ com.cheesecompat
 ├── CheeseCompatClient.java           client entrypoint: activates the Arkensia resource packs
 │
 ├── BattleTowerDisconnectFix.java     party backup/restore across a disconnect (512 lines)
-├── RadGymsFix.java                   four Rad Gyms fixes, all by reflection (413 lines)
+├── RadGymsFix.java                   five Rad Gyms fixes, all by reflection (413 lines)
 ├── RaidDenFix.java                   raid crystals that never close (377 lines)
 ├── RctForcedSwitchFix.java           battle watchdog — DISABLED, see below (276 lines)
-├── CacademyMegaStoneRemapPatch.java  42 custom mega stones → Showdown ids (241 lines)
+├── CacademyMegaStoneRemapPatch.java  70 custom mega stones → Showdown ids (241 lines)
 ├── SafariSpawnInfluenceFix.java      1.6.1 spawn influences, via java.lang.reflect.Proxy
 ├── SafariBanFix.java                 re-registers three Cobblemon events for 1.6.1
 ├── SafariBallFix.java                safari balls in CobbleSafari dimensions
@@ -37,7 +37,7 @@ com.cheesecompat
 │   └── CobbleSafariPortalHelper.java
 ├── cobbleboss                        behaviour around Cobblewarden bosses
 │   ├── ShriekerBossState.java        constants + cooldown persistence
-│   ├── ShriekerBossAggroKeeper.java  re-targets bosses every 2 s
+│   ├── ShriekerBossAggroKeeper.java  re-targets bosses every 1 s
 │   └── BossDarknessAura.java         DARKNESS within 50 blocks of a boss
 ├── daycare
 │   └── DaycareSimpleModeStore.java   one-shot breeding state, keyed by dim + BlockPos
@@ -49,16 +49,17 @@ com.ace.cobbleboss
 
 `com.ace.cobbleboss` is not a typo. That is Cobblewarden Boss's own package, and
 `BossSpawner` is written here so it can be extracted from this jar and injected into
-theirs. Nothing in this mod calls it. See
+theirs. This mod calls it in one place only: `SculkShriekerBossSpawnMixin` falls back to
+`BossSpawner.spawnBoss` when Cobblewarden's `PortalAnimator` is unavailable or fails. See
 [the bosses catalogue](fixes-safari-and-bosses.md#13-bossspawner--in-this-source-tree-not-in-this-jar).
 
 ## Who owns what
 
 **`CheeseCompatMod`** is the whole of the wiring. `onInitialize()` runs, in order: load
 the config, register the two missing Cobblemon blocks, register `/stopbattle`, schedule
-the `/stopbattle <player>` restriction, then seven `isModLoaded` blocks, then the
-Enhanced Celestials warmup and the two MegaShowdown patches unconditionally, then one
-log line. There is no registry, no manager and no dispatcher — each fix registers its
+the `/stopbattle <player>` restriction, then six `isModLoaded` blocks (a seventh, for the
+watchdog, is commented out), then the Enhanced Celestials warmup and the two mega
+evolution patches unconditionally, then one log line. There is no registry, no manager and no dispatcher — each fix registers its
 own event handlers and is on its own from then on.
 
 **`CheeseCompatConfig`** holds three booleans and nothing else. It loads from
@@ -70,11 +71,12 @@ file on a running server do nothing. Details in [configuration](configuration.md
 **`CheeseCompatMixinPlugin`** is the one piece of shared machinery worth understanding,
 and it is covered in its own section below.
 
-**Everything else is a leaf.** No fix depends on another, with three exceptions, all in
-the Battle Tower family: `BattleTowerManagerMixin` asks
-`BattleTowerDisconnectFix.isRestorePending(...)`, `TeamFullRestoreMixin` writes its
-backup through `BattleTowerDisconnectFix.writeBackupFromSnapshot(...)`, and
-`SculkShriekerBossSpawnMixin` reads and writes `ShriekerBossState`. If you delete a fix,
+**Everything else is a leaf.** No fix depends on another, with a few exceptions. In the
+Battle Tower family, `BattleTowerManagerMixin` asks
+`BattleTowerDisconnectFix.isRestorePending(...)`, and both it and `TeamFullRestoreMixin`
+write the backup through `BattleTowerDisconnectFix.writeBackupFromSnapshot(...)`. In the
+boss family, `SculkShriekerBossSpawnMixin` reads and writes `ShriekerBossState` (which
+`ShriekerBossAggroKeeper` reads too) and falls back on `BossSpawner`. If you delete a fix,
 grep for its class name before assuming nothing else used it.
 
 ## How mixins are turned off
@@ -138,15 +140,17 @@ Nothing in this mod is a managed save; every file is written by whichever fix ow
 
 Two details worth knowing. `CheeseCompatConfig` resolves its path as
 `Path.of("config", "cheesecompatmodsfix.json")` — relative to the working directory,
-**not** through `FabricLoader.getConfigDir()`, which the other three use. On a normal
-server launch those are the same directory. On a launcher that starts the server with a
-different working directory, they are not, and the config lands somewhere unexpected
-while the other three files land in the right place.
+**not** through `FabricLoader.getConfigDir()`, and `ShriekerBossState` does the same for
+its cooldown file; only the Battle Tower backups and the daycare store use
+`getConfigDir()`. On a normal server launch those are the same directory. On a launcher
+that starts the server with a different working directory, they are not, and the files
+are split between two places.
 
 And the Battle Tower backups are the only files here that hold data you cannot
-regenerate — they are a player's party. The 30-day expiry sweep on
-`SERVER_STARTED` is the only thing that ever deletes them other than a successful
-restore.
+regenerate — they are a player's party. Besides a successful restore, they are deleted by
+the 30-day expiry sweep on `SERVER_STARTED`, and by the reconnect loop when a backup is
+unreadable, has no team, or still cannot be fully restored after 60 attempts — see
+[the Battle Tower catalogue](fixes-battle-tower.md#7-disconnect-and-reconnect-mid-battle).
 
 ## Threading
 
@@ -158,7 +162,8 @@ restore.
 
 There is no HTTP thread and no worker pool: this mod registers no CheeseDash module and
 starts no threads of its own. Mixins run on whatever thread called the method they are
-injected into, which in every case here is the server thread.
+injected into: the server thread for the server mixins, the render thread for the four
+client ones.
 
 The concurrency that does exist is defensive rather than architectural. Several fixes use
 a `ConcurrentHashMap` where a plain map would do — `BattleTowerDisconnectFix`'s pending
@@ -323,10 +328,14 @@ Stated plainly, because finding these by surprise is worse.
 - **`DaycareDestinyKnotConsumeMixin` is dead code.** Not listed in `mixins.json`.
 - **`DungeonDimensionsMixin` is an empty class** that exists only to carry a comment,
   and is still loaded and applied.
-- **`CheeseCompatConfig` uses a relative path** where every other file in the mod uses
-  `FabricLoader.getConfigDir()`.
+- **`CheeseCompatConfig` uses a relative path**, as does `ShriekerBossState`, where the
+  other two files use `FabricLoader.getConfigDir()`.
 - **No config reload.** The config is read once at init. Editing the file on a running
-  server does nothing, and the next restart will rewrite it.
+  server does nothing until the next restart, which loads the edit and re-saves the file
+  (dropping any comments).
+- **A blocking sleep in `startBattle`.** From floor 2 on, `BattleTowerManagerMixin` calls
+  `Thread.sleep` for 1.5 to 3 seconds (plus 500 ms if it had to close a stale battle) on
+  whatever thread runs Battle Tower's `startBattle`.
 - **`defaultRequire: 0` makes every broken fix silent.** A mod update that moves a
   target method does not produce an error; it produces a fix that stopped working. The
   only way to notice is the symptom coming back.

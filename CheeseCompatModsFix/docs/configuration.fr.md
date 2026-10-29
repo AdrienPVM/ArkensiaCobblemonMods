@@ -12,10 +12,12 @@ commutable**. Si un correctif ne te plaît pas sur ton serveur, il n'y a pas de 
 lui ; le seul levier est de retirer le jar.
 
 Le chemin est résolu en `Path.of("config", "cheesecompatmodsfix.json")`, relativement au
-répertoire de travail du serveur. Les trois autres fichiers que ce mod écrit passent par
-`FabricLoader.getConfigDir()`. Au démarrage normal, c'est le même dossier ; avec un launcher
-qui pose un autre répertoire de travail, non, et ce fichier-là sera le seul à atterrir
-ailleurs.
+répertoire de travail du serveur, tout comme le fichier des délais du boss de cri
+(`Path.of("config", "cheesecompatmodsfix_shrieker_cooldowns.json")`). Les deux autres
+fichiers que ce mod écrit — les sauvegardes Battle Tower et le stockage de la garderie —
+passent par `FabricLoader.getConfigDir()`. Au démarrage normal, c'est le même dossier ; avec
+un launcher qui pose un autre répertoire de travail, non, et les fichiers se retrouveront
+répartis entre deux endroits.
 
 ---
 
@@ -25,7 +27,7 @@ ailleurs.
 |---|---|---|---|
 | `arcPhoneHealEnabled` | booléen | `true` | à `false`, l'Arc Phone de Legendary Monuments ne peut plus soigner une équipe |
 | `arcPhonePCEnabled` | booléen | `true` | à `false`, l'Arc Phone ne peut plus ouvrir le PC Pokémon |
-| `sanctuaryOverflowFix` | booléen | `true` | lue au démarrage et journalisée ; voir l'avertissement plus bas |
+| `sanctuaryOverflowFix` | booléen | `true` | à `false`, la vérification du rayon des sanctuaires de Legendary Monuments tourne sans correctif, avec son débordement d'entier |
 
 ### `arcPhoneHealEnabled`
 
@@ -55,15 +57,15 @@ L'accès au PC via l'Arc Phone est désactivé sur ce serveur.
 
 ### `sanctuaryOverflowFix`
 
-⚠️ **Cette clé ne désactive rien.** Elle est chargée, et sa valeur est affichée dans la
-ligne de log de démarrage, mais `SanctuaryDistanceMixin` ne la lit pas — le correctif du
-débordement d'entier dans `SanctuaryBlock.isWithinRadius()` est appliqué
-inconditionnellement dès que Legendary Monuments est installé.
+Active ou désactive le correctif du débordement d'entier dans
+`SanctuaryBlock.isWithinRadius()`. `SanctuaryDistanceMixin` la lit en tête de chaque
+appel : à `true`, il calcule la distance en `long` et renvoie lui-même le résultat ; à
+`false`, il rend la main sans annuler, et l'arithmétique `int` d'origine de Legendary
+Monuments s'exécute — celle qui déborde pour un joueur éloigné et fait croire que le
+sanctuaire couvre le monde entier. Sa valeur est aussi affichée dans la ligne de log de
+démarrage (`Sanctuary fix=ON` / `OFF`).
 
-La passer à `false` change le mot d'une ligne de log de `ON` à `OFF` et rien d'autre. Elle
-est documentée ici comme clé vestigiale plutôt qu'omise discrètement, parce qu'une clé qui
-ressemble à un interrupteur sans en être un est pire que pas de clé du tout. Considère le
-correctif comme toujours actif.
+Il n'y a aucune bonne raison de la désactiver. Laisse-la à `true`.
 
 ---
 
@@ -99,8 +101,9 @@ démarrage avec cette version, déjà à son défaut. Tu n'as pas besoin de supp
 pour récupérer les nouvelles clés.
 
 Le même mécanisme réécrit le fichier à chaque démarrage, ce qui veut dire que **les
-commentaires et la mise en forme ajoutés à la main sont perdus**. Le parseur `JsonObject` de
-Gson refuse d'ailleurs les commentaires JSON, donc il n'y a nulle part où mettre une note.
+commentaires et la mise en forme ajoutés à la main sont perdus**. Gson lit ce fichier en
+mode permissif, donc un commentaire `//` ne fait pas échouer le chargement — mais la
+réécriture qui suit l'efface, donc il n'y a nulle part où garder une note.
 
 ## Ce qui se passe quand le fichier est mal formé
 
@@ -137,9 +140,8 @@ Relecture, ligne par ligne :
   affectés.
 - `arcPhonePCEnabled: false` — le paquet PC de l'Arc Phone est refusé de la même façon. Les
   blocs PC physiques ne sont pas affectés.
-- `sanctuaryOverflowFix: true` — aucun effet dans un sens ou dans l'autre, comme décrit
-  plus haut. Laissée au défaut pour que la ligne de log affiche `ON` et corresponde à ce que
-  le code fait réellement.
+- `sanctuaryOverflowFix: true` — la vérification du rayon des sanctuaires garde son
+  correctif de débordement. Laissée au défaut, la seule valeur raisonnable.
 
 Les deux clés Arc Phone sont sans effet sur un serveur sans Legendary Monuments : les mixins
 ne sont jamais appliqués, donc les paquets qu'ils gardent n'existent pas.
@@ -162,9 +164,9 @@ regarder, et dans quel fichier les modifier si tu es prêt à reconstruire.
 | `COOLDOWN_MILLIS` / `COOLDOWN_RADIUS` | 10 min / 200 blocs | `ShriekerBossState` | délai d'apparition d'un boss de cri |
 | `RADIUS` | `50` | `BossDarknessAura` | portée de l'aura de ténèbres du boss |
 | portée du Repel | `80` blocs | `SafariSpawnInfluenceFix` | rayon de l'effet Repel du safari |
-| distance de cull des boutiques | ~`24` blocs | `client.NumismaticShopCullMixin` | distance à laquelle une boutique Numismatic cesse d'afficher son item |
+| distance de cull des boutiques | `10` blocs | `client.NumismaticShopCullMixin` | distance à laquelle une boutique Numismatic cesse d'afficher son item |
 | `FAKEMON_NAMESPACES` | `seavlbizarremon` | `client.JourneyMapSeavlianIconMixin` | quels espaces de noms voient leur chemin d'icône de minimap réécrit |
-| `REMAP` | 42 entrées | `CacademyMegaStoneRemapPatch` | table méga-gemme custom → id de gemme Showdown |
+| `REMAP` | 70 entrées | `CacademyMegaStoneRemapPatch` | table méga-gemme custom → id de gemme Showdown |
 
 ## Autres fichiers que ce mod écrit
 

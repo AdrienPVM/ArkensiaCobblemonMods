@@ -5,7 +5,7 @@
 > ⚠️ Same warning as the other catalogue pages: each fix is pinned to one version of one
 > third-party mod, and nothing here is tested against any other.
 
-Eight fixes across six mods, plus the one client-side feature that is not a mixin.
+Ten fixes across six mods, plus the one client-side feature that is not a mixin.
 
 **Target mods on this page**
 
@@ -38,9 +38,11 @@ becomes negative, which is always `<= radiusSq`. Every distant position reads as
 
 **How.** `SanctuaryDistanceMixin` — `@Inject` at `HEAD` of `isWithinRadius`,
 `cancellable`, `require = 0`, redoing the comparison in `long` arithmetic and returning
-the correct answer.
+the correct answer. It first checks `sanctuaryOverflowFix`: at `false` it returns without
+cancelling and the original `int` code runs.
 
-**Status.** Active.
+**Status.** Active, and **on** by default (`sanctuaryOverflowFix = true`). See
+[configuration](configuration.md#sanctuaryoverflowfix).
 
 A textbook integer overflow, and a good illustration of why it went unnoticed: the bug
 only appears at a distance nobody tests at, and when it appears the symptom
@@ -220,8 +222,8 @@ One static method, one early return. The whole fix is "fail without destroying
 evidence".
 
 Logging, added in 1.2.39, is built for diagnosis: a `WARN` on each block, rate-limited
-to the first five and then every fiftieth, plus one `INFO` the first time it blocks and
-one the first time FTB is ready again. That tells you whether the race actually happens
+to the first five and then every fiftieth, plus one `INFO` the first time FTB is ready
+again after at least one block. That tells you whether the race actually happens
 on your server, and how often.
 
 **Inert when absent.** Yes — gated on `extraquests`. FTB Quests itself is only a compile
@@ -293,7 +295,8 @@ The vanilla default cut-off is 64 blocks, so that is O(N) `renderItem` calls per
 across a market.
 
 **How.** `client.NumismaticShopCullMixin` — `@Inject` at `HEAD` of `render`,
-`cancellable`, cancelling beyond a fixed distance (about 24 blocks) from the camera. The
+`cancellable`, cancelling beyond a fixed distance of 10 blocks from the camera
+(`CCMF_CULL_DIST_SQ = 10 × 10`, tightened from 24 in June 2026; exactly 10 still renders). The
 shop block's static model is still drawn by the chunk mesh; only the block entity
 renderer's floating item is skipped. Any exception falls through to the original render,
 so the worst case is current behaviour.
@@ -326,9 +329,10 @@ like it is supposed to.
 On `CLIENT_STARTED` it checks whether `file/CacademyMons` is already in the enabled pack
 list, and returns immediately if it is — that single check is what makes this a one-time
 setup rather than something that fights the player's choices on every launch. Otherwise it
-reads the ordered pack list from `config/resourcepackoverrides.json` (synced from the
-server by AutoModpack, which keeps the server as the single source of truth), falls back
-to a hard-coded list of about 55 packs if that file is absent, rescans the packs folder,
+reads the ordered pack list from the `default_packs` array of
+`config/resourcepackoverrides.json` (synced from the server by AutoModpack, which keeps the
+server as the single source of truth), falls back to a hard-coded list of 51 packs if that
+file is absent, unreadable or has an empty array, rescans the packs folder,
 enables them through the `ResourcePackManager`, syncs the manager's state back into the
 options, writes them, and reloads resources.
 

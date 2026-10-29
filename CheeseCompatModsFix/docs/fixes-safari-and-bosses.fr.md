@@ -156,7 +156,8 @@ Pas un correctif — un ajout, groupé ici parce qu'il ne se charge qu'avec Cobb
 
 `CobbleSafariBlocks` enregistre deux blocs dans l'espace de noms propre au mod,
 `cheesecompat` : `cheesecompat:cobblesafari_portal_frame` (avec un item) et
-`cheesecompat:cobblesafari_portal`. Un `UseBlockCallback` allume un cadre. La détection de
+`cheesecompat:cobblesafari_portal`. Un `UseBlockCallback` allume un cadre quand un joueur
+y utilise un briquet. La détection de
 cadre dans `CobbleSafariPortalHelper` suit le motif du portail du Nether vanilla : largeur
 de `MIN_WIDTH` 2 à `MAX_WIDTH` 21, hauteur de `MIN_HEIGHT` 3 à `MAX_HEIGHT` 21. Entrer dans
 le portail exécute la même logique de téléportation que marcher sur
@@ -310,7 +311,9 @@ Python de ce README.
 `src/main/java/com/ace/cobbleboss/BossSpawner.java` est dans le package
 `com.ace.cobbleboss`, qui est **le package propre à Cobblewarden Boss**, pas celui de ce
 mod. Il existe pour être compilé ici puis *extrait* et injecté dans le jar de l'autre mod
-(patch 3). Le jar `cheesecompatmodsfix` porte la classe mais ne l'appelle jamais.
+(patch 3). Le jar `cheesecompatmodsfix` porte lui aussi la classe, et l'appelle à un seul
+endroit : le repli d'apparition directe du correctif 14, quand `PortalAnimator` est
+indisponible ou échoue.
 
 Il fait apparaître le boss via l'API Cobblemon par réflexion —
 `PokemonProperties.Companion.parse`, `props.createEntity(level)`,
@@ -320,7 +323,8 @@ dernière étape existe parce que `fightorflight.do_pokemon_attack_unprovoked=fa
 l'agressivité spontanée, mais un `setTarget` dirigé n'est pas « non provoqué », donc l'IA
 bascule en combat dès l'apparition.
 
-**État.** Compilé, inutilisé par ce mod, utilisé par le jar patché.
+**État.** Compilé, utilisé par le jar patché, et par ce mod uniquement comme repli du
+correctif 14.
 
 ### 14. Apparition immédiate du boss sur un cri de sculk
 
@@ -329,7 +333,12 @@ bascule en combat dès l'apparition.
 Il ignore les joueurs en créatif et en spectateur, vérifie `SculkShriekerBlock.CAN_SUMMON`
 sur l'état en cache, puis lance la séquence du boss — via
 `com.ace.cobbleboss.PortalAnimator.startPortalCreation` quand cette classe est présente, ou
-une apparition directe en repli.
+un `BossSpawner.spawnBoss` direct en repli. L'espèce est `giratina` dans un biome
+`deep_dark` sous Y 0, `exploud` partout ailleurs. Les joueurs dans un rayon de 64 blocs
+reçoivent un titre et un sous-titre (en français codé en dur : `⚠ Un être ancien
+s'éveille...`). Si un centre de délai encore actif se trouve à moins de 200 blocs, le cri
+est annulé et le joueur voit, dans la barre d'action, `Cette zone se repose encore (<n>
+min)...`.
 
 L'état vit dans `ShriekerBossState`, persisté dans
 `config/cheesecompatmodsfix_shrieker_cooldowns.json` :
@@ -350,10 +359,13 @@ L'état vit dans `ShriekerBossState`, persisté dans
 
 ### 15. Des boss qui perdent leur agressivité
 
-**Moyen.** `ShriekerBossAggroKeeper`, sur `END_SERVER_TICK`, toutes les 2 secondes : pour
-chaque centre de délai actif, trouver les boss Pokémon incapturables apparus à portée et
-re-cibler de force le joueur vivant le plus proche. Ça garde un boss invoqué par un cri
-hostile après la mort ou la réapparition de sa cible d'origine.
+**Moyen.** `ShriekerBossAggroKeeper`, sur `END_SERVER_TICK`, toutes les 20 ticks (une
+seconde — le commentaire de la classe en annonce deux) : pour chaque centre de délai actif,
+trouver les boss Pokémon (tagués `cheesecompat_boss` ou incapturables) dans un rayon de
+96 blocs et, si leur cible a disparu, est morte ou en spectateur, re-cibler le joueur en
+survie le plus proche dans un rayon de 256 blocs. Quand la cible est entre 24 et 256 blocs,
+le boss est téléporté à 6 blocs d'elle, au plus une fois toutes les 5 secondes. Ça garde un
+boss invoqué par un cri hostile après la mort ou la réapparition de sa cible d'origine.
 
 **État.** Actif.
 

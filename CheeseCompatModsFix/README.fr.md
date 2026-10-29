@@ -2,7 +2,7 @@
 
 > 🇬🇧 [Read in English](README.md)
 
-> Quarante rustines dans les mods de quinze autres auteurs, écrites pour un modpack précis.
+> Quarante rustines dans dix-sept mods écrits par d'autres, pour un modpack précis.
 
 > ## ⚠️ Ce sont des rustines, pas un mod
 >
@@ -42,7 +42,7 @@ une pièce porteuse et une pièce fragile.
 | | |
 |---|---|
 | **Obligatoire** | Fabric Loader ≥ 0.16.0 · Fabric API (`fabric-command-api-v2`) · Java 21 |
-| **Optionnel** | les quinze mods qu'il corrige — chacun active un groupe de correctifs et est ignoré s'il est absent |
+| **Optionnel** | les dix-sept mods qu'il corrige — chacun active un groupe de correctifs et est ignoré s'il est absent |
 
 Tout ce qu'il corrige est optionnel au runtime. `CheeseCompatMixinPlugin` interroge
 `FabricLoader.isModLoaded(...)` pour chaque cible et éteint les mixins concernés quand le
@@ -99,7 +99,7 @@ correctif absent. Parcours complet : [installation](docs/installation.fr.md).
 | [Installation](docs/installation.fr.md) | Prérequis, les deux jars CurseForge, le build, ce que crée le premier démarrage, les lignes de log qui prouvent le chargement, la désinstallation propre et ce que le monde conserve |
 | [Premiers pas](docs/getting-started.fr.md) | Un tutoriel : construire le mod, découvrir quels correctifs se sont activés sur ta pile, puis en désactiver un et voir l'effet en jeu |
 | [Commandes](docs/commands.fr.md) | `/stopbattle`, et comment `/stopbattle <player>` est retiré aux non-opérateurs par réflexion dans Brigadier |
-| [Configuration](docs/configuration.fr.md) | Les trois booléens, dont un ne fait rien, plus tous les nombres qui ressemblent à de la config et sont codés en dur |
+| [Configuration](docs/configuration.fr.md) | Les trois booléens, plus tous les nombres qui ressemblent à de la config et sont codés en dur |
 | [Architecture](docs/architecture.fr.md) | Arborescence des packages, filtrage des mixins, motifs de réflexion, threading, et une liste franche des faiblesses connues |
 | [Dépannage](docs/troubleshooting.fr.md) | Symptôme, cause, remède — construit autour du fait que le mode d'échec normal ici est le silence |
 
@@ -133,12 +133,13 @@ La forme ciblée n'est pas ajoutée ici, seulement verrouillée. Détails dans
 |---|---|
 | **Battle Tower** | niveaux PNJ forcés, garde contre le double combat, verrous d'équipe périmés, corruption IV/EV, restauration complète de l'équipe, sauvegarde à la déconnexion, offsets d'arène, préchargement de chunks, aspects dans l'écran d'équipe, restauration à l'arrêt, débordement dans la boutique BP |
 | **Cobblemon** | alphas silencieusement incapturables, Téracristallisation bloquée en raid |
-| **MegaShowdown** | `mega_z` ajouté à l'ensemble des aspects pour que les formes Mega-Z dé-évoluent ; 42 méga-gemmes custom mappées vers les ids Showdown |
+| **Trials Edition** | `IncompatibleClassChangeError` sur Cobblemon 1.6.1 à la résolution d'une nature |
+| **MegaShowdown** | `mega_z` ajouté à l'ensemble des aspects pour que les formes Mega-Z dé-évoluent ; 70 méga-gemmes custom mappées vers les ids Showdown |
 | **CobbleSafari** | rétroportage vers Cobblemon 1.6.1 : influences de spawn, bans dimensionnels, téléporteur et portails de donjon hors Overworld, deux blocs Cobblemon manquants, un bloc de portail |
 | **StarAcademy** | balles safari débloquées dans les dimensions safari, lance-pierre bloqué là-bas, boss incapturables protégés des tirs de lance-pierre |
 | **Daycare+** | héritage des IV réécrit, fertilité bornée et décroissante, mode ponctuel avec bascule dans la GUI |
 | **Raid Dens** | orientation du boss, crash au nettoyage des entités, propagation du feu, cristaux qui ne se referment jamais |
-| **Rad Gyms** | joueurs bloqués après un crash, gel par concurrence, mauvais type de badge, NPE à l'interaction avec un dresseur |
+| **Rad Gyms** | joueurs bloqués après un crash, gel par concurrence, mauvais type de badge, NPE à l'interaction avec un dresseur, dresseurs orphelins purgés d'une dimension de gym vide |
 | **Legendary Monuments** | débordement d'entier sur le rayon des sanctuaires, bascules de soin et de PC pour l'Arc Phone, verrou de profession entrepreneur |
 | **Minerally** | crash NPE quand JustHammers casse un `OrePile` en zone |
 | **Enhanced Celestials** | les dimensions `cheeseguard:*` héritent des réglages lunaires ; la donnée par niveau, paresseuse, est forcée à se matérialiser |
@@ -196,8 +197,6 @@ dans le log, rien de plus.
 - **Deux classes sont du code mort** : `DaycareDestinyKnotConsumeMixin` (absent de la
   config mixin) et `DungeonDimensionsMixin` (une classe vide qui ne porte qu'un
   commentaire).
-- **`sanctuaryOverflowFix` est une clé de configuration vestigiale.** Elle est lue,
-  journalisée, et ne commute rien ; le correctif qu'elle nomme est inconditionnel.
 - **Un nouveau pâturage Daycare+ produit un œuf puis s'arrête.** C'est le défaut de ce
   mod, et l'inverse de celui de Daycare+.
 - **`BattleArenaPositionMixin` code en dur une arène de 18 blocs.** Avec toute autre
@@ -210,10 +209,11 @@ dans le log, rien de plus.
 
 ## Spécificités Arkensia
 
-`CacademyMegaStoneRemapPatch` mappe 42 méga-gemmes custom du datapack `CacademyMons` —
+`CacademyMegaStoneRemapPatch` mappe 70 méga-gemmes custom — 56 du datapack
+`CacademyMons`, les autres de Z-A Megas Server-Side et d'AllTheMons x Mega Showdown, toutes
 livrées sous forme de `minecraft:brick` et d'une poignée d'autres items vanilla,
-distingués par leur `custom_model_data` — vers les ids du simulateur Showdown de
-MegaShowdown. C'est entièrement spécifique à ce datapack et ça ne fait rien sans lui.
+distinguées par leur `custom_model_data` — vers les ids du simulateur Showdown de
+MegaShowdown. C'est entièrement spécifique à ces packs et ça ne fait rien sans eux.
 
 `EnhancedCelestialsFactoryFallbackMixin` est spécifique aux dimensions créées au runtime
 par [CheeseGuard](../CheeseGuard/) : toute dimension `cheeseguard:*` sans réglages

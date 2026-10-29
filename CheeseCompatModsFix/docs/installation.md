@@ -24,8 +24,8 @@ optional at runtime.** There is no `cobblemon`, no `cobblesafari`, no
 `cobblemon_battle_tower` in the dependency block, on purpose: `CheeseCompatMixinPlugin`
 checks `FabricLoader.isModLoaded(...)` for each target and switches the relevant mixins
 off when the mod is absent, and the non-mixin fixes sit behind the same check in
-`CheeseCompatMod.onInitialize()`. Installing this does not oblige you to install the
-fifteen mods it knows about.
+`CheeseCompatMod.onInitialize()`. Installing this does not oblige you to install any of
+the mods it knows about.
 
 ### Optional — the mods it patches
 
@@ -50,7 +50,7 @@ column is what the code was written against.
 | FTB Quests | `ftbquests` | 2101.1.13 (CurseForge) |
 | StarAcademy | `academy` | v1.4.0+build.467 (CurseForge) |
 | Cobblewarden Boss | `cobblewarden_boss` | 1.0.0 |
-| MegaShowdown | — | reached by reflection only, never declared |
+| MegaShowdown | `mega_showdown` | reached by reflection only, never declared |
 | CobblemonAlphas | — | reached by reflection only, never declared |
 | Rad Gyms | `rad-gyms` | reached by reflection only, never declared |
 
@@ -230,7 +230,7 @@ you should see a selection of:
 ```
 
 **The absence of a line is the signal that matters.** If you installed CobbleSafari and
-do not see the four safari lines, the mod id did not match and none of those fixes are
+do not see the safari lines, the mod id did not match and none of those fixes are
 running. The `Loaded (v1.2.53)` line appears either way, so it does not tell you
 anything about whether the fixes applied.
 

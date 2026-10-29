@@ -15,7 +15,7 @@ for any mixin whose class name contains `BattleTower`, `TeamSnapshot`, `NetworkH
 behind an `isModLoaded("cobblemon_battle_tower")` check in `CheeseCompatMod`. With the
 mod absent, none of this code is ever reached.
 
-This is the largest family in the mod — eight fixes — because the Battle Tower holds a
+This is the largest family in the mod — twelve fixes — because the Battle Tower holds a
 player's whole party hostage for the duration of a run. It copies the party, forces
 every Pokémon to a fixed level, and restores the original afterwards. Anything that
 interrupts that cycle (a disconnect, a crash, a forfeit, a second battle started too
@@ -53,8 +53,10 @@ the same party.
 **How.** `@Inject` at `HEAD` of `BattleTowerManager.startBattle`, `cancellable`. The
 handler reads Cobblemon's `BattleRegistry` by reflection (the class is resolved by name
 and cached, with a `reflectionFailed` flag so a failed lookup degrades to no check
-rather than to an exception per call). If the player has an active battle, the injection
-sets the return value to `null` and sends
+rather than to an exception per call). If the player still has a battle in the registry,
+the injection treats it as stale and **force-closes it** — `BattleRegistry.closeBattle`,
+or `battle.end()` if no such method is found — then lets the tower battle proceed. Only
+if neither close succeeds does it set the return value to `null` and send
 `cheesecompat.bt.already_in_battle`:
 
 ```text
@@ -91,13 +93,17 @@ Battle Tower team restore still in progress — please wait a few seconds before
 start a battle because it believes the team changed — a ghost lock that no in-game
 action clears.
 
-**How.** The `startBattle` `HEAD` injection compares the current party's Pokémon UUIDs
-against the stored `TeamSnapshot`'s UUIDs (`cheesecompat$validateTeam`). If the snapshot
-is stale, it clears the lock and lets the battle proceed. The mixin also keeps two
-`@Unique` maps — a per-player floor number and a per-player battle count, both
-in-memory and lost on restart — and derives an adaptive cooldown from the floor:
-1500 ms up to floor 5, 2000 ms to floor 10, 2500 ms to floor 15, 3000 ms above.
-The cooldown gives Showdown more time to tear down its state as a run accumulates it.
+**How.** When the team is locked in and the player is still on floor 1 or below, the
+`startBattle` `HEAD` injection compares the current party's Pokémon UUIDs against the
+stored `TeamSnapshot`'s UUIDs (`cheesecompat$validateTeam`). If they differ, it
+**re-locks** the team: it re-captures the snapshot from the current non-fainted party,
+saves the tower data, rewrites the disk backup, and lets the battle proceed. The mixin
+also keeps two `@Unique` maps — a per-player floor number and a per-player battle count,
+both in-memory and lost on restart — and, from floor 2 on, applies an adaptive cooldown:
+1500 ms up to floor 5, 2000 ms to floor 10, 2500 ms to floor 15, 3000 ms above. The
+cooldown is a `Thread.sleep` inside `startBattle`, followed by a second stale-battle check
+(and another 500 ms if one had to be closed). It gives Showdown more time to tear down its
+state as a run accumulates it.
 
 **Status.** Active.
 
@@ -140,8 +146,12 @@ calls `heal()`. Everything else in the snapshot is ignored.
   `BattleTowerDisconnectFix.writeBackupFromSnapshot`, so the full team state survives a
   crash mid-battle. The file is deleted only after a restore has provably succeeded.
 - `@Inject` at `HEAD` of `restoreForcedLevelsSnapshot` — rebuilds each party Pokémon in
-  place via `Pokemon.loadFromNBT`, the same code path Cobblemon uses to load from disk.
-  A `RETURN` injection logs the outcome.
+  place via `Pokemon.loadFromNBT`, the same code path Cobblemon uses to load from disk,
+  from the in-memory snapshot first and from the disk backup if that fails. It logs the
+  outcome, deletes the backup on success, and force-closes any battle still registered
+  for the player. It does **not** cancel: Battle Tower's own level restore and `heal()`
+  still run afterwards as a safety net. A `RETURN` injection only clears the CobbleCap
+  bypass set at `HEAD`.
 
 Offline players are skipped on purpose: the reconnect path belongs to
 `BattleTowerDisconnectFix`, which reads the untouched backup file instead.
@@ -159,21 +169,25 @@ three runs ago.
 | Hook | What it does |
 |---|---|
 | `ServerLifecycleEvents.SERVER_STARTED` | sweeps backups older than 30 days (`BACKUP_MAX_AGE_MS`) |
-| `ServerPlayConnectionEvents.DISCONNECT` | marks the player as needing a restore |
-| `ServerPlayConnectionEvents.JOIN` | queues the restore |
+| `ServerPlayConnectionEvents.DISCONNECT` | if Battle Tower still holds forced-level data for the player, calls its `restoreForcedLevels` right away |
+| `ServerPlayConnectionEvents.JOIN` | the same in-memory restore, then queues the disk restore if a backup file exists |
 | `ServerTickEvents.END_SERVER_TICK` | drives the restore loop |
 
 Backups live in `config/cheesecompat_bt_backups/<uuid>.dat`, written with
 `NbtIo.writeCompressed` to a `.dat.tmp` and renamed atomically, so a crash during the
 write cannot leave a half-file. The restore loop retries every `WAIT_INTERVAL_TICKS`
-(20 ticks, one second) up to `MAX_ATTEMPTS` (60, so one minute) and fires only when
+(20 ticks, one second) up to `MAX_ATTEMPTS` (60, so one minute) and waits until
 **every** UUID in the backup is present in the live party. That condition exists
 because Cobblemon loads a party asynchronously: restoring too early writes into a list
-that is still being filled. The backup is deleted only after every UUID matched and
-reloaded.
+that is still being filled. After 60 attempts it stops waiting and restores whatever it
+can find. The backup is deleted when every UUID matched and reloaded — but also when
+that last-chance partial restore fails, when the file is unreadable, and when it has no
+`team` key or an empty team. It is **kept** only if the party never loaded at all within
+the minute, or if a restore fails before the give-up point.
 
-It distinguishes a missing `team` key from an empty team list — a schema change
-upstream that drops the key should not read as "this player had no Pokémon".
+A missing `team` key and an empty team list are logged differently (an `ERROR` naming a
+possible schema drift, a `WARN` for the empty list), but both end with the backup being
+deleted.
 
 **Status.** Active.
 
@@ -230,7 +244,8 @@ origin form renders as the base species. Shiny still shows; everything else is l
 
 **Cause.** `BattleTowerScreen.renderPokemonInSlot` passes only `Set.of("shiny")` (or an
 empty set) to `FloatingState.setCurrentAspects()`. The real aspects never crossed the
-network: `BattleTowerNetwork$PartyEntry` carries only `speciesId` and `shiny`.
+network: `BattleTowerNetwork$PartyEntry` carries a slot, a `speciesId` and the shiny
+flag, and no aspects.
 
 **How.** `client.BattleTowerScreenAspectMixin`, client-side only. An `@Inject` at
 `HEAD` of `renderPokemonInSlot` to establish which slot is being drawn, a `@ModifyArg`
@@ -270,8 +285,11 @@ on this server. `handlePurchase` debits the BP before it resolves the item, and
 thrown, no rollback happens. BP gone, nothing delivered, no message.
 
 **How.** `NetworkHelperImplMixin` — `@Inject` at `HEAD` of `handlePurchase`,
-`cancellable`. It clamps quantity to `[1, 64]` and validates the item before any debit;
-cancelling at `HEAD` means the whole method, debit included, never runs.
+`cancellable`. A quantity outside `[1, 64]` is cancelled outright, with no message; then
+it validates the item before any debit, and on failure tells the player, in hard-coded
+French, `[Battle Tower] <reason>. Achat annulé, aucun BP débité.` Cancelling at `HEAD`
+means the whole method, debit included, never runs. If the validation itself throws, the
+purchase is let through (fail-open).
 
 The subtlety worth repeating, because the first attempt got it backwards: the `itemId`
 parameter of `handlePurchase` is the **`ShopItem` slug** (`ShopItem.id()`), not a

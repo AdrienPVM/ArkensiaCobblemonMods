@@ -110,7 +110,7 @@ traduisible. Chaque chaîne destinée aux joueurs est un `Text.literal` en fran�
 en ligne dans `CheeseCheckCommand` et `IslandTourHud`. Les lignes de log, elles, sont en
 anglais.
 
-S'il te faut des messages en anglais, les chaînes à changer sont les neuf appels à
+S'il te faut des messages en anglais, les chaînes à changer sont les dix-sept appels à
 `sendMessage` de `CheeseCheckCommand` et la variable locale `title` dans
 `IslandTourHud.render`. Les convertir en `Text.translatable` avec de vrais fichiers de
 langue serait une contribution bienvenue ; le mod ne le fait pas aujourd'hui.
