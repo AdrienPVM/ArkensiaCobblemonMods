@@ -55,7 +55,7 @@ Neither line means the jar was not loaded at all: wrong folder, a `-sources.jar`
 case-sensitive map lookup, and the argument has **no tab completion**, which makes typos
 the normal failure.
 
-**Fix.** Read the id from the dashboard's Eggs list and copy it. Check case.
+**Fix.** Read the id from the dashboard's Collectibles list and copy it. Check case.
 `/eac reload` prints how many entries the server has, which at least tells you whether the
 registry is populated at all.
 
@@ -72,6 +72,8 @@ registry is populated at all.
 - You changed `textureRenderDistance` and expected it on a client that was already
   connected before the change. It is pushed at the moment of the `PUT`, to players online
   at that moment.
+- You set the global render distance to `0` in the dashboard's **Configuration** tab. Its
+  form turns `0` into `10` before sending it; use the API for `0`.
 
 **Fix.** Change settings through `PUT /api/v1/eggs/config` or the dashboard, and read the
 response back — it returns the stored state.
@@ -82,9 +84,12 @@ response back — it returns the stored state.
 client. `sendRegistrySync` is called from exactly one place — `PUT /config` — so a client
 that joined after the last config change is still using its compiled-in default of 20.
 
-**Fix.** Save the config once from the dashboard after each restart, or set a per-egg
-`renderDistanceOverride` of `0` on the eggs that must always show full detail. `0` means
-"never degrade"; `-1` means "follow the global value".
+**Fix.** Only players online at the moment of a config save receive the value, so a save
+"after each restart" is not enough: save again once the players who matter are connected,
+and again after anyone reconnects. For the hidden eggs that must always show full detail,
+set a per-egg `renderDistanceOverride` of `0` instead — `0` means "never degrade", `-1`
+means "follow the global value". The override exists only on hunt eggs; decorative eggs
+and eggs on pedestals always follow the global value.
 
 ## The dashboard has no Eggs section
 
@@ -142,12 +147,16 @@ the restart cannot be found. Walk the area first.
 
 ## An egg is in the dashboard but there is no block at its coordinates
 
-**Cause.** Three ways to get here.
+**Cause.** Four ways to get here.
 
 - The entry was created with `POST /collectibles`, which creates a registry entry and
   **does not place a block**.
 - An admin broke the block. That sets `positionLost = true` and the position to
   `BlockPos.ORIGIN`, and tells the admin so in gold text.
+- A non-admin in creative mode broke it, or an explosion destroyed it. Neither is
+  blocked, and neither updates the entry, which keeps its coordinates and
+  `positionLost = false` — see
+  [placement and discovery](placement-and-discovery.md#indestructibility).
 - The entry was renamed. `POST /rename` changes the registry key and leaves the block
   carrying the old id, so you get one entry with no block and one orphan block. This is a
   bug, not a configuration issue.
@@ -201,8 +210,9 @@ it. The log says which one you got:
 [EAC-FTB] CustomTask not found — falling back to CheckmarkTask (players can click)
 ```
 
-Either update FTB Quests to a version that has `CustomTask`, or drive your quests from the
-`eggandcheese:egg_found` advancement and make the task read-only yourself.
+Either update FTB Quests to a version that has `CustomTask`, or drive your quests from an
+advancement of your own on the `eggandcheese:egg_found` trigger (see
+[the advancement](display.md#the-advancement)) and make the task read-only yourself.
 
 ## Quest ticks disappeared after a sync
 
@@ -246,8 +256,8 @@ texture, so a decorative wall of identical eggs is nearly free.
 
 **Cause.** `eggandcheese:pedestal_extension`. A tall pedestal places these above itself to
 carry the platform's collision, and they are registered with bedrock-like strength.
-Removing the pedestal through `/setblock`, WorldEdit or a rollback skips
-`removeAllExtensions()`.
+Removing the pedestal through WorldEdit or a rollback — anything that skips block
+updates — skips `removeAllExtensions()`. Breaking it, `/setblock` and explosions do not.
 
 **Fix.** `/setblock <x> <y> <z> air` on each leftover block. There is no in-game way to
 break them.
@@ -267,20 +277,28 @@ consumer that wants its own translations should key on those.
 **Cause.** `EggsApi.parseJson` swallows malformed JSON and returns an empty object, so a
 request with a broken body behaves exactly like `{}` — a successful no-op. Clamping and
 enum fallbacks do the same thing more quietly: `patternScale: 99` becomes `4`, and
-`pattern: "SPOT"` keeps the old value.
+`pattern: "SPOT"` keeps the old value. And a `scale` sent together with `x`, `y`, `z` or
+`dimension` — as the dashboard's Location tab does — is stored in the registry but never
+reaches the placed block; send it on its own
+([details](dashboard.md#put-collectiblesid)).
 
 **Fix.** Always read the response body, which is the full new state, and compare it with
 what you sent. Check your `Content-Type: application/json` header and your JSON syntax.
 
 ## A READ_ONLY dashboard account deleted an egg
 
-**Cause.** Not a misconfiguration. `EggsApi` performs **no role check at all** — no
-`requireWrite`, no `requireAdmin`. Every route is open to any authenticated session.
+**Cause.** It was not a `READ_ONLY` session. `EggsApi` performs no role check of its own,
+but CheeseDash's module dispatcher rejects every non-`GET` request under `/api/v1/eggs/`
+that fails `requireWrite`, with a `403`, before the module sees it — so a genuine
+`READ_ONLY` account cannot delete, rename, give or reconfigure anything. The request came
+from an `OPERATOR` or `SUPER_ADMIN` account, or from the master token, which is
+`SUPER_ADMIN`. The CheeseDash audit log records every non-`GET` module request with its
+session.
 
-**Fix.** Until the handlers are patched with
-`if (!WebDashboard.requireWrite(exchange)) return;`, do not hand out CheeseDash accounts
-you would not trust with full control of the eggs. Restricting the dashboard port by
-firewall or SSH tunnel is the usual mitigation.
+**Fix.** Check the audit log and the account's role. Since `OPERATOR` is the only bar this
+module has, every `OPERATOR` can delete eggs; do not hand that role to anyone you would
+not trust with them — see [the dashboard API](dashboard.md#what-the-core-actually-enforces).
+Restricting the dashboard port by firewall or SSH tunnel remains the usual mitigation.
 
 ## Reporting a bug
 

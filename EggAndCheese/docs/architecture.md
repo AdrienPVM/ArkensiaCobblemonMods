@@ -13,7 +13,7 @@ referenced from `src/main/java` at all.
 src/main/java/com/roicheese/eggandcheese/
 ├── EggAndCheese.java          ModInitializer — registries, criterion, packets, events, commands
 ├── advancement/               the egg_found criterion
-├── block/                     the three blocks + the load/unload reconciliation handler
+├── block/                     the four block classes + the load/unload reconciliation handler
 ├── blockentity/               state for admin eggs, deco eggs and pedestals
 ├── dashboard/                 CheeseDash module + the /api/v1/eggs/* dispatcher
 ├── data/                      persistent registry, entries, and the live loaded-block index
@@ -39,7 +39,7 @@ src/client/java/com/roicheese/eggandcheese/
 | `dashboard` | `EggAndCheeseDashboardModule` (prefix, nav metadata, server reference) and `EggsApi` (924 lines, every route) |
 | `data` | `EggRegistryData` (the `PersistentState`), `CollectibleEntry` (one egg), `LiveAdminEggIndex` (loaded blocks by id) |
 | `dna` | `CollectibleDNA` plus `PaletteType`, `PatternType`, `EmissiveType`, `StampType`, `MicroTextureType`, `RarityType`, `CollectibleType` |
-| `ftb` | `FtbQuestsHook` — 733 lines of reflection, the largest file |
+| `ftb` | `FtbQuestsHook` — 733 lines of reflection, the third-largest file after `ProceduralTextureGenerator` and `EggsApi` |
 | `item` | `AdminCollectibleItem` (placement and the replace/create branch), `CollectibleItem` (tooltip, placement, the display-case fix), `PedestalItem` |
 | `network` | `ModPayloads` (one S2C payload), `ModPackets` (serialisation and the sender), `PacketExtras` (a no-op stub) |
 | `registry` | `ModBlocks` (2 collectible blocks + 23 pedestals + 1 extension), `ModItems` (2 collectible items + 23 pedestal items), `ModBlockEntities` (3 types) |
@@ -256,13 +256,36 @@ are in [FTB Quests integration](ftb-quests.md).
 repositories' worth of files. They drift whenever someone edits one and not the other, and
 nothing detects it.
 
-**`PedestalExtensionBlock` can be orphaned.** Removing a pedestal by `/setblock` or
-WorldEdit leaves unbreakable extension blocks behind, removable only by `/setblock`.
+**`PedestalExtensionBlock` can be orphaned.** Removing a pedestal with a tool that skips
+block updates — WorldEdit, a chunk rollback — leaves unbreakable extension blocks behind,
+removable only by `/setblock`.
 
-**Deco entitlement is shared between admins and players.** An admin who takes the
-decorative copy of their own egg is recorded in `decoReceivedBy` and can never record a
-discovery on it afterwards. See
+**Admin deco copies are unlimited.** `giveDecoItemTo` never records the admin in
+`decoReceivedBy`, despite the "once per admin" comment in `onUse`, so every admin
+right-click hands out another decorative egg. And because `onUse` checks
+`decoReceivedBy` before anything else, clearing a player's discovery from the dashboard
+never lets them find the egg again. See
 [placement and discovery](placement-and-discovery.md#an-admin-right-click-is-not-a-discovery).
+
+**The hunt egg is not as indestructible as it looks.** `onBreak` returning the old state
+cancels nothing; only the zero breaking delta stops survival players. A non-admin in
+creative mode, or any explosion (blast resistance `0`), removes the block without marking
+the entry `positionLost`. See
+[placement and discovery](placement-and-discovery.md#indestructibility).
+
+**The shipped advancement is never loaded.** `egg_found.json` sits in
+`data/eggandcheese/advancements/`, the pre-1.21 plural folder; 1.21.1 reads
+`advancement/`. The criterion trigger works, the advancement does not exist. See
+[the advancement](display.md#the-advancement).
+
+**A `PUT` with coordinates is blunt.** It clears the old position with `removeBlock`
+whatever stands there and overwrites the target, and a body that repeats the current
+coordinates skips the in-place sync — which is why the dashboard's scale field never
+resizes a placed egg. See [the dashboard API](dashboard.md#put-collectiblesid).
+
+**Any `PUT` on an untitled egg renames its quest.** `updateQuest` writes the fixed text
+`Trouver un oeuf` when the title is blank, instead of the `Trouver : <id>` used at
+creation. See [FTB Quests integration](ftb-quests.md#updating-and-deleting).
 
 **Discovery messages show the raw id.** `title` exists and is used for the FTB quest, but
 the player-facing action-bar line passes `registryId`.
@@ -285,11 +308,18 @@ waypoint by reflection but is never called. It also declares
 match. `javac` tolerates this, so it compiles, but no tool will find the file where the
 package says it should be. Either wire it up, move it, or delete it.
 
-**`PacketExtras.register()`** is an intentional no-op, kept so `EggAndCheese` and
-`AdminCommand` still compile after the in-game admin GUI was removed.
+**`PacketExtras.register()`** is an intentional no-op, kept so the call in
+`EggAndCheese.onInitialize` still compiles after the in-game admin GUI was removed. Its
+comment also names `AdminCommand`, which no longer refers to it.
 
 **`NbtUtils.getOrCreate`** is written but unused in the current source. `setSubNbt` is
 likewise unreferenced.
+
+**Never called either:** `CollectibleDNA.fromDnaCode`, `hasCustomPalette` and
+`buildCustomPalette`; `RarityType.getPatternLayers`, `hasBorder` and `isAnimated` (rarity
+has no visual effect at all); the frame-1 emissive texture, generated for every DNA and
+never drawn; `PedestalBlockEntity.canAccept`; `CollectibleModelRenderer.renderGui` and
+`emitQGui`; `LiveAdminEggIndex.duplicateIds`.
 
 **The legacy flag aliases** `FLAG_OUTLINE` and `FLAG_EDGE_GLOW` are kept as aliases for
 `FLAG_EMBOSS` and `FLAG_RIM_GLOW`.

@@ -17,7 +17,8 @@ icons and one particle. A 64×64 colour map and two emissive frames are generate
 client the first time each distinct DNA appears on screen, from a 13-step pipeline that
 exists twice: once in Java for the game, once in JavaScript for the dashboard preview.
 
-The eggs are indestructible to non-admins, pass-through for movement, waterloggable, and
+The eggs cannot be mined by non-admins in survival (creative mode and explosions still
+remove them), are pass-through for movement, waterloggable, and
 recorded once per player. With FTB Quests installed, each egg can carry its own quest,
 created automatically with the egg itself as the quest icon.
 
@@ -35,7 +36,7 @@ created automatically with the egg itself as the quest icon.
 
 CheeseDash is a hard dependency: collectibles are authored in the web dashboard and there
 is no in-game admin GUI. Install the mod on **both** the server and the clients — it
-registers 25 blocks and 25 items, and all rendering is client-side.
+registers 26 blocks and 25 items, and all rendering is client-side.
 
 ## Install
 
@@ -114,8 +115,10 @@ run the integrity repair afterwards.
 
 ⚠️ **The FTB Quests integration is pure reflection** against
 `dev.ftb.mods.ftbquests.*` internals — 733 lines of it. It degrades quietly and logs what
-it resolved, but it will break when FTB Quests restructures. The
-`eggandcheese:egg_found` advancement is the stable alternative.
+it resolved, but it will break when FTB Quests restructures. An advancement of your own on
+the `eggandcheese:egg_found` criterion trigger is the stable alternative — the mod's own
+`egg_found` advancement sits in the pre-1.21 `advancements/` folder and is never loaded
+([details](docs/display.md#the-advancement)).
 
 The `CHEESE` collectible type is half-implemented: the enum, the API and the statistics
 know about it, and no cheese block or item is ever registered. Creating a collectible with

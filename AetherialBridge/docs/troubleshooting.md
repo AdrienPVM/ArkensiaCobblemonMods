@@ -57,7 +57,7 @@ A duplicate id produces a different line:
 
 Two jars with the same provider id are installed, most likely two versions of this mod.
 
-**Fix.** Check `mods/` for exactly one `aetherialbridge-*.jar`. Then restart: the
+**Fix.** Check `mods/` for exactly one `AetherialBridge-*.jar`. Then restart: the
 registry is built once at init, so no amount of refreshing the dashboard will populate
 it. Confirm with the API rather than the browser, since the dropdown caches:
 
@@ -160,7 +160,7 @@ faster to test: if the freeze stops, the diagnosis is confirmed.
 
 Do not confuse this with the ordinary slowness of a first visit. Generating a floating
 dimension is genuinely slower than generating overworld chunks, because the forced sea
-floor writes up to about 33 blocks per column on top of the normal noise pass. A few
+floor writes 35 blocks per column on top of the normal noise pass. A few
 seconds of stutter on first entry is expected; a watchdog kill is not.
 
 ## Raid dens stopped spawning in the overworld
@@ -253,7 +253,7 @@ Open an issue at
 3. **The `sea_level`, `noise.min_y` and `noise.height`** values from your
    `floating.json`.
 4. **Whether Minerally, CobblemonRaidDens, Lithostitched or TerraBlender are installed**,
-   with versions. Four of the five mixins exist because of the first two.
+   with versions. Two of the five mixins exist only because of the first two.
 5. **The dimension's entry** from `config/cheeseguard_dimensions.json`, which shows
    `customGenTypeId`, `genType`, `seed`, `spawnY` and `raidDensEnabled` in one place.
 

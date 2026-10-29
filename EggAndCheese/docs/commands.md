@@ -68,8 +68,10 @@ In French:
 Utilisez le dashboard CheeseDash pour gérer les oeufs.
 ```
 
-Shown in yellow, as command feedback, so it also appears in the server log when
-`sendCommandFeedback` is on. No state changes.
+Shown in yellow, as command feedback sent with `broadcastToOps` off: it reaches you only —
+not the server log, not other ops — and the `sendCommandFeedback` game rule hides it
+entirely when that rule is false. The same goes for the `/eac reload` line. No state
+changes.
 
 ### `/eac give <id>`
 
@@ -80,7 +82,7 @@ Puts the admin placement item for an existing registry entry into your inventory
 | `id` | `StringArgumentType.string()` | yes | a single word, or a quoted string for ids containing spaces | — |
 
 ⚠️ **No completions.** The argument has no `SuggestionProvider`, so pressing Tab offers
-nothing. You have to know the id, or read it from the dashboard's Eggs list. This is the
+nothing. You have to know the id, or read it from the dashboard's Collectibles list. This is the
 single most common source of `Unknown ID` errors.
 
 The item it builds is an `eggandcheese:admin_egg` whose `CUSTOM_DATA` carries three
@@ -219,8 +221,9 @@ message:
 Float must not be more than 3.0, found 5.0
 ```
 
-Brigadier does suggest the valid range in the usage hint while you type, which is the only
-completion help any of these commands offer.
+Tab completes the four subcommand names; the `value` argument shows only its `<value>`
+placeholder, not its range, so the table above is the only place the bounds are written
+down.
 
 ### Examples
 
@@ -252,9 +255,10 @@ Changing the pillar height has a side effect worth knowing: `setPillarHeight` re
 the pedestal's collision shape cache and calls `updateExtensions()`, which places or
 removes `eggandcheese:pedestal_extension` blocks above the pedestal. Those extension
 blocks are what you actually collide with on a tall pedestal, and they are set to
-`strength(-1.0f, 3600000.0f)` — unbreakable and blast-proof, like bedrock. If a pedestal
-is removed by means other than breaking it normally, its extensions can be left behind;
-`removeAllExtensions()` exists for the normal path.
+`strength(-1.0f, 3600000.0f)` — unbreakable and blast-proof, like bedrock. The pedestal's
+`onStateReplaced` calls `removeAllExtensions()` whenever its block is replaced — broken,
+overwritten by `/setblock`, blown up — so extensions are only left behind by tools that
+rewrite chunks without block updates.
 
 ```mcfunction
 /pedestal spin
@@ -300,8 +304,8 @@ For completeness, since the shape of the command set surprises people:
 There used to be an in-game admin GUI opened by `/eac`. It was removed when
 administration moved to CheeseDash, and the `/eac` root now prints the pointer message
 quoted above. `network/PacketExtras.java` is the leftover stub of that flow: its
-`register()` is a documented no-op kept only so `AdminCommand`'s old reference still
-compiles.
+`register()` is a documented no-op. Its comment says it is kept for `AdminCommand`, but
+the only remaining caller is `EggAndCheese.onInitialize`.
 
 ---
 

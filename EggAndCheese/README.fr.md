@@ -18,7 +18,8 @@ sur le client la première fois que chaque ADN distinct apparaît à l'écran, p
 en 13 étapes qui existe deux fois : une fois en Java pour le jeu, une fois en JavaScript
 pour l'aperçu du dashboard.
 
-Les œufs sont indestructibles pour les non-admins, traversables, waterloggables, et
+Les œufs ne peuvent pas être minés par les non-admins en survie (le mode créatif et les
+explosions les retirent tout de même), sont traversables, waterloggables, et
 enregistrés une fois par joueur. Avec FTB Quests installé, chaque œuf peut porter sa propre
 quête, créée automatiquement avec l'œuf lui-même pour icône.
 
@@ -36,7 +37,7 @@ quête, créée automatiquement avec l'œuf lui-même pour icône.
 
 CheeseDash est une dépendance obligatoire : les collectibles se composent dans le dashboard
 web et il n'y a aucune interface d'administration en jeu. Installe le mod sur le serveur
-**et** sur les clients — il enregistre 25 blocs et 25 items, et tout le rendu est côté
+**et** sur les clients — il enregistre 26 blocs et 25 items, et tout le rendu est côté
 client.
 
 ## Installation
@@ -120,8 +121,10 @@ lance la réparation d'intégrité ensuite.
 
 ⚠️ **L'intégration FTB Quests est de la pure réflexion** sur les internes de
 `dev.ftb.mods.ftbquests.*` — 733 lignes. Elle se dégrade en silence et journalise ce
-qu'elle a résolu, mais elle cassera quand FTB Quests se restructurera. L'advancement
-`eggandcheese:egg_found` est l'alternative stable.
+qu'elle a résolu, mais elle cassera quand FTB Quests se restructurera. Un advancement à toi
+sur le déclencheur de critère `eggandcheese:egg_found` est l'alternative stable —
+l'advancement `egg_found` du mod se trouve dans le dossier `advancements/` d'avant la 1.21
+et n'est jamais chargé ([détails](docs/display.fr.md#ladvancement)).
 
 Le type de collectible `CHEESE` est à moitié implémenté : l'enum, l'API et les statistiques
 le connaissent, et aucun bloc ni item de fromage n'est jamais enregistré. Créer un

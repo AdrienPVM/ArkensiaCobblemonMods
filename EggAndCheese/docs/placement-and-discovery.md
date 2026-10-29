@@ -17,7 +17,9 @@ about keeping those two in agreement.
 
 The block entity holds a *copy* of the DNA and scale. That is deliberate: a client that
 loads the chunk needs them without asking the server for registry data. The registry
-stays the source of truth, and the dashboard writes both sides whenever it changes one.
+stays the source of truth, and the dashboard writes both sides when it changes one — with
+two exceptions: a rename leaves the block on the old id, and a scale sent together with
+coordinates (which is what the dashboard's Location tab does) reaches the registry only.
 
 `registryId` on a block entity is the link. An empty `registryId` means the block is
 decorative and unlinked: it renders, it cannot be discovered, and the integrity tool
@@ -84,12 +86,19 @@ doorway or in tall grass without blocking anything.
 
 ## Indestructibility
 
-Three overrides protect a placed egg:
+Two overrides protect a placed egg:
 
 - `canReplace` returns `false`, so no block placement can overwrite it.
 - `calcBlockBreakingDelta` returns `0.0f` for anyone who is not an admin. Mining speed
-  zero means the block never breaks, however long you hold the button.
-- `onBreak` returns the state unchanged for a non-admin, cancelling the break outright.
+  zero means the block never breaks in survival, however long you hold the button.
+
+A third one, `onBreak`, returns the state unchanged for a non-admin, but that cancels
+nothing: Minecraft removes the block after `onBreak` whatever it returns. ⚠️ So the
+protection has two holes. A non-admin in **creative mode** — which skips the breaking
+delta — removes the egg instantly, and an **explosion** destroys it, since the block keeps
+the default blast resistance of `0`. In both cases no item is returned and the entry is
+not marked `positionLost`: it keeps pointing at an empty spot, and only the integrity
+report's `unloadedEntries` reveals it.
 
 An admin who does break it gets the egg back as an item carrying its DNA, scale and
 `registryId`, inserted straight into the inventory (or dropped at their feet if the
@@ -148,14 +157,12 @@ receives a copy of the decorative egg and the method returns. No discovery is re
 no quest completes, no WebSocket message is sent. It is a preview tool — right-click
 your own egg to check what the reward looks like.
 
-The side effect is worth knowing: that branch consults and sets the **same**
-`decoReceivedBy` set that discoveries use. An admin who has taken the decorative copy is
-recorded as having received it, and will see
-`You have already received the decorative version of this egg.` on the next
-right-click. If that admin later plays as a normal player and loses op, they can never
-record a discovery on that egg — the deco check short-circuits before
-`handlePlayerDiscovery` is reached. Clear the discovery list from the dashboard, or test
-with a second account.
+The branch only *reads* the `decoReceivedBy` set that discoveries use; it never writes
+it. `giveDecoItemTo` does not record the admin, so — despite the "once per admin"
+comment in `onUse` — an admin gets a fresh decorative copy on every right-click. The
+message `You have already received the decorative version of this egg.` appears only to an
+admin who had found that egg as a normal player before being given admin rights. Taking
+copies as an admin therefore never blocks a later discovery on the same account.
 
 ## Per-player state
 
@@ -164,18 +171,18 @@ Two independent sets live on each entry:
 | Set | Written by | Meaning |
 |---|---|---|
 | `discoveredBy` | player discovery, `POST /collectibles/:id/discoveries` | this player found this egg |
-| `decoReceivedBy` | player discovery, admin right-click | this player has had the decorative item |
+| `decoReceivedBy` | player discovery only | this player has had the decorative item from a discovery |
 
 Both persist in the entry's NBT as lists of UUID strings, and both are read back
 defensively — an unparseable UUID is skipped rather than failing the load.
 
 The dashboard can add a discovery by player name (`POST`), remove one by UUID
 (`DELETE /collectibles/:id/discoveries/:uuid`) or clear them all
-(`DELETE /collectibles/:id/discoveries`). None of those touch `decoReceivedBy`, so a
-player whose discovery you cleared will find the egg again and receive a second
-decorative copy only if they were never in `decoReceivedBy` — which, for a normal
-discovery, they always are. In practice clearing discoveries lets a player re-trigger
-the quest, not re-collect the item.
+(`DELETE /collectibles/:id/discoveries`). None of those touch `decoReceivedBy`, and
+`onUse` checks `decoReceivedBy` **before** it ever calls `handlePlayerDiscovery`. So a
+player whose discovery you cleared, after a normal discovery, still gets
+`You already found this one!` and nothing else: no new discovery, no quest, no item.
+Clearing discoveries changes the counts and the list, not what the player can do.
 
 ## Persistence
 

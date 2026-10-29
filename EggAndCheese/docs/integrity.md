@@ -114,7 +114,8 @@ A report, no mutation.
     }
   ],
   "orphans": [
-    { "dimension": "minecraft:overworld", "x": 101, "y": 70, "z": 55, "id": "egg_099" }
+    { "dimension": "minecraft:overworld", "x": 101, "y": 70, "z": 55, "id": "egg_099" },
+    { "dimension": "minecraft:overworld", "x": 133, "y": 68, "z": 61, "id": "egg_099" }
   ],
   "unloadedEntries": ["egg_031", "egg_044"]
 }
@@ -149,7 +150,7 @@ safe: the second run finds nothing left to unbind.
 
 ### The dashboard button
 
-The **Integrity** button in the Eggs view (`CheeseDash/assets/view-eggs.js`, function
+The **Integrity** button in the Collectibles view (`CheeseDash/assets/view-eggs.js`, function
 `checkIntegrity`) calls the `GET`, and:
 
 - on a clean report, shows a success toast — *"Integrity OK — 54 loaded egg blocks, no
@@ -170,14 +171,18 @@ A workable procedure:
 
 1. Make a backup. The repair unbinds rather than deletes, but a mistaken registry edit
    is not recoverable.
-2. Open the dashboard's Eggs view and note the entry count.
+2. Open the dashboard's Collectibles view and note the entry count.
 3. Load the area you suspect — teleport through it, or use a chunk-loading tool if your
    pack has one. Reconciliation also runs on its own as each block loads, so simply
    walking the area fixes duplicates where the registry's canonical position is among the
    loaded blocks.
-4. Press **Integrity**. Read the report before confirming: check that the position the
-   report wants to keep is the one you want kept. If it is not, move the registry entry
-   first with a `PUT` on the egg's coordinates, then reconcile.
+4. Press **Integrity**. Read the report before confirming. It lists every position but
+   does not say which one will be kept: the rule is the registry's own position when it
+   is among them, otherwise the deterministic pick. If that is not the block you want
+   kept, know that a `PUT` on the egg's coordinates does more than move the entry — it
+   removes the block at the old position and places a fresh bound block at the new one.
+   Aimed at the decoy you prefer, it overwrites that decoy and deletes the old canonical
+   block; then reconcile.
 5. Repeat per region. The report is per-snapshot, not cumulative.
 
 For blocks unbound by mistake, re-binding is a placement: give yourself the admin item
@@ -203,7 +208,9 @@ Two defences are in the code now, and both must stay.
 **The reconcile is deferred, not immediate.** `BLOCK_ENTITY_LOAD` only enqueues onto a
 `ConcurrentLinkedQueue`, and `ServerTickEvents.END_SERVER_TICK` drains it, up to 8192
 tasks per tick, each in its own try/catch. A failed task logs a warning and the drain
-continues.
+continues. (When more than 8192 are queued, the loop polls the 8193rd before testing its
+counter, so that one task is dropped without running; the next load of that block queues
+it again.)
 
 ```text
 [EggAndCheese] deferred reconcile failed: <message>

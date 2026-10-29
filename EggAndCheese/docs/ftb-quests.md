@@ -3,7 +3,8 @@
 # FTB Quests integration
 
 An egg hunt wants a checklist, and FTB Quests is the checklist most Cobblemon packs
-already ship. `ftb/FtbQuestsHook.java` — 733 lines, the largest single file in the mod —
+already ship. `ftb/FtbQuestsHook.java` — 733 lines, the third-largest file in the mod after
+`ProceduralTextureGenerator` and `EggsApi` —
 creates one quest per egg, completes it when a player finds that egg, and keeps the two in
 step through edits and deletions.
 
@@ -71,9 +72,12 @@ and `AdminCollectibleItem.postPlacement` for a brand-new egg. It returns the que
 
 What it builds:
 
-- The chapter is resolved by `findOrCreateChapter`. Lookup is **by name**; a chapter is
-  created when none matches, and several chapters sharing the name are merged into one,
-  logged as `Merged N duplicate chapters into one 'oeufs'`.
+- The chapter is resolved by `findOrCreateChapter`. Lookup is **by file name**, derived
+  from the setting (lowercased, anything outside `a-z0-9_` turned into `_`) and compared
+  case-insensitively — not by displayed title; see
+  [configuration](configuration.md#ftbquestschapter). A chapter is created when none
+  matches, and several matching chapters are merged into one, logged as
+  `Merged N duplicate chapters into one 'oeufs'`.
 - The quest's X position is `existingQuests.size() * 2.5`, Y is `0.0`. Every egg quest
   lands on a single horizontal row, 2.5 units apart. With fifty eggs that row is 125 units
   wide; a quest book chapter is not designed for that and you will be scrolling. There is
@@ -142,9 +146,11 @@ edit so open quest books refresh.
 ```
 
 Note what rename does **not** do: the quest title follows the entry's `title`, not its id.
-Renaming `egg_014` to `cave_nord` leaves the quest reading `Trouver : egg_014` if the
-entry has no explicit title, because `updateQuest` is handed `entry.getTitle()` — which is
-still blank. Set a title, or run a full sync.
+And when that title is blank, `updateQuest` does not rebuild `Trouver : <id>` — it writes
+the fixed text `Trouver un oeuf` into the quest and its task. So renaming `egg_014` to
+`cave_nord` without a title leaves the quest reading `Trouver un oeuf`, and so does
+**any** `PUT` on an untitled egg — a scale change is enough. Set a title, or run a full
+sync.
 
 `deleteQuest(questId)` goes through `ServerQuestFile.deleteObject(long)`, which FTB Quests
 itself broadcasts to clients as a delete message. That is why a deleted egg's quest
@@ -191,16 +197,20 @@ is fixed.
 ## Using the advancement instead
 
 If you would rather not let this mod write into your quest file, the hook is entirely
-optional. Leave `ftbQuestsEnabled` at `false` and drive your quests from the advancement
-trigger, which is plain datapack data and has no reflection anywhere near it:
+optional. Leave `ftbQuestsEnabled` at `false` and drive your quests from the
+`eggandcheese:egg_found` criterion trigger, which is plain datapack data and has no
+reflection anywhere near it.
+
+The advancement the mod ships under that name is never loaded in 1.21.1 — it sits in the
+old plural `advancements/` folder — so you need your own, in your pack's datapack:
 
 ```text
-Advancement ID: eggandcheese:egg_found
+Advancement ID: mypack:egg_found_any
 ```
 
-An FTB Quests task of type **Advancement** pointing at that id completes on any egg
-discovery. For one specific egg, write your own advancement with
-`"conditions": {"egg_id": "cave_nord"}` — the detail is in
+An FTB Quests task of type **Advancement** pointing at it completes on any egg discovery
+when its criterion is `"egg_id": "*"`. For one specific egg, use
+`"conditions": {"egg_id": "cave_nord"}` — the files are in
 [decorative eggs and pedestals](display.md#the-advancement).
 
 This route is more work to set up, survives FTB Quests updates, and is what to fall back

@@ -95,11 +95,17 @@ CheeseDash et non du module.
   Minecraft même si c'est le thread HTTP qui a renvoyé la réponse.
 - Un collectible absent donne `404 {"error":"Collectible not found"}`. Les échecs internes
   donnent `500` avec le message d'exception dans `error`.
+- Une erreur levée dans `executeOnServerThread` revient enveloppée : son texte `error` est
+  préfixé par la classe de l'exception, comme dans
+  `{"error":"java.lang.RuntimeException: Player not online: Lia"}`. Seul le `409` de la
+  création la désenveloppe. Les messages cités plus bas omettent ce préfixe : compare la
+  fin de la chaîne, pas l'égalité.
 - Un chemin non reconnu donne `404 {"error":"Unknown eggs route: <route>"}`, ou
   `404 {"error":"Unknown collectible route"}` sous `/collectibles/:id`.
 - Un corps JSON mal formé ne provoque **pas** d'erreur : `parseJson` renvoie un objet
   vide, et la requête se comporte comme si tu avais envoyé `{}`. Un `PUT` au JSON cassé
-  est un succès qui ne fait rien.
+  est un succès qui ne fait rien — sauf que, l'intégration FTB active, il réécrit tout de
+  même le titre de la quête liée (voir [FTB Quests](ftb-quests.fr.md#mettre-à-jour-et-supprimer)).
 
 ## Collectibles
 
@@ -192,7 +198,7 @@ Tous les champs du corps sont facultatifs.
 
 | Champ | Type | Défaut | Remarques |
 |---|---|---|---|
-| `id` | chaîne | `egg_NNN` automatique | Vide ou absent déclenche `generateUniqueId()` |
+| `id` | chaîne | `egg_NNN` automatique | Vide ou absent déclenche `generateUniqueId()`. Rogné, mais **pas** vérifié par `isValidId` : un id contenant `/` ou `%` est accepté, et chaque route `/collectibles/:id` le refuse ensuite en `400` |
 | `type` | chaîne | `egg` | `CollectibleType.fromId` : toute valeur inconnue devient `egg` |
 | `dimension` | chaîne | `minecraft:overworld` | Non vérifié contre les mondes chargés |
 | `x`, `y`, `z` | entier | `0`, `64`, `0` | |
@@ -222,14 +228,24 @@ d'ADN omis gardent leur valeur courante.
 
 Deux effets de bord en plus de l'écriture dans le registre :
 
-- **Déplacement.** Si le corps contient l'un de `x`, `y`, `z`, `dimension` et que l'entrée
-  n'est pas `positionLost`, l'ancien bloc est retiré et un nouveau bloc `admin_egg` est
-  posé à la nouvelle position, configuré avec l'id, l'ADN, l'échelle et la surcharge de
-  distance de rendu de l'entrée. Les deux mondes doivent être chargés pour que cela
-  s'exécute ; si l'une des deux recherches échoue, le registre bouge et le bloc non.
-- **Synchronisation sur place.** Si la position n'a *pas* changé mais que le corps contient
-  `renderDistanceOverride`, `scale` ou `dna`, le block entity existant est mis à jour sur
-  place, ce qui pousse le changement aux clients immédiatement.
+- **Déplacement.** Si le corps contient l'un de `x`, `y`, `z`, `dimension`, que l'entrée
+  n'est pas `positionLost` et que la position obtenue diffère de l'ancienne, l'ancienne
+  position est vidée et un nouveau bloc `admin_egg` est posé à la nouvelle, configuré avec
+  l'id, l'ADN, l'échelle et la surcharge de distance de rendu de l'entrée. Les deux mondes
+  doivent exister pour que cela s'exécute ; si l'une des deux recherches échoue, le
+  registre bouge et le bloc non. ⚠️ Aucune des deux extrémités n'est vérifiée :
+  `removeBlock` vide l'ancienne position **quoi qu'il s'y trouve** — pour une entrée tout
+  juste sortie de `POST /collectibles` et jamais posée, c'est le terrain à ses coordonnées
+  par défaut `0, 64, 0` —, et le nouveau bloc écrase ce qui occupe la cible.
+  Inversement, c'est le seul moyen de mettre un œuf dans le monde depuis le dashboard.
+- **Synchronisation sur place.** Si le corps ne contient **aucun** de `x`, `y`, `z`,
+  `dimension` mais contient `renderDistanceOverride`, `scale` ou `dna`, le block entity
+  existant est mis à jour sur place, ce qui pousse le changement aux clients
+  immédiatement. Un corps qui répète les coordonnées actuelles compte comme un
+  déplacement qui ne va nulle part : aucune des deux branches ne s'exécute, et une
+  `scale` envoyée avec des coordonnées atteint le registre mais pas le bloc. L'onglet
+  Localisation du dashboard envoie toujours les coordonnées : c'est pourquoi son champ
+  d'échelle ne redimensionne pas un œuf posé.
 
 Le titre et la description de la quête FTB liée sont mis à jour quand l'intégration FTB
 est active et que l'entrée a un id de quête.
@@ -336,6 +352,9 @@ comprendre pourquoi cela compte.
 `cheeseCount` compte les entrées dont le type est `CHEESE`. Aucun bloc ni item de fromage
 n'est enregistré dans cette version : sur une installation normale, la valeur est donc
 `0` — voir [architecture](architecture.fr.md#faiblesses-connues).
+
+La troisième carte de statistiques de la vue Collectibles, **Joueurs**, lit un champ
+`uniqueDiscoverers` que cette route ne renvoie pas : elle affiche donc toujours `0`.
 
 ## Enums
 

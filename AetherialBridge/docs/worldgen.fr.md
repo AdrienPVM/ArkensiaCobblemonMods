@@ -122,8 +122,9 @@ Deux conséquences :
   qu'il le veuille ou non.
 
 Le javadoc de `SpringFeatureMixin` et de `LakeFeatureMixin` annonce « sea_level &lt; -50 »
-et mentionne -55 ; celui de `MinerallyFeatureMixin` dit -30. Le code des quatre dit -25.
-Les commentaires sont périmés ; le nombre qui compte est -25.
+et celui de `SpringFeatureMixin` mentionne -55 ; celui de `MinerallyFeatureMixin` dit déjà
+-25 (et que la dimension est à -30). Le code des quatre dit -25. Les deux premiers
+commentaires sont périmés ; le nombre qui compte est -25.
 
 ---
 
@@ -224,8 +225,9 @@ choisit une des cinq familles et place 4 à 9 blocs sur une emprise de 3×3, cha
 sommet, les deux waterlogged, jamais au-dessus de `seaLevel - 1`.
 
 Une bizarrerie, puisqu'elle est visible si on la cherche : la branche du varech ressort
-par `continue` quand l'eau est trop peu profonde pour une colonne de 3 blocs, ce qui
-saute aussi les branches herbe aquatique et cornichon de mer pour cette colonne. Les
+par `continue` quand l'eau est trop peu profonde pour une colonne de 3 blocs (moins de 4
+de profondeur), et comme les branches forment une seule chaîne de `else if`, un tirage
+tombé sur le varech ne retombe jamais sur l'herbe aquatique : la colonne reste nue. Les
 fonds sableux peu profonds sont donc un peu plus nus que le tableau ne le suggère.
 
 ---

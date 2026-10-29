@@ -57,7 +57,7 @@ un chargement.
 une correspondance exacte, sensible à la casse, et l'argument n'a **aucune complétion** :
 la faute de frappe est donc l'échec normal.
 
-**Remède.** Lis l'id dans la liste des œufs du dashboard et copie-le. Vérifie la casse.
+**Remède.** Lis l'id dans la liste Collectibles du dashboard et copie-le. Vérifie la casse.
 `/eac reload` affiche combien d'entrées le serveur possède, ce qui t'indique au moins si le
 registre est peuplé.
 
@@ -74,6 +74,9 @@ registre est peuplé.
 - Tu as changé `textureRenderDistance` et tu l'attendais sur un client déjà connecté avant
   le changement. La valeur est poussée au moment du `PUT`, aux joueurs connectés à cet
   instant.
+- Tu as réglé la distance de rendu globale à `0` dans l'onglet **Configuration** du
+  dashboard. Son formulaire transforme `0` en `10` avant de l'envoyer ; passe par l'API pour
+  `0`.
 
 **Remède.** Change les réglages via `PUT /api/v1/eggs/config` ou le dashboard, et relis la
 réponse — elle renvoie l'état stocké.
@@ -85,10 +88,13 @@ client. `sendRegistrySync` est appelé à un seul endroit — `PUT /config` — 
 connecté après le dernier changement de configuration utilise encore son défaut compilé de
 20.
 
-**Remède.** Enregistre la configuration une fois depuis le dashboard après chaque
-redémarrage, ou mets un `renderDistanceOverride` de `0` sur les œufs qui doivent toujours
-être en détail complet. `0` signifie « ne jamais dégrader » ; `-1` signifie « suivre la
-valeur globale ».
+**Remède.** Seuls les joueurs connectés au moment d'un enregistrement de la configuration
+reçoivent la valeur : un enregistrement « après chaque redémarrage » ne suffit donc pas.
+Réenregistre une fois les joueurs qui comptent connectés, et à nouveau après chaque
+reconnexion. Pour les œufs cachés qui doivent toujours être en détail complet, mets plutôt
+un `renderDistanceOverride` de `0` — `0` signifie « ne jamais dégrader », `-1` « suivre la
+valeur globale ». Cette surcharge n'existe que sur les œufs de chasse ; les œufs décoratifs
+et ceux posés sur une stèle suivent toujours la valeur globale.
 
 ## Le dashboard n'a pas de section Œufs
 
@@ -151,12 +157,16 @@ visité depuis le redémarrage est introuvable. Parcours la zone d'abord.
 
 ## Un œuf est dans le dashboard mais il n'y a aucun bloc à ses coordonnées
 
-**Cause.** Trois façons d'arriver là.
+**Cause.** Quatre façons d'arriver là.
 
 - L'entrée a été créée par `POST /collectibles`, qui crée une entrée de registre et **ne
   pose aucun bloc**.
 - Un admin a cassé le bloc. Cela met `positionLost = true` et la position à
   `BlockPos.ORIGIN`, et le signale à l'admin en doré.
+- Un non-admin en mode créatif l'a cassé, ou une explosion l'a détruit. Rien ne
+  l'empêche, et rien ne met l'entrée à jour : elle garde ses coordonnées et
+  `positionLost = false` — voir
+  [placement et découvertes](placement-and-discovery.fr.md#indestructibilité).
 - L'entrée a été renommée. `POST /rename` change la clé du registre et laisse le bloc
   porter l'ancien id : tu obtiens une entrée sans bloc et un bloc orphelin. C'est un bug,
   pas un problème de configuration.
@@ -213,7 +223,8 @@ log dit laquelle tu as obtenue :
 ```
 
 Soit tu mets FTB Quests à jour vers une version qui a `CustomTask`, soit tu pilotes tes
-quêtes depuis l'advancement `eggandcheese:egg_found` et tu rends la tâche non cliquable
+quêtes depuis un advancement à toi sur le déclencheur `eggandcheese:egg_found` (voir
+[l'advancement](display.fr.md#ladvancement)) et tu rends la tâche non cliquable
 toi-même.
 
 ## Les coches de quête ont disparu après une synchronisation
@@ -260,8 +271,9 @@ donc quasi gratuit.
 
 **Cause.** `eggandcheese:pedestal_extension`. Une stèle haute en pose au-dessus d'elle
 pour porter la collision de la plateforme, et ils sont enregistrés avec une résistance de
-type bedrock. Retirer la stèle par `/setblock`, WorldEdit ou un rollback contourne
-`removeAllExtensions()`.
+type bedrock. Retirer la stèle par WorldEdit ou un rollback — tout ce qui contourne les
+mises à jour de blocs — contourne `removeAllExtensions()`. La casser, `/setblock` et les
+explosions, non.
 
 **Remède.** `/setblock <x> <y> <z> air` sur chaque bloc restant. Il n'existe aucun moyen de
 les casser en jeu.
@@ -281,7 +293,10 @@ un consommateur qui veut ses propres traductions doit s'appuyer sur ceux-là.
 **Cause.** `EggsApi.parseJson` avale le JSON mal formé et renvoie un objet vide : une
 requête au corps cassé se comporte donc exactement comme `{}` — un succès sans effet. Le
 bornage et les replis d'enum font la même chose plus discrètement : `patternScale: 99`
-devient `4`, et `pattern: "SPOT"` conserve l'ancienne valeur.
+devient `4`, et `pattern: "SPOT"` conserve l'ancienne valeur. Enfin, une `scale` envoyée
+avec `x`, `y`, `z` ou `dimension` — comme le fait l'onglet Localisation du dashboard — est
+stockée dans le registre mais n'atteint jamais le bloc posé ; envoie-la seule
+([détails](dashboard.fr.md#put-collectiblesid)).
 
 **Remède.** Lis toujours le corps de la réponse, qui est l'état complet nouveau, et
 compare-le à ce que tu as envoyé. Vérifie ton en-tête
@@ -289,14 +304,19 @@ compare-le à ce que tu as envoyé. Vérifie ton en-tête
 
 ## Un compte READ_ONLY du dashboard a supprimé un œuf
 
-**Cause.** Ce n'est pas une erreur de configuration. `EggsApi` ne fait **aucun contrôle de
-rôle** — ni `requireWrite`, ni `requireAdmin`. Toutes les routes sont ouvertes à n'importe
-quelle session authentifiée.
+**Cause.** Ce n'était pas une session `READ_ONLY`. `EggsApi` ne fait aucun contrôle de
+rôle lui-même, mais le dispatcher de modules de CheeseDash rejette, par un `403`, toute
+requête non-`GET` sous `/api/v1/eggs/` qui échoue à `requireWrite`, avant que le module ne
+la voie : un vrai compte `READ_ONLY` ne peut donc rien supprimer, renommer, donner ni
+reconfigurer. La requête venait d'un compte `OPERATOR` ou `SUPER_ADMIN`, ou du jeton
+maître, qui est `SUPER_ADMIN`. Le journal d'audit de CheeseDash enregistre chaque requête
+non-`GET` adressée à un module, avec sa session.
 
-**Remède.** Jusqu'à ce que les handlers soient corrigés avec
-`if (!WebDashboard.requireWrite(exchange)) return;`, ne distribue pas de comptes CheeseDash
-à qui tu ne confierais pas le contrôle total des œufs. Restreindre le port du dashboard par
-pare-feu ou par tunnel SSH est la parade habituelle.
+**Remède.** Consulte le journal d'audit et le rôle du compte. Comme `OPERATOR` est la seule
+barrière de ce module, tout `OPERATOR` peut supprimer des œufs : ne confie ce rôle à
+personne à qui tu ne confierais pas les œufs — voir
+[l'API du dashboard](dashboard.fr.md#ce-que-le-cœur-applique-réellement). Restreindre le
+port du dashboard par pare-feu ou par tunnel SSH reste la parade habituelle.
 
 ## Signaler un bug
 

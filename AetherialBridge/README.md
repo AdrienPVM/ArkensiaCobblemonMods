@@ -36,14 +36,14 @@ seagrass. [The worldgen page](docs/worldgen.md) covers all of it.
 **This is a third-party patch, published as a worked example rather than as a finished
 product.**
 
-- Three of its five mixins inject into classes it does not own: one into vanilla's
-  `NoiseChunkGenerator`, and two into classes belonging to other mods
-  (`cobblemonraiddens` and `minerally`). It was written against one specific modpack,
+- All five of its mixins inject into classes it does not own: three into vanilla
+  (`NoiseChunkGenerator`, `SpringFeature`, `LakeFeature`), and two into classes
+  belonging to other mods (`cobblemonraiddens` and `minerally`). It was written against one specific modpack,
   and any update to those mods can break it without warning.
 - It expects a **repackaged** build of Aetherial Islands whose worldgen data lives in
   the `aetherial_islands` namespace. The stock Modrinth download does not provide that
-  namespace, so dimension creation fails with a clear error until you supply a datapack
-  that does. [Installation](docs/installation.md#the-datapack-namespace) explains what
+  namespace, so until you supply a datapack that does, the provider throws a clear error
+  and CheeseGuard creates the dimension anyway, with an empty void generator. [Installation](docs/installation.md#the-datapack-namespace) explains what
   is expected and why.
 - Provided as is. No support is offered, and no fix is promised when the mods it
   targets change.
@@ -82,7 +82,7 @@ cd ../AetherialBridge && ./gradlew build
 ```
 
 Then drop four jars in `mods/`: CheeseDash, CheeseGuard,
-`aetherialbridge-1.0.0+1.21.1.jar`, and your Aetherial Islands jar. Full detail, the
+`AetherialBridge-1.0.0+1.21.1.jar`, and your Aetherial Islands jar. Full detail, the
 log lines to check and the namespace caveat are in
 [installation](docs/installation.md).
 

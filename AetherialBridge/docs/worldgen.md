@@ -115,7 +115,8 @@ Two consequences:
   wants to or not.
 
 The javadoc on `SpringFeatureMixin` and `LakeFeatureMixin` says "sea_level &lt; -50" and
-mentions -55; `MinerallyFeatureMixin` says -30. The code in all four is -25. The comments
+`SpringFeatureMixin` mentions -55; `MinerallyFeatureMixin`'s javadoc already says -25
+(and that the dimension sits at -30). The code in all four is -25. The first two comments
 are stale; the number that matters is -25.
 
 ---
@@ -211,9 +212,10 @@ and places 4 to 9 blocks in a 3×3 footprint, each 1 or 2 tall, with a one-in-th
 each of a coral fan or a coral plant on top, both waterlogged, never above `seaLevel - 1`.
 
 One quirk, since it is visible if you look for it: the kelp branch bails out with
-`continue` when the water is too shallow for a 3-block column, which also skips the
-seagrass and sea-pickle branches for that column. Shallow sandy ground is therefore
-slightly barer than the table suggests.
+`continue` when the water is too shallow for a 3-block column (less than 4 deep), and
+since the branches form one `else if` chain, a roll that landed on kelp never falls
+through to seagrass: the column stays bare. Shallow sandy ground is therefore slightly
+barer than the table suggests.
 
 ---
 

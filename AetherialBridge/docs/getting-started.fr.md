@@ -78,7 +78,7 @@ désactivé, structures désactivées. Deux méritent une réflexion ici :
 - **Raid dens** (🐲). Laisse la case cochée, sauf si CobblemonRaidDens est installé et
   que tu ne veux pas de dens dans cette dimension. La décocher est ce qui fait annuler
   le placement des dens par [`RaidDenFeatureMixin`](worldgen.fr.md#les-raid-dens-cobblemon)
-  pour cet identifiant de monde, et c'est le seul des quatre mixins que tu pilotes
+  pour cet identifiant de monde, et c'est le seul des cinq mixins que tu pilotes
   depuis le dashboard.
 
 **Étape 4, la création.** Relis le résumé et confirme.
@@ -146,10 +146,11 @@ mixins :
   trouves l'un ou l'autre, le même seuil l'explique.
 
 ```mcfunction
-/execute in cheeseguard:islands run tp TonPseudo 0.5 -28 0.5
+/execute in cheeseguard:islands run tp TonPseudo 0.5 -32 0.5
 ```
 
-Ça te place sous la surface de la mer, le moyen le plus rapide de voir le fond.
+Ça te place deux blocs sous la surface de la mer — le dernier bloc d'eau est à y=-30, et
+en dessous le mixin réécrit chaque colonne, si bien que y=-32 est de l'eau partout —, le moyen le plus rapide de voir le fond.
 
 ## 7. Et ensuite
 

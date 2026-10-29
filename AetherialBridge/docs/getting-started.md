@@ -71,7 +71,7 @@ dens on, PvP off, keep-inventory off, structures off. Two are worth a thought he
 - **Raid dens** (🐲). Leave it checked unless CobblemonRaidDens is installed and you do
   not want dens in this dimension. Unchecking it is what makes
   [`RaidDenFeatureMixin`](worldgen.md#cobblemon-raid-dens) cancel den placement for this
-  world id, and it is the only one of the four mixins you control from the dashboard.
+  world id, and it is the only one of the five mixins you control from the dashboard.
 
 **Step 4, create.** Review the summary and confirm.
 
@@ -133,10 +133,11 @@ Then look down and check these two, because they are what the mixins are for:
   find either, the same threshold explains it.
 
 ```mcfunction
-/execute in cheeseguard:islands run tp YourName 0.5 -28 0.5
+/execute in cheeseguard:islands run tp YourName 0.5 -32 0.5
 ```
 
-That puts you just under the sea surface, which is the fastest way to see the floor.
+That puts you two blocks under the sea surface — the top water block is y=-30, and below
+it the mixin overwrites every column, so y=-32 is water everywhere — which is the fastest way to see the floor.
 
 ## 7. Where to go next
 

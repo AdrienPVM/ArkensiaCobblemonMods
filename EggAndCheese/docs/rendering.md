@@ -30,22 +30,25 @@ directory, not here. EggAndCheese contributes no frontend file at all.
 colour image is built in this order, and the order is what makes the layers read
 correctly:
 
-1. **Base fill** from the active palette — primary with a vertical gradient toward
-   shadow, so the egg reads as rounded before any lighting is applied.
-2. **Rarity background** — extra tinting for the higher tiers.
-3. **Primary pattern**, drawn `rarity.getPatternLayers()` times with jittered
-   parameters. This is where a `MYTHIC` egg gets its density.
-4. **Secondary pattern**, alpha-blended at `patternBlend / 100`.
-5. **Stamp**, if not `NONE`.
-6. **Micro-texture**, a per-pixel brightness modulation.
-7. **Emboss** (`FLAG_EMBOSS`) — a Sobel pass over the pattern edges.
-8. **Directional lighting** (`FLAG_LIGHTING`).
-9. **Specular blob** (`FLAG_SPECULAR`) at one quarter width, one quarter height, with a
-   Gaussian falloff of `SIZE * 0.18`.
-10. **Varnish** (`FLAG_VARNISH`) at `varnishLevel / 100`.
-11. **Rim glow** (`FLAG_RIM_GLOW`).
-12. **Rarity effects** — border for `EPIC` and above.
-13. **Emissive maps**, generated separately into the two frame images.
+1. **"Rarity" background** — seamless noise between the palette's primary and shadow.
+   Despite the name, rarity is not read: the step uses only the seed and the palette.
+2. **Base gradient** — primary toward shadow along the vertical axis, plus noise, so the
+   egg reads as rounded before any lighting is applied.
+3. **Primary pattern**, drawn once.
+4. **Secondary pattern**, alpha-blended at `patternBlend / 100 × 0.85`, skipped at `0`.
+5. **Emboss** (`FLAG_EMBOSS`) — a Sobel pass over the pattern edges.
+6. **Shimmer and sparkles** — noise highlights, a pulsing band near the top and bottom
+   edges, and 6 to 13 sparkle pixels. Every egg gets this step, whatever its rarity.
+7. **Stamp**, if not `NONE`.
+8. **Micro-texture**, a per-pixel brightness modulation, if not `NONE`.
+9. **Directional lighting** (`FLAG_LIGHTING`).
+10. **Specular blob** (`FLAG_SPECULAR`) at one quarter width, one quarter height, with a
+    Gaussian falloff of `SIZE * 0.18`.
+11. **Rim glow** (`FLAG_RIM_GLOW`) — a glow-coloured band at the top and bottom rims.
+12. **Varnish** (`FLAG_VARNISH`) at `varnishLevel / 100 × 0.35`.
+13. **Highlight vignette** — a vertical gradient toward the highlight colour, always on.
+
+The two emissive maps are generated separately, after the colour image.
 
 Texture size is 64×64, fixed, in `ProceduralTextureGenerator.SIZE`.
 
@@ -60,10 +63,11 @@ down one side of every egg using it.
 
 ### Two emissive frames
 
-`generate` produces `emissF0` and `emissF1` from two different frame seeds. Only
-`LEGENDARY` and `MYTHIC` DNA actually alternate between them — `RarityType.isAnimated()`
-decides. Both frames are generated regardless of rarity, which costs a little work for
-nothing on common eggs but keeps the cache shape uniform.
+`generate` produces `emissF0` and `emissF1` from two different frame seeds, and both are
+registered as textures. Only frame 0 is ever drawn: every renderer calls the one-argument
+`getEmissiveTexture(dna)`, which always returns frame 0, and `RarityType.isAnimated()` is
+never read. Frame 1 is generated and uploaded for nothing, for every egg, whatever its
+rarity — no glow alternates frames today.
 
 ## Emissive patterns
 
@@ -74,14 +78,14 @@ branch:
 | Value | What it draws |
 |---|---|
 | `SPOTS` | Glowing dots on a jittered cell grid. |
-| `LINES` | Bright line segments. |
-| `RUNES` | Glyphs built from seven stroke templates — vertical, horizontal, cross, two diagonals, an X, and a box form — chosen per cell. |
-| `STARS` | Multi-pointed bursts with a bright core. |
+| `LINES` | Four wavy vertical lines around the circumference, bent by noise. |
+| `RUNES` | Glyphs built from seven stroke templates — vertical, horizontal, cross, two diagonals, an X, and a ring — chosen per cell. |
+| `STARS` | Round points with a bright core and a soft radial halo — no rays. |
 | `AURORA` | A flowing horizontal band of light. |
 | `VEINS` | Vein noise thresholded into glowing cracks. |
-| `SPARKS` | Small points with short trailing streaks. |
+| `SPARKS` | Small, sharp points with a short falloff — smaller and sparser than `STARS`, no trails. |
 | `CRACKS` | Thin fracture lines, sparser and sharper than `VEINS`. |
-| `PULSE` | Concentric brightness rings. |
+| `PULSE` | Contour lines of a smooth noise field — wavy bands, not concentric rings. |
 | `CIRCUIT` | Orthogonal traces with junction nodes. |
 | `RIPPLE` | Interference rings from offset centres. |
 | `FLAME` | Turbulence-driven tongues rising vertically. |
@@ -89,12 +93,12 @@ branch:
 | `MATRIX` | Vertical falling columns of bright cells. |
 | `DIAMONDS` | A lattice of diamond outlines. |
 
-`NONE` short-circuits: no emissive image is written, and the renderer skips the emissive
-pass entirely.
+`NONE` short-circuits: the emissive images are left fully transparent, and the renderer
+skips the emissive pass entirely. A density of `0` does the same.
 
 How much of the surface lights up is `emissiveDensity / 100`. The colour comes from the
-palette's glow slot, which is why the same `FLAME` reads orange on `FIRE` and cyan on
-`ICE`.
+palette's glow slot, brightened, which is why the same `FLAME` reads yellow on `FIRE` and
+cyan on `ICE`.
 
 ## Client-side caching
 
@@ -103,7 +107,7 @@ and registers it with Minecraft's texture manager under a generated `Identifier`
 entry points:
 
 - `getColorTexture(dna)`
-- `getEmissiveTexture(dna, frame)` and the one-argument overload for the current frame
+- `getEmissiveTexture(dna, frame)` and the one-argument overload, which always means frame 0
 - `invalidate(dna)` / `invalidateAll()`
 
 Generation happens on the render thread the first time an egg comes into view. A player
@@ -119,7 +123,8 @@ voxel model is replaced by a simple box. `0` means never degrade.
 The value arrives from the server in `SyncRegistryPayload`, sent by
 `ModPackets.sendRegistrySync`. A per-egg `renderDistanceOverride` on
 `CollectibleEntry` takes precedence when it is `>= 0`; `-1` means "use the global
-value".
+value". Only the hidden admin egg honours the override: decorative eggs and eggs on
+pedestals always use the global value.
 
 ⚠️ Three different defaults for the same setting exist in the code, and they do not
 agree:
@@ -132,8 +137,9 @@ agree:
 
 More importantly, `sendRegistrySync` is only called from `PUT /api/v1/eggs/config`. A
 client that joins and never sees a config change keeps its compiled-in `20` rather than
-the server's configured value. Save the config once from the dashboard after a restart
-if you rely on a non-default distance. This is a real gap, not a subtlety — see
+the server's configured value. Only the clients online at the moment of a config save
+receive the value; anyone who joins later — or reconnects — is back to `20` until the next
+save, so no amount of saving makes a non-default distance stick. This is a real gap, not a subtlety — see
 [architecture](architecture.md#known-weaknesses).
 
 ## The voxel model

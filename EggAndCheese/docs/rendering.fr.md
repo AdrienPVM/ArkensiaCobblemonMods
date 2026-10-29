@@ -30,23 +30,28 @@ servi depuis le jar de CheeseDash. Si l'aperçu est cassé, cherche dans le doss
 de couleur est construite dans cet ordre, et c'est l'ordre qui fait que les couches se
 lisent correctement :
 
-1. **Remplissage de base** depuis la palette active — le primaire avec un dégradé
-   vertical vers l'ombre, pour que l'œuf se lise déjà comme une forme ronde avant tout
-   éclairage.
-2. **Fond de rareté** — teinte supplémentaire pour les paliers élevés.
-3. **Motif principal**, dessiné `rarity.getPatternLayers()` fois avec des paramètres
-   perturbés. C'est de là que vient la densité d'un œuf `MYTHIC`.
-4. **Motif secondaire**, mélangé en alpha à `patternBlend / 100`.
-5. **Tampon**, s'il n'est pas `NONE`.
-6. **Micro-texture**, une modulation de luminosité pixel par pixel.
-7. **Relief** (`FLAG_EMBOSS`) — une passe de Sobel sur les bords du motif.
-8. **Éclairage directionnel** (`FLAG_LIGHTING`).
-9. **Tache spéculaire** (`FLAG_SPECULAR`) au quart de la largeur et au quart de la
-   hauteur, avec une décroissance gaussienne de `SIZE * 0.18`.
-10. **Vernis** (`FLAG_VARNISH`) à `varnishLevel / 100`.
-11. **Halo de bord** (`FLAG_RIM_GLOW`).
-12. **Effets de rareté** — bordure à partir d'`EPIC`.
-13. **Cartes émissives**, générées séparément dans les deux images de frame.
+1. **Fond « de rareté »** — un bruit sans raccord entre le primaire et l'ombre de la
+   palette. Malgré son nom, l'étape ne lit pas la rareté : elle n'utilise que la graine et
+   la palette.
+2. **Dégradé de base** — du primaire vers l'ombre le long de l'axe vertical, plus du
+   bruit, pour que l'œuf se lise déjà comme une forme ronde avant tout éclairage.
+3. **Motif principal**, dessiné une fois.
+4. **Motif secondaire**, mélangé en alpha à `patternBlend / 100 × 0.85`, sauté à `0`.
+5. **Relief** (`FLAG_EMBOSS`) — une passe de Sobel sur les bords du motif.
+6. **Miroitement et étincelles** — des reflets de bruit, une bande pulsée près des bords
+   haut et bas, et de 6 à 13 pixels d'étincelle. Chaque œuf passe par cette étape, quelle
+   que soit sa rareté.
+7. **Tampon**, s'il n'est pas `NONE`.
+8. **Micro-texture**, une modulation de luminosité pixel par pixel, si elle n'est pas
+   `NONE`.
+9. **Éclairage directionnel** (`FLAG_LIGHTING`).
+10. **Tache spéculaire** (`FLAG_SPECULAR`) au quart de la largeur et au quart de la
+    hauteur, avec une décroissance gaussienne de `SIZE * 0.18`.
+11. **Halo de bord** (`FLAG_RIM_GLOW`) — une bande couleur lueur aux bords haut et bas.
+12. **Vernis** (`FLAG_VARNISH`) à `varnishLevel / 100 × 0.35`.
+13. **Vignette de rehaut** — un dégradé vertical vers la couleur de rehaut, toujours actif.
+
+Les deux cartes émissives sont générées séparément, après l'image de couleur.
 
 La taille de texture est 64×64, fixe, dans `ProceduralTextureGenerator.SIZE`.
 
@@ -61,11 +66,12 @@ couture verticale visible sur le flanc de chaque œuf qui l'utilise.
 
 ### Deux images émissives
 
-`generate` produit `emissF0` et `emissF1` à partir de deux graines de frame différentes.
-Seuls les ADN `LEGENDARY` et `MYTHIC` alternent réellement entre les deux —
-`RarityType.isAnimated()` en décide. Les deux images sont générées quelle que soit la
-rareté, ce qui coûte un peu de travail inutile sur les œufs communs mais garde une forme
-de cache uniforme.
+`generate` produit `emissF0` et `emissF1` à partir de deux graines de frame différentes,
+et les deux sont enregistrées comme textures. Seule la frame 0 est jamais dessinée : chaque
+renderer appelle la surcharge à un argument `getEmissiveTexture(dna)`, qui renvoie
+toujours la frame 0, et `RarityType.isAnimated()` n'est jamais lu. La frame 1 est générée
+et envoyée au GPU pour rien, pour chaque œuf, quelle que soit sa rareté — aucune lueur
+n'alterne de frames aujourd'hui.
 
 ## Les motifs émissifs
 
@@ -76,14 +82,14 @@ chacune dans sa propre branche :
 | Valeur | Ce qui est dessiné |
 |---|---|
 | `SPOTS` | Points lumineux sur une grille de cellules perturbée. |
-| `LINES` | Segments de ligne lumineux. |
-| `RUNES` | Glyphes construits à partir de sept gabarits de traits — vertical, horizontal, croix, deux diagonales, un X et une forme fermée — choisis par cellule. |
-| `STARS` | Éclats à plusieurs branches avec un cœur brillant. |
+| `LINES` | Quatre lignes verticales ondulées autour de la circonférence, déformées par du bruit. |
+| `RUNES` | Glyphes construits à partir de sept gabarits de traits — vertical, horizontal, croix, deux diagonales, un X et un anneau — choisis par cellule. |
+| `STARS` | Points ronds avec un cœur brillant et un halo radial doux — sans branches. |
 | `AURORA` | Une bande de lumière horizontale qui ondule. |
 | `VEINS` | Bruit de veines seuillé en fissures lumineuses. |
-| `SPARKS` | Petits points avec de courtes traînées. |
+| `SPARKS` | Petits points nets à décroissance courte — plus petits et plus rares que `STARS`, sans traînée. |
 | `CRACKS` | Fines lignes de fracture, plus rares et plus nettes que `VEINS`. |
-| `PULSE` | Anneaux de luminosité concentriques. |
+| `PULSE` | Lignes de niveau d'un champ de bruit lisse — des bandes sinueuses, pas des anneaux concentriques. |
 | `CIRCUIT` | Pistes orthogonales avec des nœuds de jonction. |
 | `RIPPLE` | Anneaux d'interférence depuis des centres décalés. |
 | `FLAME` | Langues verticales pilotées par turbulence. |
@@ -91,12 +97,12 @@ chacune dans sa propre branche :
 | `MATRIX` | Colonnes verticales de cellules brillantes qui tombent. |
 | `DIAMONDS` | Un treillis de contours en losange. |
 
-`NONE` court-circuite tout : aucune image émissive n'est écrite et le renderer saute
-entièrement la passe émissive.
+`NONE` court-circuite tout : les images émissives restent entièrement transparentes et le
+renderer saute entièrement la passe émissive. Une densité de `0` fait de même.
 
 La part de surface qui s'allume est `emissiveDensity / 100`. La couleur vient de
-l'emplacement « lueur » de la palette, et c'est pourquoi la même `FLAME` se lit orange sur
-`FIRE` et cyan sur `ICE`.
+l'emplacement « lueur » de la palette, éclaircie, et c'est pourquoi la même `FLAME` se lit
+jaune sur `FIRE` et cyan sur `ICE`.
 
 ## Cache côté client
 
@@ -105,7 +111,8 @@ l'emplacement « lueur » de la palette, et c'est pourquoi la même `FLAME` se l
 Minecraft sous un `Identifier` généré. Trois points d'entrée :
 
 - `getColorTexture(dna)`
-- `getEmissiveTexture(dna, frame)` et la surcharge à un argument pour la frame courante
+- `getEmissiveTexture(dna, frame)` et la surcharge à un argument, qui signifie toujours la
+  frame 0
 - `invalidate(dna)` / `invalidateAll()`
 
 La génération a lieu sur le thread de rendu la première fois qu'un œuf entre dans le
@@ -121,7 +128,9 @@ dégrader ».
 
 La valeur arrive du serveur dans `SyncRegistryPayload`, envoyé par
 `ModPackets.sendRegistrySync`. Un `renderDistanceOverride` par œuf sur `CollectibleEntry`
-a la priorité quand il est `>= 0` ; `-1` signifie « utiliser la valeur globale ».
+a la priorité quand il est `>= 0` ; `-1` signifie « utiliser la valeur globale ». Seul
+l'œuf admin caché respecte cette surcharge : les œufs décoratifs et ceux posés sur une
+stèle utilisent toujours la valeur globale.
 
 ⚠️ Trois valeurs par défaut différentes pour le même réglage coexistent dans le code, et
 elles ne s'accordent pas :
@@ -135,8 +144,10 @@ elles ne s'accordent pas :
 Plus important : `sendRegistrySync` n'est appelé que depuis
 `PUT /api/v1/eggs/config`. Un client qui se connecte et ne voit jamais de changement de
 configuration garde son `20` compilé en dur au lieu de la valeur configurée côté serveur.
-Enregistre la configuration une fois depuis le dashboard après un redémarrage si tu
-dépends d'une distance non standard. C'est un vrai manque, pas une subtilité — voir
+Seuls les clients connectés au moment d'un enregistrement de la configuration reçoivent la
+valeur ; quiconque se connecte ensuite — ou se reconnecte — retombe à `20` jusqu'au
+prochain enregistrement : aucun enregistrement ne rend donc une distance non standard
+durable. C'est un vrai manque, pas une subtilité — voir
 [architecture](architecture.fr.md#faiblesses-connues).
 
 ## Le modèle voxel

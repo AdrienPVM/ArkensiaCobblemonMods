@@ -13,7 +13,7 @@ pas être référencé depuis `src/main/java`.
 src/main/java/com/roicheese/eggandcheese/
 ├── EggAndCheese.java          ModInitializer — registres, critère, paquets, events, commandes
 ├── advancement/               le critère egg_found
-├── block/                     les trois blocs + le handler de réconciliation au chargement
+├── block/                     les quatre classes de bloc + le handler de réconciliation au chargement
 ├── blockentity/               l'état des œufs admin, des œufs déco et des stèles
 ├── dashboard/                 module CheeseDash + dispatcher /api/v1/eggs/*
 ├── data/                      registre persistant, entrées, et index des blocs chargés
@@ -39,7 +39,7 @@ src/client/java/com/roicheese/eggandcheese/
 | `dashboard` | `EggAndCheeseDashboardModule` (préfixe, métadonnées de navigation, référence au serveur) et `EggsApi` (924 lignes, toutes les routes) |
 | `data` | `EggRegistryData` (le `PersistentState`), `CollectibleEntry` (un œuf), `LiveAdminEggIndex` (blocs chargés par id) |
 | `dna` | `CollectibleDNA` plus `PaletteType`, `PatternType`, `EmissiveType`, `StampType`, `MicroTextureType`, `RarityType`, `CollectibleType` |
-| `ftb` | `FtbQuestsHook` — 733 lignes de réflexion, le plus gros fichier |
+| `ftb` | `FtbQuestsHook` — 733 lignes de réflexion, le troisième plus gros fichier après `ProceduralTextureGenerator` et `EggsApi` |
 | `item` | `AdminCollectibleItem` (placement et la branche remplacer/créer), `CollectibleItem` (infobulle, placement, le correctif de vitrine), `PedestalItem` |
 | `network` | `ModPayloads` (un payload S2C), `ModPackets` (sérialisation et émetteur), `PacketExtras` (un stub no-op) |
 | `registry` | `ModBlocks` (2 blocs collectibles + 23 stèles + 1 extension), `ModItems` (2 items collectibles + 23 items de stèle), `ModBlockEntities` (3 types) |
@@ -263,14 +263,37 @@ Détails et repli dans [l'intégration FTB Quests](ftb-quests.fr.md).
 fichiers relevant de deux dépôts. Ils divergent dès que quelqu'un modifie l'un sans
 l'autre, et rien ne le détecte.
 
-**`PedestalExtensionBlock` peut rester orphelin.** Retirer une stèle par `/setblock` ou
-WorldEdit laisse derrière des blocs d'extension incassables, retirables seulement par
-`/setblock`.
+**`PedestalExtensionBlock` peut rester orphelin.** Retirer une stèle avec un outil qui
+contourne les mises à jour de blocs — WorldEdit, un rollback de chunk — laisse derrière des
+blocs d'extension incassables, retirables seulement par `/setblock`.
 
-**Le droit à la déco est partagé entre admins et joueurs.** Un admin qui prend la copie
-décorative de son propre œuf est inscrit dans `decoReceivedBy` et ne pourra plus jamais y
-enregistrer de découverte. Voir
+**Les copies déco d'un admin sont illimitées.** `giveDecoItemTo` n'inscrit jamais l'admin
+dans `decoReceivedBy`, malgré le commentaire « once per admin » dans `onUse` : chaque clic
+droit d'admin distribue un œuf décoratif de plus. Et comme `onUse` teste `decoReceivedBy`
+avant tout, effacer la découverte d'un joueur depuis le dashboard ne lui permet jamais de
+retrouver l'œuf. Voir
 [placement et découvertes](placement-and-discovery.fr.md#le-clic-droit-dun-admin-nest-pas-une-découverte).
+
+**L'œuf de chasse n'est pas aussi indestructible qu'il en a l'air.** Le `onBreak` qui
+renvoie l'ancien état n'annule rien ; seule la vitesse de minage nulle arrête les joueurs
+en survie. Un non-admin en mode créatif, ou n'importe quelle explosion (résistance `0`),
+retire le bloc sans marquer l'entrée `positionLost`. Voir
+[placement et découvertes](placement-and-discovery.fr.md#indestructibilité).
+
+**L'advancement livré n'est jamais chargé.** `egg_found.json` se trouve dans
+`data/eggandcheese/advancements/`, le dossier au pluriel d'avant la 1.21 ; la 1.21.1 lit
+`advancement/`. Le déclencheur de critère fonctionne, l'advancement n'existe pas. Voir
+[l'advancement](display.fr.md#ladvancement).
+
+**Un `PUT` avec des coordonnées est brutal.** Il vide l'ancienne position par
+`removeBlock` quoi qu'il s'y trouve et écrase la cible, et un corps qui répète les
+coordonnées actuelles saute la synchronisation sur place — d'où le fait que le champ
+d'échelle du dashboard ne redimensionne jamais un œuf posé. Voir
+[l'API du dashboard](dashboard.fr.md#put-collectiblesid).
+
+**N'importe quel `PUT` sur un œuf sans titre renomme sa quête.** `updateQuest` écrit le
+texte fixe `Trouver un oeuf` quand le titre est vide, au lieu du `Trouver : <id>` utilisé à
+la création. Voir [l'intégration FTB Quests](ftb-quests.fr.md#mettre-à-jour-et-supprimer).
 
 **Les messages de découverte affichent l'id brut.** `title` existe et sert à la quête FTB,
 mais la ligne de barre d'action destinée au joueur passe `registryId`.
@@ -293,11 +316,19 @@ déclare en outre `package com.roicheese.eggandcheese.integration` tout en se tr
 pas. `javac` le tolère, donc cela compile, mais aucun outil ne trouvera le fichier là où
 le package prétend qu'il est. Il faut le brancher, le déplacer ou le supprimer.
 
-**`PacketExtras.register()`** est un no-op intentionnel, conservé pour qu'`EggAndCheese` et
-`AdminCommand` compilent encore après le retrait de l'interface d'administration en jeu.
+**`PacketExtras.register()`** est un no-op intentionnel, conservé pour que l'appel dans
+`EggAndCheese.onInitialize` compile encore après le retrait de l'interface
+d'administration en jeu. Son commentaire cite aussi `AdminCommand`, qui n'y fait plus
+référence.
 
 **`NbtUtils.getOrCreate`** est écrit mais inutilisé dans le code actuel. `setSubNbt` l'est
 tout autant.
+
+**Jamais appelés non plus :** `CollectibleDNA.fromDnaCode`, `hasCustomPalette` et
+`buildCustomPalette` ; `RarityType.getPatternLayers`, `hasBorder` et `isAnimated` (la
+rareté n'a aucun effet visuel) ; la texture émissive de frame 1, générée pour chaque ADN
+et jamais dessinée ; `PedestalBlockEntity.canAccept` ; `CollectibleModelRenderer.renderGui`
+et `emitQGui` ; `LiveAdminEggIndex.duplicateIds`.
 
 **Les alias de flags historiques** `FLAG_OUTLINE` et `FLAG_EDGE_GLOW` sont conservés comme
 alias de `FLAG_EMBOSS` et `FLAG_RIM_GLOW`.

@@ -14,10 +14,10 @@ experience with your own op account.
 
 ## 1. Log in to the dashboard
 
-Open `http://<server>:44311` and log in. Click **Eggs** in the sidebar — the section with
-the 🥚 icon.
+Open `http://<server>:44311` and log in. Click **Collectibles** in the sidebar — the 🥚
+entry under the **EggAndCheese** section.
 
-An empty list and a toolbar. If there is no Eggs section at all, stop here and work
+An empty list and a toolbar. If there is no EggAndCheese section at all, stop here and work
 through [troubleshooting](troubleshooting.md#the-dashboard-has-no-eggs-section): nothing
 below will work.
 
@@ -27,35 +27,51 @@ Do this **before** placing anything. Ids are player-visible — the discovery me
 the id, not the title — and renaming an egg after it is placed leaves an orphan block
 behind, which is a real bug in the current code.
 
-In the Eggs view, create a new collectible and give it the id `cave_nord`. Coordinates do
-not matter yet; the default is `0, 64, 0` in `minecraft:overworld`.
+In the Collectibles view, press **+ New**. The form asks for a title, a dimension and
+coordinates — not an id — so the entry gets an automatic one (`egg_001` on a fresh server).
+Coordinates do not matter yet; the form's defaults are `0, 64, 0` in `minecraft:overworld`.
+Press **Create** and the dashboard opens the new entry's detail page.
 
-What you get back is a registry entry with a random DNA and **no block in the world**.
-`POST /collectibles` never places anything. The entry is now listed, showing its rarity
-and palette.
+Now give it the id you want: open the **Configuration** tab, replace the id with
+`cave_nord` and press **Rename**. Renaming is harmless at this point, because no block
+carries the id yet.
+
+What you have is a registry entry with a random DNA and **no block in the world**.
+`POST /collectibles` never places anything. The entry is now listed, showing its palette.
+
+⚠️ Leave the coordinates in the **Location** tab alone until the egg is placed. Changing
+them — by hand or with **Use my position** — makes the server delete whatever block stands
+at the old coordinates (`0, 64, 0` here, so the terrain) and place the egg at the new ones;
+see [the dashboard API](dashboard.md#put-collectiblesid).
 
 ## 3. Design its appearance
 
-Open `cave_nord` in the dashboard. The detail page shows the 3D preview on one side and
-the DNA fields on the other. Rotate the preview with the mouse.
+The detail page, now under `cave_nord`, shows the 3D preview on one side and the DNA
+fields on the other. Rotate the preview with the mouse.
 
 Change a few fields and watch the preview update:
 
 - set **palette** to `ICE`
 - set **pattern** to `CRYSTALS` and **pattern scale** to `2`
 - set **emissive** to `STARS` with a density around `60`
-- set **rarity** to `EPIC`
 - set **stamp** to `MOON`
 
-Each save is a `PUT` that merges your field into the existing DNA — the thirteen
-components you did not touch keep their values. The full merge rules, and the handful of
-traps in them, are in [collectible DNA](dna.md#immutability-and-what-a-put-has-to-do).
+The form has no rarity field: rarity comes with the random DNA, and only a regeneration
+or an API `PUT` carrying `dna.rarity` changes it.
 
-⚠️ Do **not** press **Regenerate** at this point. It replaces the whole DNA with a new
-random one and discards everything you just set. If you want to shuffle before committing
-to a look, shuffle first, then tune.
+There is no Save button. The form saves itself 1.5 seconds after your last change, as a
+`PUT` whose `dna` object carries every field of the form — twelve of the fourteen
+components. The two it does not show, `seed` and `rarity`, are kept by the merge. The full
+merge rules, and the handful of traps in them, are in
+[collectible DNA](dna.md#immutability-and-what-a-put-has-to-do).
 
-While you are here, set a **title** — `The northern cave` — and a **subtitle**. They are
+⚠️ Do **not** press the **Refresh** button under the DNA code at this point. Despite its
+label, it calls `randomize-dna`: it replaces the whole DNA, seed and rarity included, with
+a new random one and discards everything you just set. If you want to shuffle before
+committing to a look, shuffle first, then tune.
+
+While you are here, open the **Configuration** tab and set a **title** —
+`The northern cave` — and a **subtitle**. They are
 used for the FTB quest if you enable that later, and they are inert otherwise. They do
 **not** change what a player reads on discovery.
 
@@ -65,8 +81,10 @@ Copy the **DNA code** from the detail page somewhere safe. It looks like this:
 EAC-5F2A91C30B4D77E8-ICE.CRYSTALS.2.MARBLE.35.STARS.60.EPIC.MOON.ICY.0F.45
 ```
 
-That one string is the whole appearance. It is how you share a look with someone else, and
-how you get it back if you press Regenerate by accident.
+That one string records the whole appearance, seed included. Nothing in the dashboard reads
+it back — there is no field to paste it into — so it is a record, not an import: to restore
+a look after an accidental **Refresh**, re-enter its fields by hand, or send them, `seed`
+and `rarity` included, in the `dna` object of a `PUT /collectibles/:id`.
 
 ## 4. Get the placement item
 
@@ -100,17 +118,18 @@ id, so the mod bound this block to your entry and wrote the real coordinates int
 registry. If you instead see
 
 ```text
-Egg created with automatic ID 'egg_002'. Editable from the CheeseDash dashboard.
+Egg created with automatic ID 'egg_001'. Editable from the CheeseDash dashboard.
 ```
 
 the item had no id — you probably used `/give eggandcheese:admin_egg` rather than
-`/eac give cave_nord`. Break that egg, delete the stray `egg_002` entry from the
-dashboard, and go back to step 4.
+`/eac give cave_nord`. Break that egg, delete the stray entry (`egg_001`, or whatever
+number it got) from the dashboard, and go back to step 4.
 
 The egg is now:
 
 - rotating slowly, with no collision — players walk through it,
-- indestructible to anyone who is not an admin,
+- unbreakable for anyone who is not an admin, in survival — creative mode and explosions
+  still remove it, see [placement and discovery](placement-and-discovery.md#indestructibility),
 - waterloggable, so it can sit in a stream.
 
 Refresh the dashboard. `cave_nord` now shows the coordinates you placed it at, and
@@ -118,15 +137,27 @@ Refresh the dashboard. `cave_nord` now shows the coordinates you placed it at, a
 
 ## 6. Size it to its hiding place
 
-Still in the detail page, set **scale** to `1.4` and save. The egg in the world changes
-immediately — the `PUT` syncs the block entity in place, no restart and no chunk reload.
+Scale is in the **Location** tab. Set it to `1.4`; the tab saves itself.
+
+⚠️ The registry takes the new value, but the egg in the world does **not** change. The
+Location tab always sends the coordinates along with the scale, and the API only syncs the
+scale onto the block in place when the `PUT` carries no `x`, `y`, `z` or `dimension` — a
+bug in the current code. To resize the placed egg, send the scale on its own:
+
+```bash
+curl -X PUT -H "Authorization: Bearer <token>" -d '{"scale":1.4}' \
+  http://localhost:44311/api/v1/eggs/collectibles/cave_nord
+```
+
+or place the egg again from a fresh `/eac give cave_nord`, whose item carries the
+registry's scale.
 
 Scale is clamped to 0.1–4.0. A `PUT` with `10` returns `200` with `4.0`, silently, so read
 the value back.
 
-If this egg sits on a plaza and must stay sharp from a distance, set
-**render distance override** to `0`, which means "never degrade this one". `-1` means
-"follow the server's global distance".
+If this egg sits on a plaza and must stay sharp from a distance, set **Render distance**
+in the **Configuration** tab to `0`, which means "never degrade this one". `-1` means
+"follow the server's global distance". That field does reach the placed block immediately.
 
 ## 7. Discover it, as a player
 
@@ -190,7 +221,7 @@ permissions mod.
 
 ## 9. Check integrity before you build out
 
-You have one egg. Press **Integrity** in the Eggs view anyway, so you know what a clean
+You have one egg. Press **Integrity** in the Collectibles view anyway, so you know what a clean
 report looks like:
 
 ```text
@@ -205,29 +236,33 @@ caveat.
 
 ## 10. Scale up to a real hunt
 
-The loop for egg two onwards is steps 2 through 5: create the entry with its final id,
-design the DNA, `/eac give <id>`, place it. Fifteen eggs is about an hour.
+The loop for egg two onwards is steps 2 through 5: create the entry, rename it to its final
+id, design the DNA, `/eac give <id>`, place it. Fifteen eggs is about an hour.
 
 Two shortcuts once you know what you are doing:
 
 - **Place first, tidy later.** Right-clicking a bare `eggandcheese:admin_egg` creates an
   entry with an auto-generated id (`egg_001`, `egg_002`, …) and a random DNA on the spot.
   Faster for a large hunt, at the cost of ids a player will read as `egg_014`.
-- **Reuse a look.** The DNA code from step 3 captures an entire appearance. Paste it into
-  another egg's DNA fields to give a set of eggs a family resemblance.
+- **Reuse a look.** The DNA code from step 3 lists an entire appearance, field by field.
+  Copy those values into another egg's DNA form to give a set of eggs a family
+  resemblance — by hand, since the dashboard has no import for the code itself.
 
 ### Wiring it to FTB Quests
 
-If your pack has FTB Quests, set `ftbQuestsEnabled` to `true` in the Eggs configuration
-and choose a chapter name. From then on, creating an egg creates a quest with the egg as
+If your pack has FTB Quests, tick **FTB Quests** in the Collectibles view's
+**Configuration** tab (that is `ftbQuestsEnabled`) and choose a chapter name. From then on, creating an egg creates a quest with the egg as
 its icon, and a discovery completes it.
 
-For eggs you created before enabling it, run **sync** once — but read
+For eggs you created before enabling it, run a sync once — the **Reload** button in that
+panel — but read
 [the FTB page](ftb-quests.md#full-sync) first, because a full sync deletes and recreates
 every egg quest and players lose their ticks.
 
 If you would rather not let the mod write into your quest file, leave the setting off and
-point an Advancement task at `eggandcheese:egg_found` instead. That route survives FTB
+point an Advancement task at an advancement of your own built on the
+`eggandcheese:egg_found` trigger — the one the mod ships is never loaded, see
+[the advancement](display.md#the-advancement). That route survives FTB
 Quests updates; the reflection hook will not.
 
 ---

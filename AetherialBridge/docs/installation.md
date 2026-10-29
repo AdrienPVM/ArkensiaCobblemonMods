@@ -68,7 +68,8 @@ private static final Identifier SETTINGS_ID = Identifier.of("aetherial_islands",
 
 That is a `ChunkGeneratorSettings` object which must exist at
 `data/aetherial_islands/worldgen/noise_settings/floating.json` in some loaded datapack.
-If the lookup fails, the provider throws, and the message is explicit:
+If the lookup fails, the provider throws — CheeseGuard catches it, logs it and builds the
+dimension with a void generator instead — and the message is explicit:
 
 ```text
 ChunkGeneratorSettings 'aetherial_islands:floating' not loaded — is the
@@ -112,9 +113,9 @@ into why that threshold was chosen and what breaks if your datapack sits above i
 
 > ⚠️ If you repackage the datapack yourself, check what else it carries. The DimScope
 > build still ships four Lithostitched `worldgen_modifier` files, and they are **not**
-> dimension-scoped: one adds a surface rule to `minecraft:overworld`, and two rewrite
-> the climate and foliage colours of `minecraft:taiga` and `minecraft:stony_shore`
-> globally. They are inert as long as Lithostitched is not installed. Install
+> dimension-scoped: one adds a surface rule to `minecraft:overworld`, one replaces the
+> climate of `minecraft:stony_shore` and the three taiga biomes, and two rewrite the
+> grass and foliage colours of those same biomes, globally. They are inert as long as Lithostitched is not installed. Install
 > Lithostitched and they apply server-wide, which breaks the overworld-untouched
 > property that AetherialBridge's own code upholds.
 
@@ -137,10 +138,12 @@ From the repository root, `tools/build-all.sh` walks every mod in the right orde
 The jar you want:
 
 ```text
-AetherialBridge/build/libs/aetherialbridge-1.0.0+1.21.1.jar
+AetherialBridge/build/libs/AetherialBridge-1.0.0+1.21.1.jar
 ```
 
-Ignore `aetherialbridge-1.0.0+1.21.1-sources.jar`. The version comes from
+The capitalised name comes from `rootProject.name` in `settings.gradle`: `build.gradle`
+never applies the `archives_base_name` property. Ignore
+`AetherialBridge-1.0.0+1.21.1-sources.jar`. The version comes from
 `mod_version` in `gradle.properties`.
 
 A compile error naming missing `com.cheeseguard.api` or `com.cheeseguard.data` classes
@@ -154,7 +157,7 @@ runtime, which they are, because CheeseGuard is a hard dependency.
 2. Copy into `mods/`:
    - `cheesedash-1.0.0+1.21.1.jar`
    - `cheeseguard-1.0.0+1.21.1.jar`
-   - `aetherialbridge-1.0.0+1.21.1.jar`
+   - `AetherialBridge-1.0.0+1.21.1.jar`
    - your Aetherial Islands jar, repackaged as described above
 3. Confirm Fabric API is in `mods/` as well.
 4. Start the server.
@@ -218,8 +221,9 @@ The plugin entry sits after the five built-ins:
 }
 ```
 
-`kind` tells the dashboard which field to send back when creating a dimension:
-`builtin` goes out as `genType`, `plugin` as `customGenTypeId`.
+`kind` only changes how the dashboard draws the card (label and icon). Which field goes
+back on creation is decided by the id itself: the create form sends an id containing a
+`:` as `customGenTypeId`, anything else as `genType`.
 
 The last confirmation only arrives when you actually create a dimension, because that
 is when the chunk generator gets built:
@@ -242,7 +246,7 @@ The dimension outlives the mod, which is the one thing to be careful about.
    its world, removes the entry from `config/cheeseguard_dimensions.json`, and deletes
    `<level-name>/dimensions/cheeseguard/<id>/` from disk.
 2. Stop the server.
-3. Remove `aetherialbridge-1.0.0+1.21.1.jar` from `mods/`. Remove the Aetherial Islands
+3. Remove `AetherialBridge-1.0.0+1.21.1.jar` from `mods/`. Remove the Aetherial Islands
    jar too, unless something else uses it.
 4. Start the server.
 

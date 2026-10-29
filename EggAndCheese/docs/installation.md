@@ -11,7 +11,7 @@
 - the client owns every renderer and the procedural texture generator — there is no egg
   texture in the jar, so a client that does not run the mod has nothing to draw.
 
-The mod also registers 25 blocks and 25 items. A client joining without them has an
+The mod also registers 26 blocks and 25 items. A client joining without them has an
 incomplete registry for the blocks the server sends, so treat a server-only install as
 unsupported rather than degraded.
 
@@ -32,7 +32,7 @@ Loader refuses to start the server without it.
 
 | Mod | What you gain | Without it |
 |---|---|---|
-| [FTB Quests](https://modrinth.com/mod/ftb-quests-fabric) | One quest per egg, auto-created and auto-completed | The integration disables itself and logs that it did. Use the `eggandcheese:egg_found` advancement instead |
+| [FTB Quests](https://modrinth.com/mod/ftb-quests-fabric) | One quest per egg, auto-created and auto-completed | The integration disables itself and logs that it did. Use an advancement of your own on the `eggandcheese:egg_found` trigger instead — see [the advancement](display.md#the-advancement) |
 | fabric-permissions-api, e.g. via [LuckPerms](https://luckperms.net/) | The `eggandcheese.admin` permission node | Falls back to op level 2 |
 | [JourneyMap](https://modrinth.com/mod/journeymap) | Nothing, today | `JourneyMapIntegration` exists but is wired to nothing — see [architecture](architecture.md#dead-code) |
 
@@ -89,8 +89,9 @@ What it does create, lazily, is a persistent state entry inside the world:
 world/data/eggandcheese_registry.dat
 ```
 
-It appears the first time anything reads the registry — a dashboard call, a command, an
-egg placement — and holds both the collectibles and the four settings. On a brand-new
+It is written at the first world save after something changes the registry — an egg
+placement, a dashboard create or a config save; merely reading it (a `GET`, `/eac reload`)
+does not create the file. It holds both the collectibles and the four settings. On a brand-new
 world it starts empty, with `ftbQuestsEnabled` false, `ftbQuestsChapter` `"oeufs"`,
 `ftbAutoSync` false and `textureRenderDistance` 20.
 
@@ -131,7 +132,7 @@ Without it:
 
 ### In the dashboard
 
-Log in at `http://<server>:44311`. An **Eggs** section with a 🥚 icon in the sidebar means
+Log in at `http://<server>:44311`. An **EggAndCheese** section with a 🥚 **Collectibles** entry in the sidebar means
 the `cheesedash` entrypoint was discovered. For a check that does not involve the
 frontend:
 

@@ -47,21 +47,26 @@ discovers an egg whose `ftbQuestId` is still `0`, the discovery handler calls
 
 ### `ftbQuestsChapter`
 
-A chapter **name**, not an id. `FtbQuestsHook` looks the chapter up by name and creates it
-when no chapter matches. If more than one chapter carries the name — which has happened,
-and the hook logs it — the duplicates are merged into one:
+A chapter **name**, not an id — but the lookup does not compare titles. `FtbQuestsHook`
+derives a file name from the setting (lowercased, every character outside `a-z`, `0-9` and
+`_` replaced by `_`, so `Œufs de Pâques` becomes `_ufs_de_p_ques`) and looks for a chapter
+whose FTB file name matches it, ignoring case. When none does, it creates one with that
+file name, titled with the setting's raw text. If more than one chapter matches — which
+has happened, and the hook logs it — the duplicates are merged into one:
 
 ```text
 [EAC-FTB] Merged 2 duplicate chapters into one 'oeufs'
 ```
 
-The setter normalises `null` to `"oeufs"`, so you cannot clear the value; sending
-`{"ftbQuestsChapter": null}` resets it to the default. An empty string, on the other
-hand, is accepted as-is and will have the hook look for a chapter named `""`.
+The setter would normalise `null` to `"oeufs"`, but the API never gets that far: sending
+`{"ftbQuestsChapter": null}` makes `getAsString()` throw on the JSON null, and the request
+fails with `500`. An empty string, on the other hand, is accepted as-is and will have the
+hook look for a chapter whose file name is `""`.
 
-The default is French because the server it was written for is French. If you rename your
-chapter, change this setting to match or the mod will silently create a second chapter
-next to yours.
+The default is French because the server it was written for is French. Renaming the
+chapter's title in the quest editor is harmless — its file name does not change. Changing
+*this setting* to a text that yields a different file name is what makes the mod silently
+create a second chapter next to yours.
 
 ### `ftbAutoSync`
 
@@ -80,6 +85,11 @@ mechanics, the per-egg override, and the ⚠️ about it not reaching clients on
 The setter clamps to `>= 0`; there is no upper bound. Values beyond your pack's render
 distance are equivalent to `0`, since a block further away than that is not rendered at
 all.
+
+⚠️ The dashboard's **Configuration** tab cannot store `0`. Its form sends
+`parseInt(value) || 10`, so `0` — or an empty field — goes out as `10`, and a stored `0` is
+displayed as `10` too. The tab also saves itself 1.5 seconds after any change, sending all
+four settings at once. To set `0`, use the API.
 
 Changes take effect on connected clients immediately, because `PUT /config` sends a
 `SyncRegistryPayload` to every online player as its last step. No restart, no relog.
@@ -154,8 +164,8 @@ Annotated, key by key:
 
 - `ftbQuestsEnabled: true` — quests are created, updated, deleted and completed alongside
   the eggs. Requires FTB Quests to be installed; harmless if it is not.
-- `ftbQuestsChapter: "oeufs"` — the chapter name as it appears in your quest book. Match
-  your existing chapter exactly, or a new one is created.
+- `ftbQuestsChapter: "oeufs"` — resolves to the chapter whose file name is `oeufs`. Make it
+  produce your existing chapter's file name, or a new chapter is created.
 - `ftbAutoSync: false` — no effect either way. Left in the example because the API
   accepts it and the dashboard shows it.
 - `textureRenderDistance: 32` — eggs keep their full voxel model up to 32 blocks, then

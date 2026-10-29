@@ -91,10 +91,17 @@ rather than from the module.
   even though the HTTP thread is what returned the response.
 - A missing collectible is `404 {"error":"Collectible not found"}`. Internal failures are
   `500` with the exception message in `error`.
+- An error raised inside `executeOnServerThread` comes back wrapped: its `error` text is
+  prefixed with the exception class, as in
+  `{"error":"java.lang.RuntimeException: Player not online: Lia"}`. Only the `409` on
+  create unwraps it. The messages quoted below omit that prefix, so match on the end of
+  the string, not on equality.
 - An unmatched path gives `404 {"error":"Unknown eggs route: <route>"}`, or
   `404 {"error":"Unknown collectible route"}` under `/collectibles/:id`.
 - A malformed JSON body does **not** error: `parseJson` returns an empty object, so the
-  request behaves as if you had sent `{}`. A `PUT` with broken JSON is a successful no-op.
+  request behaves as if you had sent `{}`. A `PUT` with broken JSON is a successful no-op —
+  except that, with FTB integration on, it still rewrites the linked quest's title (see
+  [FTB Quests](ftb-quests.md#updating-and-deleting)).
 
 ## Collectibles
 
@@ -186,7 +193,7 @@ All body fields are optional.
 
 | Field | Type | Default | Notes |
 |---|---|---|---|
-| `id` | string | auto `egg_NNN` | Blank or absent means `generateUniqueId()` |
+| `id` | string | auto `egg_NNN` | Blank or absent means `generateUniqueId()`. Trimmed, but **not** checked by `isValidId`: an id containing `/` or `%` is accepted, and every `/collectibles/:id` route then refuses it with `400` |
 | `type` | string | `egg` | `CollectibleType.fromId`, so anything unknown becomes `egg` |
 | `dimension` | string | `minecraft:overworld` | Not validated against loaded worlds |
 | `x`, `y`, `z` | int | `0`, `64`, `0` | |
@@ -213,14 +220,23 @@ their current value.
 
 Two side effects beyond the registry write:
 
-- **Relocation.** If the body contains any of `x`, `y`, `z`, `dimension` and the entry is
-  not `positionLost`, the old block is removed and a new `admin_egg` block is placed at
-  the new position, configured with the entry's id, DNA, scale and render-distance
-  override. Both worlds must be loaded for this to run; if either lookup fails, the
-  registry moves and the block does not.
-- **In-place sync.** If the position did *not* change but the body contains
-  `renderDistanceOverride`, `scale` or `dna`, the existing block entity is updated in
-  place, which pushes the change to clients immediately.
+- **Relocation.** If the body contains any of `x`, `y`, `z`, `dimension`, the entry is
+  not `positionLost` and the resulting position differs from the old one, the old
+  position is cleared and a new `admin_egg` block is placed at the new one, configured
+  with the entry's id, DNA, scale and render-distance override. Both worlds must exist
+  for this to run; if either lookup fails, the registry moves and the block does not.
+  ⚠️ Neither end is checked: `removeBlock` clears the old position **whatever stands
+  there** — for an entry fresh from `POST /collectibles` that was never placed, that is
+  the terrain at its default `0, 64, 0` — and the new block overwrites whatever occupies
+  the target. Conversely, this is the one way to put an egg in the world from the
+  dashboard.
+- **In-place sync.** If the body contains **none** of `x`, `y`, `z`, `dimension` but does
+  contain `renderDistanceOverride`, `scale` or `dna`, the existing block entity is updated
+  in place, which pushes the change to clients immediately. A body that repeats the
+  current coordinates counts as a move that goes nowhere: neither branch runs, so a
+  `scale` sent alongside coordinates reaches the registry but not the block. The
+  dashboard's Location tab always sends the coordinates, which is why its scale field
+  does not resize a placed egg.
 
 The linked FTB quest's title and description are updated when FTB integration is enabled
 and the entry has a quest id.
@@ -325,6 +341,9 @@ installed; `FtbQuestsHook.syncAll` returns immediately when the hook is unavaila
 `cheeseCount` counts entries whose type is `CHEESE`. No cheese block or item is
 registered in this version, so on a normal install it is `0` — see
 [architecture](architecture.md#known-weaknesses).
+
+The Collectibles view's third stat card, **Players**, reads a `uniqueDiscoverers` field
+that this route does not return, so it always shows `0`.
 
 ## Enums
 

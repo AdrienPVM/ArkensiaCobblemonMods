@@ -60,7 +60,7 @@ Un identifiant en doublon produit une autre ligne :
 Deux jars avec le même identifiant de provider sont installés, très probablement deux
 versions de ce mod.
 
-**Remède.** Vérifie qu'il y a exactement un `aetherialbridge-*.jar` dans `mods/`. Puis
+**Remède.** Vérifie qu'il y a exactement un `AetherialBridge-*.jar` dans `mods/`. Puis
 redémarre : le registre est construit une seule fois à l'init, donc rafraîchir le
 dashboard ne le remplira jamais. Confirme par l'API plutôt que par le navigateur,
 puisque la liste déroulante met en cache :
@@ -170,7 +170,7 @@ teste plus vite : si le figement s'arrête, le diagnostic est confirmé.
 
 Ne confonds pas ça avec la lenteur ordinaire d'une première visite. Générer une dimension
 flottante est réellement plus lent que générer des chunks d'overworld, parce que le fond
-marin forcé écrit jusqu'à une trentaine de blocs par colonne en plus de la passe de bruit
+marin forcé écrit 35 blocs par colonne en plus de la passe de bruit
 normale. Quelques secondes de saccade à la première entrée sont normales ; une mise à
 mort par le watchdog, non.
 
@@ -265,7 +265,7 @@ Ouvre une issue sur
 3. **Les valeurs de `sea_level`, `noise.min_y` et `noise.height`** de ton
    `floating.json`.
 4. **Si Minerally, CobblemonRaidDens, Lithostitched ou TerraBlender sont installés**,
-   avec leurs versions. Quatre des cinq mixins existent à cause des deux premiers.
+   avec leurs versions. Deux des cinq mixins n'existent qu'à cause des deux premiers.
 5. **L'entrée de la dimension** dans `config/cheeseguard_dimensions.json`, qui montre
    `customGenTypeId`, `genType`, `seed`, `spawnY` et `raidDensEnabled` au même endroit.
 

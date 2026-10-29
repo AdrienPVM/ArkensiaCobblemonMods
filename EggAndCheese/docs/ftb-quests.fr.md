@@ -3,8 +3,8 @@
 # L'intégration FTB Quests
 
 Une chasse aux œufs veut une liste à cocher, et FTB Quests est la liste que la plupart des
-packs Cobblemon embarquent déjà. `ftb/FtbQuestsHook.java` — 733 lignes, le plus gros
-fichier du mod — crée une quête par œuf, la valide quand un joueur trouve cet œuf, et
+packs Cobblemon embarquent déjà. `ftb/FtbQuestsHook.java` — 733 lignes, le troisième plus
+gros fichier du mod après `ProceduralTextureGenerator` et `EggsApi` — crée une quête par œuf, la valide quand un joueur trouve cet œuf, et
 maintient les deux en phase à travers les éditions et les suppressions.
 
 ⚠️ **Tout le fichier est de la réflexion sur les internes de FTB Quests.** Il n'y a aucune
@@ -73,10 +73,12 @@ l'entrée sous `ftbQuestId`.
 
 Ce qu'il construit :
 
-- Le chapitre est résolu par `findOrCreateChapter`. La recherche se fait **par nom** ; un
-  chapitre est créé quand aucun ne correspond, et plusieurs chapitres partageant le nom
-  sont fusionnés en un seul, avec la trace
-  `Merged N duplicate chapters into one 'oeufs'`.
+- Le chapitre est résolu par `findOrCreateChapter`. La recherche se fait **par nom de
+  fichier**, dérivé du réglage (en minuscules, tout ce qui sort de `a-z0-9_` changé en `_`)
+  et comparé sans tenir compte de la casse — pas par le titre affiché ; voir
+  [la configuration](configuration.fr.md#ftbquestschapter). Un chapitre est créé quand
+  aucun ne correspond, et plusieurs chapitres correspondants sont fusionnés en un seul,
+  avec la trace `Merged N duplicate chapters into one 'oeufs'`.
 - La position X de la quête vaut `existingQuests.size() * 2.5`, et Y vaut `0.0`. Toutes
   les quêtes d'œufs se posent sur une seule rangée horizontale, espacées de 2,5 unités.
   Avec cinquante œufs, cette rangée fait 125 unités de large ; un chapitre de livre de
@@ -153,10 +155,12 @@ se rafraîchissent.
 ```
 
 Noter ce que le renommage ne fait **pas** : le titre de la quête suit le `title` de
-l'entrée, pas son id. Renommer `egg_014` en `cave_nord` laisse la quête afficher
-`Trouver : egg_014` si l'entrée n'a pas de titre explicite, parce qu'`updateQuest` reçoit
-`entry.getTitle()` — qui est toujours vide. Renseigne un titre, ou lance une
-synchronisation complète.
+l'entrée, pas son id. Et quand ce titre est vide, `updateQuest` ne reconstruit pas
+`Trouver : <id>` — il écrit le texte fixe `Trouver un oeuf` dans la quête et dans sa
+tâche. Renommer `egg_014` en `cave_nord` sans titre laisse donc la quête afficher
+`Trouver un oeuf`, et il en va de même pour **n'importe quel** `PUT` sur un œuf sans
+titre — un changement d'échelle suffit. Renseigne un titre, ou lance une synchronisation
+complète.
 
 `deleteQuest(questId)` passe par `ServerQuestFile.deleteObject(long)`, que FTB Quests
 diffuse lui-même aux clients comme message de suppression. C'est pourquoi la quête d'un œuf
@@ -206,16 +210,20 @@ fois la cause corrigée.
 
 Si tu préfères que ce mod n'écrive pas dans ton fichier de quêtes, le hook est entièrement
 facultatif. Laisse `ftbQuestsEnabled` à `false` et pilote tes quêtes depuis le déclencheur
-d'advancement, qui est de la donnée de datapack ordinaire et n'a aucune réflexion à
-proximité :
+de critère `eggandcheese:egg_found`, qui est de la donnée de datapack ordinaire et n'a
+aucune réflexion à proximité.
+
+L'advancement que le mod livre sous ce nom n'est jamais chargé en 1.21.1 — il se trouve
+dans l'ancien dossier au pluriel `advancements/` —, il te faut donc le tien, dans le
+datapack de ton pack :
 
 ```text
-Advancement ID: eggandcheese:egg_found
+Advancement ID: monpack:egg_found_any
 ```
 
-Une tâche FTB Quests de type **Advancement** pointant vers cet id se valide sur n'importe
-quelle découverte d'œuf. Pour un œuf précis, écris ton propre advancement avec
-`"conditions": {"egg_id": "cave_nord"}` — le détail est dans
+Une tâche FTB Quests de type **Advancement** pointant vers lui se valide sur n'importe
+quelle découverte d'œuf quand son critère porte `"egg_id": "*"`. Pour un œuf précis,
+utilise `"conditions": {"egg_id": "cave_nord"}` — les fichiers sont dans
 [œufs décoratifs et stèles](display.fr.md#ladvancement).
 
 Cette voie demande plus de travail à mettre en place, survit aux mises à jour de FTB

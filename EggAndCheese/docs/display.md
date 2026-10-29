@@ -11,8 +11,9 @@ hunt; the other half is furniture.
 `BlockItem` with `maxCount(1)` — every copy is unique because every copy carries its own
 DNA — and `CollectibleItem.create(type, dna)` is what builds one.
 
-Its `CUSTOM_DATA` holds the `dna` compound, and, when the item came from a registered
-egg, a `registryId` string. The id is only used for the tooltip; nothing about the
+Its `CUSTOM_DATA` holds the `dna` compound, and, when the item was handed out by an admin
+right-click or by `POST /collectibles/:id/give-deco`, a `registryId` string. The reward a
+player gets from a discovery carries no id. The id is only used for the tooltip; nothing about the
 decorative item is bound to the registry.
 
 ### Tooltip
@@ -48,7 +49,7 @@ The block:
 
 - has `noCollision()` and `nonOpaque()` — players walk through it,
 - carries only a `FACING` property, set to the opposite of the placing player's facing,
-- has `strength(0.5f)`, so it breaks about as fast as a piece of wool,
+- has `strength(0.5f)`, so it breaks about as fast as dirt or sand,
 - is **not** waterloggable, unlike the admin block,
 - renders as `ENTITYBLOCK_ANIMATED` with a client-only ticker, same as the admin egg.
 
@@ -106,7 +107,7 @@ XXX
 |---|---|
 | `pedestal_stone` | `minecraft:stone_bricks` |
 | `pedestal_gold` | `minecraft:gold_ingot` |
-| … | the matching block or ingot for each variant |
+| … | the matching planks, bricks, block, ingot, gem or shard for each variant |
 
 Output is one pedestal. The recipes are plain datapack JSON in
 `data/eggandcheese/recipe/`, one file per variant, so a pack can override or remove any of
@@ -118,14 +119,18 @@ them without touching the mod.
 |---|---|
 | Right-click with an item, pedestal empty | One item is taken from your stack and displayed |
 | Right-click empty-handed, pedestal occupied | The displayed item is returned to you |
-| Right-click with an item, pedestal occupied | Nothing — the interaction passes through |
-| Right-click with an **admin egg**, any state | Nothing — the interaction passes through |
+| Right-click with an item, pedestal occupied | The displayed item is returned to you — the empty-hand action runs |
+| Right-click with an **admin egg**, pedestal occupied | The displayed item is returned to you |
+| Right-click with an **admin egg**, pedestal empty | Not displayed — the item's own use runs, so the admin egg is **placed** against the face you clicked, as on any block |
 
-`canAccept` only requires a non-empty stack, so a pedestal will display anything: a
-collectible egg, a diamond, a cake. The one explicit exclusion is
-`AdminCollectibleItem` — handing the admin placement item to a pedestal returns
-`PASS_TO_DEFAULT_BLOCK_INTERACTION` instead of consuming it, so you cannot accidentally
-lose an egg's placement item inside the furniture.
+`onUseWithItem` only requires a non-empty stack, so a pedestal will display anything: a
+collectible egg, a diamond, a cake. The one explicit exclusion is `AdminCollectibleItem`:
+handing the admin placement item to a pedestal returns
+`PASS_TO_DEFAULT_BLOCK_INTERACTION` instead of consuming it, so the placement item is never
+swallowed by the furniture. In 1.21.1 that result hands the click on, first to the
+pedestal's empty-hand action, then to the item itself — which is why an item aimed at an
+occupied pedestal takes the displayed one back, and why an admin egg aimed at an empty one
+is placed next to it as a real hunt egg.
 
 The item is taken with `stack.copyWithCount(1)` and the source stack decremented by one,
 so a stack of 64 loses exactly one.
@@ -162,9 +167,10 @@ settings as bedrock. It cannot be mined and cannot be blown up. That is delibera
 extension is structural, and letting a player break the middle of a pillar would leave
 the platform floating with no collision.
 
-⚠️ If a pedestal disappears by a route that does not call `removeAllExtensions` — a
-`/setblock`, a WorldEdit operation, a chunk rollback — its extension blocks stay, and they
-are unbreakable. Remove them with `/setblock <x> <y> <z> air`. There is no in-game way to
+⚠️ If a pedestal disappears by a route that skips block updates — a WorldEdit operation, a
+chunk rollback — `removeAllExtensions` never runs (a `/setblock` or an explosion does go
+through `onStateReplaced` and cleans up). The extension blocks stay, and they are
+unbreakable. Remove them with `/setblock <x> <y> <z> air`. There is no in-game way to
 clear them otherwise.
 
 The shape cache is keyed on the current `pillarHeight` (`cachedShapesPh`), rebuilt only
@@ -173,7 +179,7 @@ nothing.
 
 ## The advancement
 
-`data/eggandcheese/advancements/egg_found.json` is a single advancement with one
+`data/eggandcheese/advancements/egg_found.json` ships a single advancement with one
 criterion:
 
 ```json
@@ -188,13 +194,19 @@ criterion:
 }
 ```
 
-`"*"` is handled by `EggFoundCriterion.Conditions.matches`, which accepts an absent
-`egg_id`, the literal `*`, or an exact id. So this advancement fires on **any** egg
-discovery. It has no display block, which means it is invisible in the advancement screen
-and exists purely as a hook — FTB Quests can watch it, and a datapack can depend on it.
+⚠️ **Minecraft 1.21.1 never loads that file.** Since 1.21 the datapack folder is
+`advancement/`, singular — the mod's own recipes do sit in `recipe/` — so a file under
+`advancements/` is ignored, and no advancement with the id `eggandcheese:egg_found`
+exists in game. What does work is the **criterion trigger** of the same name: any
+advancement that names it fires.
 
-To build a task tied to one specific egg, write your own advancement with the id in the
-conditions:
+`"*"` is handled by `EggFoundCriterion.Conditions.matches`, which accepts an absent
+`egg_id`, the literal `*`, or an exact id. To react to **any** discovery, copy the JSON
+above into your own datapack, for example as `data/mypack/advancement/egg_found_any.json`.
+Without a display block it stays invisible in the advancement screen and serves purely as
+a hook — FTB Quests can watch `mypack:egg_found_any`, and a datapack can depend on it.
+
+To build a task tied to one specific egg, put the id in the conditions:
 
 ```json
 {

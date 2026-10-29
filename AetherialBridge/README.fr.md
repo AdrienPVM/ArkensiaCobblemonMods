@@ -40,14 +40,15 @@ détaille l'ensemble.
 **C'est un patch tiers, publié comme exemple de référence plus que comme produit
 fini.**
 
-- Trois de ses cinq mixins s'injectent dans des classes qui ne lui appartiennent pas :
-  un dans le `NoiseChunkGenerator` vanilla, et deux dans des classes appartenant à
-  d'autres mods (`cobblemonraiddens` et `minerally`). Il a été écrit pour un modpack
+- Ses cinq mixins s'injectent tous dans des classes qui ne lui appartiennent pas : trois
+  dans du vanilla (`NoiseChunkGenerator`, `SpringFeature`, `LakeFeature`), et deux dans
+  des classes appartenant à d'autres mods (`cobblemonraiddens` et `minerally`). Il a été écrit pour un modpack
   précis, et n'importe quelle mise à jour de ces mods peut le casser sans prévenir.
 - Il attend une version **repackagée** d'Aetherial Islands dont les données de worldgen
   vivent dans l'espace de noms `aetherial_islands`. Le téléchargement Modrinth standard
-  ne fournit pas cet espace de noms : la création de dimension échoue alors sur une
-  erreur explicite jusqu'à ce que tu fournisses un datapack qui le fait.
+  ne fournit pas cet espace de noms : tant que tu ne fournis pas un datapack qui le fait,
+  le provider lève une erreur explicite et CheeseGuard crée quand même la dimension, avec
+  un générateur de vide.
   [Installation](docs/installation.fr.md#lespace-de-noms-du-datapack) explique ce qui
   est attendu, et pourquoi.
 - Fourni tel quel. Aucun support n'est assuré, et aucun correctif n'est promis quand
@@ -88,7 +89,7 @@ cd ../AetherialBridge && ./gradlew build
 ```
 
 Puis dépose quatre jars dans `mods/` : CheeseDash, CheeseGuard,
-`aetherialbridge-1.0.0+1.21.1.jar`, et ton jar Aetherial Islands. Le détail complet,
+`AetherialBridge-1.0.0+1.21.1.jar`, et ton jar Aetherial Islands. Le détail complet,
 les lignes de log à vérifier et la réserve sur l'espace de noms sont dans
 [installation](docs/installation.fr.md).
 

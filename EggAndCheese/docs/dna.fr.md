@@ -23,9 +23,9 @@ Déclarées dans `src/main/java/com/roicheese/eggandcheese/dna/CollectibleDNA.ja
 | `patternScale` | `int` | 1–4 (borné) | Taille des détails du motif principal. 1 donne du fin et chargé, 4 du grossier et massif. |
 | `secondaryPattern` | `PatternType` | 26 motifs nommés | Un second motif dessiné sous ou sur le premier. |
 | `patternBlend` | `int` | 0–100 (borné) | Part du motif secondaire qui ressort. 0 le masque complètement. |
-| `emissive` | `EmissiveType` | 16 valeurs, `NONE` incluse | La couche lumineuse. `NONE` signifie qu'aucune texture émissive n'est générée. |
+| `emissive` | `EmissiveType` | 16 valeurs, `NONE` incluse | La couche lumineuse. `NONE` signifie que la carte émissive reste vide et n'est jamais dessinée. |
 | `emissiveDensity` | `int` | 0–100 (borné) | Part de la surface couverte par la lueur. 0 supprime la lueur même si `emissive` est renseigné. |
-| `rarity` | `RarityType` | 6 paliers | Couleur du libellé, nombre de couches de motif, bordure, et animation ou non de la lueur. |
+| `rarity` | `RarityType` | 6 paliers | Aucun sur la texture. Un libellé dont l'API renvoie le nom et la couleur — voir plus bas. |
 | `stamp` | `StampType` | 10 valeurs, `NONE` incluse | Une icône reconnaissable (étoile, lune, couronne…) dessinée en troisième couche. |
 | `microTexture` | `MicroTextureType` | 8 valeurs, `NONE` incluse | Grain de surface haute fréquence posé par-dessus tout le reste. |
 | `visualFlags` | `int` | masque de 5 bits | Cinq effets de post-traitement indépendants — voir plus bas. |
@@ -64,8 +64,8 @@ couleur se manifeste donc par « mes couleurs ont été ignorées », jamais par
 
 ### La rareté
 
-`RarityType` est le seul enum qui change autre chose qu'une couleur. Chaque palier porte
-quatre propriétés supplémentaires, lues directement dans les arguments du constructeur :
+`RarityType` porte, en plus de son nom d'affichage, quatre propriétés par palier, lues
+directement dans les arguments du constructeur :
 
 | Rareté | Couleur du libellé | Couches de motif | Bordure | Lueur animée |
 |---|---|---|---|---|
@@ -76,19 +76,22 @@ quatre propriétés supplémentaires, lues directement dans les arguments du con
 | `LEGENDARY` | `#FFAA00` | 3 | oui | oui |
 | `MYTHIC` | `#FF55FF` | 3 | oui | oui |
 
-`getPatternLayers()` explique pourquoi un œuf `MYTHIC` paraît plus chargé qu'un `COMMON`
-au même motif, et `isAnimated()` pourquoi seules les lueurs `LEGENDARY` et `MYTHIC`
-défilent. Dans ce mod, la rareté est un budget visuel, pas un taux de drop : rien dans le
-code ne tire au sort contre la rareté pour décider si un joueur trouve un œuf.
+Seule la première colonne est jamais lue. La couleur parvient à l'API en `rarityColor` et
+dans `GET /enums` ; `getPatternLayers()`, `hasBorder()` et `isAnimated()` ne sont jamais
+appelés. Ni le générateur de textures Java ni l'aperçu JavaScript du dashboard ne lisent
+la rareté — l'« étape 1, fond de rareté » n'utilise que la graine et la palette —, si bien
+que deux œufs qui ne diffèrent que par la rareté sont identiques, et qu'aucune lueur ne
+défile. La rareté est un libellé, et pas davantage un taux de drop : rien dans le code ne
+tire au sort contre elle pour décider si un joueur trouve un œuf.
 
 ### La couche émissive
 
 16 valeurs : `NONE`, `SPOTS`, `LINES`, `RUNES`, `STARS`, `AURORA`, `VEINS`, `SPARKS`,
 `CRACKS`, `PULSE`, `CIRCUIT`, `RIPPLE`, `FLAME`, `NEBULA`, `MATRIX`, `DIAMONDS`.
 
-La lueur est une texture séparée, générée seulement si `emissive != NONE` **et**
+La lueur est une texture séparée, remplie seulement si `emissive != NONE` **et**
 `emissiveDensity > 0`. Les deux conditions comptent : un œuf en `emissive = FLAME` avec
-`emissiveDensity = 0` n'a aucune carte de lueur. La façon dont chacune est réellement
+`emissiveDensity = 0` reçoit une carte de lueur vide que le rendu ne dessine jamais. La façon dont chacune est réellement
 dessinée est traitée dans [génération de textures et aperçus](rendering.fr.md).
 
 ### Tampons et micro-textures
@@ -112,7 +115,7 @@ surface, et se lisent donc comme une finition plutôt que comme un dessin.
 | `FLAG_SPECULAR` | 1 | `0x02` | Une tache de brillance en haut à gauche de la texture. |
 | `FLAG_EMBOSS` | 2 | `0x04` | Relief de type Sobel sur les bords du motif, un rendu ciselé. |
 | `FLAG_VARNISH` | 3 | `0x08` | Un lustre diagonal dont l'intensité est `varnishLevel`. |
-| `FLAG_RIM_GLOW` | 4 | `0x10` | Un halo coloré émissif sur le bord de la silhouette. |
+| `FLAG_RIM_GLOW` | 4 | `0x10` | Une bande de la couleur de lueur de la palette, peinte dans la carte de couleur en haut et en bas de la texture — la pointe et la base de l'œuf. Elle n'est pas émissive : elle ne brille pas dans le noir. |
 
 Deux alias existent pour rester compatible avec les anciens noms de ces flags :
 `FLAG_OUTLINE` vaut `FLAG_EMBOSS` et `FLAG_EDGE_GLOW` vaut `FLAG_RIM_GLOW`. Ce sont les
@@ -196,16 +199,18 @@ EAC-5F2A91C30B4D77E8-ICE.CRYSTALS.2.MARBLE.35.STARS.60.EPIC.MOON.ICY.0F.45
 
 `fromDnaCode` renvoie `null` sur tout ce qu'il ne sait pas analyser — préfixe `EAC-`
 absent, moins de douze champs séparés par des points, échelle non numérique. Il ne lève
-jamais d'exception. Le dashboard expose le code en `dna.dnaCode` sur chaque réponse de
-détail, ce qui transforme « envoie-moi cet œuf » en copier-coller plutôt qu'en formulaire
-à resaisir.
+jamais d'exception — et personne ne l'appelle : aucune route n'accepte de code ADN et aucun
+champ du dashboard n'en importe. Le dashboard expose le code en `dna.dnaCode` sur chaque
+réponse de détail : « envoie-moi cet œuf » est donc le copier-coller d'une trace, mais
+l'appliquer suppose toujours d'envoyer ses champs dans un objet `dna` par un `PUT`.
 
 **Clé de cache** — `cacheKey()` concatène les quatorze composantes. Le cache de textures
 du client s'en sert pour que deux œufs au même ADN partagent une seule texture en
 mémoire. Si tu ajoutes une composante au record et oublies de l'ajouter à `cacheKey()`,
 deux œufs visuellement différents entreront en collision dans le cache et se rendront à
-l'identique. C'est le seul endroit où la liste des champs du record est dupliquée à la
-main.
+l'identique. La liste des champs est dupliquée à la main à plusieurs endroits — `toNbt`,
+`fromNbt`, le code ADN, `EggsApi.applyEdits` et `buildDetail` —, mais `cacheKey()` est
+celui où un oubli échoue en silence.
 
 ## Génération aléatoire
 
@@ -228,11 +233,13 @@ La distribution n'est volontairement pas uniforme :
 - `customPalette` vaut toujours `""`. La génération aléatoire n'invente jamais de
   couleurs.
 
-C'est pourquoi le bouton **Régénérer** du dashboard, qui appelle
-`POST /collectibles/:id/randomize-dna`, jette tout réglage fait à la main : il ne rebat
-pas la graine en gardant tes champs, il construit un ADN aléatoire complet depuis une
-nouvelle graine. Si tu as choisi une palette à la main, sauvegarde-la en code ADN avant
-d'appuyer.
+C'est pourquoi les actions de régénération du dashboard — le bouton **Rafraîchir** sous le
+code ADN de la page de détail, et **Randomiser la sélection** dans la barre d'actions
+groupées de la liste —, qui appellent `POST /collectibles/:id/randomize-dna`, jettent tout
+réglage fait à la main : elles ne rebattent pas la graine en gardant tes champs, elles
+construisent un ADN aléatoire complet depuis une nouvelle graine. Si tu as choisi une
+palette à la main, copie le code ADN avant d'appuyer, pour savoir quelles valeurs
+renvoyer.
 
 ⚠️ `randomize-dna` sans `seed` dans le corps utilise `new Random().nextLong()`, qui n'est
 pas reproductible. Passe `{"seed": 1234}` quand tu veux un résultat que tu pourras

@@ -17,8 +17,10 @@ complexité du mod consiste à maintenir ces deux faces d'accord.
 
 Le block entity détient une *copie* de l'ADN et de l'échelle. C'est volontaire : un client
 qui charge le chunk en a besoin sans avoir à demander les données du registre au serveur.
-Le registre reste la source de vérité, et le dashboard écrit les deux côtés dès qu'il
-modifie l'un.
+Le registre reste la source de vérité, et le dashboard écrit les deux côtés quand il
+modifie l'un — à deux exceptions près : un renommage laisse le bloc sur l'ancien id, et une
+échelle envoyée avec des coordonnées (ce que fait l'onglet Localisation du dashboard)
+n'atteint que le registre.
 
 Le `registryId` d'un block entity est le lien. Un `registryId` vide signifie que le bloc
 est décoratif et non lié : il s'affiche, il ne peut pas être découvert, et l'outil
@@ -85,12 +87,20 @@ dans une embrasure ou dans des herbes hautes sans rien bloquer.
 
 ## Indestructibilité
 
-Trois redéfinitions protègent un œuf posé :
+Deux redéfinitions protègent un œuf posé :
 
 - `canReplace` renvoie `false` : aucun placement de bloc ne peut l'écraser.
 - `calcBlockBreakingDelta` renvoie `0.0f` pour quiconque n'est pas admin. Une vitesse de
-  minage nulle signifie que le bloc ne cède jamais, quelle que soit la durée du clic.
-- `onBreak` renvoie l'état inchangé pour un non-admin, ce qui annule la casse.
+  minage nulle signifie que le bloc ne cède jamais en survie, quelle que soit la durée du
+  clic.
+
+Une troisième, `onBreak`, renvoie l'état inchangé pour un non-admin, mais cela n'annule
+rien : Minecraft retire le bloc après `onBreak`, quoi qu'il renvoie. ⚠️ La protection a donc
+deux trous. Un non-admin en **mode créatif** — qui ne passe pas par la vitesse de minage —
+retire l'œuf instantanément, et une **explosion** le détruit, puisque le bloc garde la
+résistance aux explosions par défaut, `0`. Dans les deux cas aucun item n'est rendu et
+l'entrée n'est pas marquée `positionLost` : elle continue de pointer vers un emplacement
+vide, que seul le champ `unloadedEntries` du rapport d'intégrité révèle.
 
 Un admin qui casse bien le bloc récupère l'œuf en item, porteur de son ADN, de son échelle
 et de son `registryId`, inséré directement dans l'inventaire (ou lâché à ses pieds si
@@ -151,13 +161,13 @@ n'est enregistrée, aucune quête ne se valide, aucun message WebSocket n'est en
 un outil de prévisualisation — clic droit sur ton propre œuf pour vérifier à quoi
 ressemble la récompense.
 
-L'effet de bord mérite d'être connu : cette branche consulte et renseigne le **même**
-ensemble `decoReceivedBy` que les découvertes. Un admin qui a pris la copie décorative y
-est inscrit et verra, au clic droit suivant,
-`Tu as déjà reçu la version déco de cet oeuf.` Si cet admin rejoue plus tard en joueur
-normal et perd son op, il ne pourra plus jamais enregistrer de découverte sur cet œuf : le
-test sur la déco court-circuite avant qu'on atteigne `handlePlayerDiscovery`. Vide la
-liste des découvertes depuis le dashboard, ou teste avec un second compte.
+Cette branche ne fait que *lire* l'ensemble `decoReceivedBy` qu'utilisent les
+découvertes ; elle ne l'écrit jamais. `giveDecoItemTo` n'inscrit pas l'admin : malgré le
+commentaire « once per admin » dans `onUse`, un admin reçoit donc une nouvelle copie
+décorative à chaque clic droit. Le message `Tu as déjà reçu la version déco de cet oeuf.`
+n'apparaît qu'à un admin qui avait trouvé cet œuf en joueur normal avant de recevoir ses
+droits. Prendre des copies en admin n'empêche donc jamais une découverte ultérieure sur le
+même compte.
 
 ## État par joueur
 
@@ -166,7 +176,7 @@ Deux ensembles indépendants vivent sur chaque entrée :
 | Ensemble | Écrit par | Signification |
 |---|---|---|
 | `discoveredBy` | la découverte joueur, `POST /collectibles/:id/discoveries` | ce joueur a trouvé cet œuf |
-| `decoReceivedBy` | la découverte joueur, le clic droit admin | ce joueur a eu l'item décoratif |
+| `decoReceivedBy` | la découverte joueur uniquement | ce joueur a eu l'item décoratif par une découverte |
 
 Les deux persistent dans le NBT de l'entrée sous forme de listes de chaînes UUID, et les
 deux sont relus de façon défensive : un UUID illisible est ignoré plutôt que de faire
@@ -175,10 +185,11 @@ deux sont relus de façon défensive : un UUID illisible est ignoré plutôt que
 Le dashboard peut ajouter une découverte par nom de joueur (`POST`), en retirer une par
 UUID (`DELETE /collectibles/:id/discoveries/:uuid`) ou toutes les effacer
 (`DELETE /collectibles/:id/discoveries`). Aucune de ces routes ne touche
-`decoReceivedBy` : un joueur dont tu as effacé la découverte retrouvera l'œuf et recevra
-une seconde copie décorative seulement s'il n'a jamais été dans `decoReceivedBy` — ce qui,
-pour une découverte normale, n'arrive pas. En pratique, effacer les découvertes permet à
-un joueur de redéclencher la quête, pas de reprendre l'item.
+`decoReceivedBy`, et `onUse` teste `decoReceivedBy` **avant** d'appeler
+`handlePlayerDiscovery`. Un joueur dont tu as effacé la découverte, après une découverte
+normale, obtient donc toujours `Vous avez déjà trouvé celui-ci !` et rien d'autre : ni
+nouvelle découverte, ni quête, ni item. Effacer les découvertes change les compteurs et la
+liste, pas ce que le joueur peut faire.
 
 ## Persistance
 

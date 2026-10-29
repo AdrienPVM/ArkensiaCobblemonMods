@@ -22,9 +22,9 @@ Declared in `src/main/java/com/roicheese/eggandcheese/dna/CollectibleDNA.java`:
 | `patternScale` | `int` | 1–4 (clamped) | Feature size of the primary pattern. 1 is fine and busy, 4 is coarse and blocky. |
 | `secondaryPattern` | `PatternType` | 26 named patterns | A second pattern layer drawn under or over the first. |
 | `patternBlend` | `int` | 0–100 (clamped) | How much of the secondary pattern shows through. 0 hides it entirely. |
-| `emissive` | `EmissiveType` | 16 values, `NONE` included | The glow layer. `NONE` means no emissive texture is generated at all. |
+| `emissive` | `EmissiveType` | 16 values, `NONE` included | The glow layer. `NONE` means the emissive map is left blank and never drawn. |
 | `emissiveDensity` | `int` | 0–100 (clamped) | How much of the surface the glow covers. 0 suppresses the glow even when `emissive` is set. |
-| `rarity` | `RarityType` | 6 tiers | Label colour, number of pattern layers, border, and whether the glow animates. |
+| `rarity` | `RarityType` | 6 tiers | None on the texture. A label whose name and colour the API reports — see below. |
 | `stamp` | `StampType` | 10 values, `NONE` included | A recognisable icon (star, moon, crown…) drawn as a third layer. |
 | `microTexture` | `MicroTextureType` | 8 values, `NONE` included | High-frequency surface grain layered over everything else. |
 | `visualFlags` | `int` | 5-bit mask | Five independent post-processing effects — see below. |
@@ -62,8 +62,8 @@ setting both to `SPOTS`. The result is a denser spot field, not an error.
 
 ### Rarity
 
-`RarityType` is the only enum that changes more than colour. Each tier carries four
-extra properties, read straight from the enum's constructor arguments:
+`RarityType` carries four properties per tier besides its display name, read straight from
+the enum's constructor arguments:
 
 | Rarity | Label colour | Pattern layers | Border | Animated glow |
 |---|---|---|---|---|
@@ -74,19 +74,22 @@ extra properties, read straight from the enum's constructor arguments:
 | `LEGENDARY` | `#FFAA00` | 3 | yes | yes |
 | `MYTHIC` | `#FF55FF` | 3 | yes | yes |
 
-`getPatternLayers()` is why a `MYTHIC` egg looks busier than a `COMMON` one with the
-same pattern, and `isAnimated()` is why only `LEGENDARY` and `MYTHIC` glows cycle
-frames. Rarity in this mod is a visual budget, not a drop rate: nothing in the code
-rolls against rarity to decide whether a player finds an egg.
+Only the first column is ever read. The colour reaches the API as `rarityColor` and in
+`GET /enums`; `getPatternLayers()`, `hasBorder()` and `isAnimated()` are never called.
+Neither the Java texture generator nor the dashboard's JavaScript previewer reads rarity
+at all — "Step 1, rarity background" uses only the seed and the palette — so two eggs that
+differ only by rarity look identical, and no glow cycles frames. Rarity is a label, and
+not a drop rate either: nothing in the code rolls against it to decide whether a player
+finds an egg.
 
 ### Emissive layer
 
 16 values: `NONE`, `SPOTS`, `LINES`, `RUNES`, `STARS`, `AURORA`, `VEINS`, `SPARKS`,
 `CRACKS`, `PULSE`, `CIRCUIT`, `RIPPLE`, `FLAME`, `NEBULA`, `MATRIX`, `DIAMONDS`.
 
-The glow is a separate texture, generated only when `emissive != NONE` **and**
+The glow is a separate texture, filled only when `emissive != NONE` **and**
 `emissiveDensity > 0`. Both conditions matter: an egg with `emissive = FLAME` and
-`emissiveDensity = 0` has no glow map at all. How each of these is actually drawn is
+`emissiveDensity = 0` gets a blank glow map that the renderer never draws. How each of these is actually drawn is
 covered in [texture generation and previews](rendering.md).
 
 ### Stamps and micro-textures
@@ -109,7 +112,7 @@ surface, so they read as a finish rather than a drawing.
 | `FLAG_SPECULAR` | 1 | `0x02` | A gloss blob in the upper-left of the texture. |
 | `FLAG_EMBOSS` | 2 | `0x04` | Sobel-based relief on pattern edges, a chiselled look. |
 | `FLAG_VARNISH` | 3 | `0x08` | A glossy diagonal sheen whose strength is `varnishLevel`. |
-| `FLAG_RIM_GLOW` | 4 | `0x10` | An emissive coloured halo at the silhouette edge. |
+| `FLAG_RIM_GLOW` | 4 | `0x10` | A band of the palette's glow colour painted into the colour map at the top and bottom of the texture — the egg's tip and base. It is not emissive: it does not glow in the dark. |
 
 Two aliases exist for compatibility with the names these flags used to have:
 `FLAG_OUTLINE` is `FLAG_EMBOSS` and `FLAG_EDGE_GLOW` is `FLAG_RIM_GLOW`. They are the
@@ -190,15 +193,19 @@ EAC-5F2A91C30B4D77E8-ICE.CRYSTALS.2.MARBLE.35.STARS.60.EPIC.MOON.ICY.0F.45
 ```
 
 `fromDnaCode` returns `null` on anything it cannot parse — a missing `EAC-` prefix,
-fewer than twelve dot-separated fields, a non-numeric scale. It never throws. The
-dashboard exposes the code as `dna.dnaCode` on every detail response, which makes
-"send me that egg" a copy-paste rather than a form to re-fill.
+fewer than twelve dot-separated fields, a non-numeric scale. It never throws — and
+nothing ever calls it: no route accepts a DNA code and no dashboard field imports one. The
+dashboard exposes the code as `dna.dnaCode` on every detail response, so "send me that
+egg" is a copy-paste of a record, but applying it still means sending its fields as a
+`dna` object in a `PUT`.
 
 **Cache key** — `cacheKey()` concatenates all fourteen components. The client's texture
 cache uses it so that two eggs with identical DNA share one generated texture in
 memory. If you add a component to the record and forget to add it to `cacheKey()`, two
-visually different eggs will collide in the cache and render identically. That is the
-one place where the record's field list is duplicated by hand.
+visually different eggs will collide in the cache and render identically. The field list
+is duplicated by hand in several places — `toNbt`, `fromNbt`, the DNA code,
+`EggsApi.applyEdits` and `buildDetail` — but `cacheKey()` is the one where forgetting a
+field fails silently.
 
 ## Random generation
 
@@ -220,10 +227,12 @@ The distribution is deliberately not uniform:
   `LEGENDARY` 5 %, `MYTHIC` 2 %.
 - `customPalette` is always `""`. Random generation never invents colours.
 
-That is why the **Regenerate** button in the dashboard, which calls
-`POST /collectibles/:id/randomize-dna`, discards any hand-tuned parameters: it does not
-reshuffle the seed and keep your fields, it builds a whole new random DNA from a new
-seed. If you have hand-picked a palette, save it as a DNA code before you press it.
+That is why the dashboard's regenerate actions — the **Refresh** button under the DNA code
+on the detail page, and **Randomize selection** in the list's bulk bar — which call
+`POST /collectibles/:id/randomize-dna`, discard any hand-tuned parameters: they do not
+reshuffle the seed and keep your fields, they build a whole new random DNA from a new
+seed. If you have hand-picked a palette, copy the DNA code before you press one, so you
+know which values to send back.
 
 ⚠️ `randomize-dna` with no `seed` in the body uses `new Random().nextLong()`, which is
 not reproducible. Pass `{"seed": 1234}` when you want a result you can get back.

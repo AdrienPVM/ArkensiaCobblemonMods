@@ -113,9 +113,10 @@ méthode pour que l'injecteur se lie dans les deux cas :
 }, at = @At("HEAD"), cancellable = true, require = 0)
 ```
 
-Le premier est le nom Yarn, celui qu'expose un mod compilé contre les mappings Yarn ; le
-second est le nom intermediary, celui qu'expose à l'exécution un mod compilé contre
-intermediary. Lister les deux évite d'avoir besoin d'un refmap pour une classe contre
+Le premier est le nom Yarn, qui ne correspond que dans un environnement de développement
+en mappings Yarn ; le second est le nom intermediary, celui que porte à l'exécution, en
+production, tout jar de mod — Minerally et CobblemonRaidDens compris —, et celui qui se
+lie réellement sur un serveur. Lister les deux évite d'avoir besoin d'un refmap pour une classe contre
 laquelle ce mod ne peut pas compiler. `require = 0` signifie qu'un mixin qui ne se lie à
 rien n'est pas une erreur, et c'est ce qui permet au mod de rester chargeable quand
 Minerally ou CobblemonRaidDens est absent. C'est aussi un vrai danger, traité dans
@@ -135,9 +136,9 @@ n'écrase les noise settings, carvers, features ou structure sets de
 `minecraft:overworld`. C'est la partie qui, sinon, réécrirait tout ton serveur, et c'est
 la raison d'être du repackaging.
 
-**2. Trois des quatre mixins de worldgen sont gardés par un niveau de mer que l'overworld
-ne peut pas atteindre.** `NoiseChunkGeneratorMixin`, `SpringFeatureMixin` et
-`LakeFeatureMixin` ressortent immédiatement quand le niveau de la mer est à -25 ou
+**2. Quatre des cinq mixins sont gardés par un niveau de mer que l'overworld ne peut pas
+atteindre.** `NoiseChunkGeneratorMixin`, `SpringFeatureMixin`, `LakeFeatureMixin` et
+`MinerallyFeatureMixin` ressortent immédiatement quand le niveau de la mer est à -25 ou
 au-dessus. Celui de l'overworld vanilla est à 63. Les injections sont bien présentes dans
 le chemin de code de l'overworld, et ça coûte une seule comparaison d'`int` par appel.
 
@@ -159,8 +160,8 @@ Trois réserves honnêtes là-dessus :
   laisse l'overworld tranquille.
 - Le datapack peut encore transporter des choses globales. La version DimScope embarque
   quatre fichiers `worldgen_modifier` Lithostitched, dont un ajoute une surface rule à
-  `minecraft:overworld` et deux réécrivent le climat et les couleurs de biomes vanilla
-  pour tout le serveur. Ils ne font rien sans Lithostitched installé. Avec lui, ils
+  `minecraft:overworld` et les trois autres réécrivent le climat et les couleurs de
+  quatre biomes vanilla pour tout le serveur. Ils ne font rien sans Lithostitched installé. Avec lui, ils
   s'appliquent, et c'est l'affaire du datapack plutôt que celle de ce mod.
 
 ## Où se situe le couplage
@@ -175,7 +176,7 @@ private static final Identifier SETTINGS_ID = Identifier.of("aetherial_islands",
 ```
 
 Un renommage côté datapack casse la création de dimension, et bruyamment : le
-`orElseThrow` de la ligne 44 produit un message qui nomme l'identifiant attendu, et
+`orElseThrow` de la ligne 45 produit un message qui nomme l'identifiant attendu, et
 CheeseGuard retombe sur un générateur de vide. C'est le mode d'échec qu'on veut, et c'est
 le seul des quatre qui s'annonce.
 
@@ -247,9 +248,10 @@ Dites franchement, parce que les découvrir par surprise est pire.
 - **Le garde porte sur le niveau de la mer, pas sur la dimension.** Toute autre dimension
   à niveau de mer bas du serveur hérite du fond marin forcé, sans moyen de s'y soustraire
   autrement qu'en recompilant.
-- **Trois commentaires javadoc portent de mauvais nombres.** `SpringFeatureMixin` et
-  `LakeFeatureMixin` disent que le seuil est -50 et que la dimension est à -55 ;
-  `MinerallyFeatureMixin` dit -30. Le code dit -25 et le datapack dit -30. Crois le code.
+- **Deux commentaires javadoc portent de mauvais nombres.** `SpringFeatureMixin` et
+  `LakeFeatureMixin` disent que le seuil est -50, et `SpringFeatureMixin` ajoute que la
+  dimension est à -55. Le code dit -25 et le datapack dit -30 — c'est le javadoc de
+  `MinerallyFeatureMixin` (« < -25 », « à -30 ») qui est juste. Crois le code.
 - **Une recherche de settings en échec dégénère en monde vide par-dessus de vrais
   fichiers de région.** CheeseGuard attrape l'exception du provider et retombe sur un
   générateur plat de vide. Les chunks déjà sur disque se chargent avec leur terrain ; les
@@ -259,7 +261,8 @@ Dites franchement, parce que les découvrir par surprise est pire.
   apparaît sous une île de désert et sous une taïga enneigée. Aucune variation par biome,
   par choix, mais ça fait étrange dans un biome froid.
 - **La passe de décoration n'a pas été profilée.** Elle parcourt 256 colonnes avec
-  jusqu'à environ 33 appels à `setBlockState` chacune pour le fond et l'eau, plus la
+  exactement 35 appels à `setBlockState` chacune pour la bedrock, le fond et l'eau (chaque
+  y de `min_y` au niveau de la mer, avec ce datapack), plus la
   décoration, sur chaque chunk de la dimension. C'est de l'arithmétique peu coûteuse et
   bornée, mais personne n'a mesuré le coût par chunk, et la génération de chunks dans une
   dimension flottante est nettement plus lente que dans l'overworld.

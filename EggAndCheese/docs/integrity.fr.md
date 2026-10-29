@@ -120,7 +120,8 @@ Un rapport, aucune mutation.
     }
   ],
   "orphans": [
-    { "dimension": "minecraft:overworld", "x": 101, "y": 70, "z": 55, "id": "egg_099" }
+    { "dimension": "minecraft:overworld", "x": 101, "y": 70, "z": 55, "id": "egg_099" },
+    { "dimension": "minecraft:overworld", "x": 133, "y": 68, "z": 61, "id": "egg_099" }
   ],
   "unloadedEntries": ["egg_031", "egg_044"]
 }
@@ -155,7 +156,7 @@ deux fois ne pose pas de problème : la seconde passe ne trouve plus rien à dé
 
 ### Le bouton du dashboard
 
-Le bouton **Intégrité** de la vue Œufs (`CheeseDash/assets/view-eggs.js`, fonction
+Le bouton **Intégrité** de la vue Collectibles (`CheeseDash/assets/view-eggs.js`, fonction
 `checkIntegrity`) appelle le `GET`, et :
 
 - sur un rapport propre, affiche un toast de succès — « Intégrité OK — 54 blocs d'œufs
@@ -177,15 +178,18 @@ Une procédure qui marche :
 
 1. Fais une sauvegarde. La réparation délie au lieu de supprimer, mais une édition de
    registre erronée n'est pas récupérable.
-2. Ouvre la vue Œufs du dashboard et note le nombre d'entrées.
+2. Ouvre la vue Collectibles du dashboard et note le nombre d'entrées.
 3. Charge la zone suspecte — traverse-la en téléportation, ou utilise un outil de
    chargement de chunks si ton pack en a un. La réconciliation tourne aussi d'elle-même au
    chargement de chaque bloc : parcourir la zone suffit à corriger les doublons dont la
    position canonique du registre fait partie des blocs chargés.
-4. Appuie sur **Intégrité**. Lis le rapport avant de confirmer : vérifie que la position
-   que le rapport veut garder est bien celle que tu veux garder. Si ce n'est pas le cas,
-   déplace d'abord l'entrée du registre par un `PUT` sur les coordonnées de l'œuf, puis
-   réconcilie.
+4. Appuie sur **Intégrité**. Lis le rapport avant de confirmer. Il liste toutes les
+   positions mais ne dit pas laquelle sera gardée : la règle est la position du registre
+   quand elle en fait partie, sinon le choix déterministe. Si ce n'est pas le bloc que tu
+   veux garder, sache qu'un `PUT` sur les coordonnées de l'œuf fait plus que déplacer
+   l'entrée — il retire le bloc à l'ancienne position et pose un bloc lié neuf à la
+   nouvelle. Visé sur le leurre que tu préfères, il écrase ce leurre et supprime l'ancien
+   bloc canonique ; réconcilie ensuite.
 5. Recommence région par région. Le rapport porte sur un instantané, il n'est pas
    cumulatif.
 
@@ -214,7 +218,9 @@ Deux défenses sont en place dans le code, et les deux doivent y rester.
 **La réconciliation est différée, pas immédiate.** `BLOCK_ENTITY_LOAD` ne fait
 qu'empiler sur une `ConcurrentLinkedQueue`, et `ServerTickEvents.END_SERVER_TICK` la
 vide, jusqu'à 8192 tâches par tick, chacune dans son propre try/catch. Une tâche en échec
-journalise un avertissement et la vidange continue.
+journalise un avertissement et la vidange continue. (Quand plus de 8192 tâches attendent,
+la boucle retire la 8193ᵉ avant de tester son compteur : celle-là est perdue sans
+s'exécuter ; le prochain chargement de ce bloc la remet en file.)
 
 ```text
 [EggAndCheese] deferred reconcile failed: <message>

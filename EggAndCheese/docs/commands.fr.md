@@ -69,8 +69,10 @@ En anglais :
 Use the CheeseDash dashboard to manage eggs.
 ```
 
-Affichée en jaune, comme retour de commande : elle apparaît donc aussi dans le log du
-serveur quand `sendCommandFeedback` est actif. Aucun état n'est modifié.
+Affichée en jaune, comme retour de commande envoyé avec `broadcastToOps` désactivé : elle
+n'atteint que toi — ni le log du serveur, ni les autres ops —, et la règle de jeu
+`sendCommandFeedback` la masque entièrement quand elle vaut faux. Il en va de même pour la
+ligne de `/eac reload`. Aucun état n'est modifié.
 
 ### `/eac give <id>`
 
@@ -82,7 +84,7 @@ registre.
 | `id` | `StringArgumentType.string()` | oui | un mot unique, ou une chaîne entre guillemets pour un id contenant des espaces | — |
 
 ⚠️ **Aucune complétion.** L'argument n'a pas de `SuggestionProvider` : appuyer sur Tab ne
-propose rien. Il faut connaître l'id, ou le lire dans la liste des œufs du dashboard.
+propose rien. Il faut connaître l'id, ou le lire dans la liste Collectibles du dashboard.
 C'est de loin la première cause des erreurs `ID inconnu`.
 
 L'item construit est un `eggandcheese:admin_egg` dont le `CUSTOM_DATA` porte trois valeurs
@@ -224,8 +226,9 @@ que le handler ne s'exécute, avec le message standard de Minecraft :
 Float must not be more than 3.0, found 5.0
 ```
 
-Brigadier suggère bien la plage valide dans l'aide d'usage pendant la frappe, et c'est la
-seule aide à la complétion que ces commandes offrent.
+Tab complète les noms des quatre sous-commandes ; l'argument `value` n'affiche que son
+espace réservé `<value>`, pas sa plage : le tableau ci-dessus est le seul endroit où les
+bornes sont écrites.
 
 ### Exemples
 
@@ -259,8 +262,10 @@ Changer la hauteur du pilier a un effet de bord qui mérite d'être connu :
 `eggandcheese:pedestal_extension` au-dessus de la stèle. Ce sont ces blocs d'extension que
 tu heurtes réellement sur une stèle haute, et ils sont réglés en
 `strength(-1.0f, 3600000.0f)` — incassables et insensibles aux explosions, comme la
-bedrock. Si une stèle disparaît autrement qu'en étant cassée normalement, ses extensions
-peuvent rester en place ; `removeAllExtensions()` existe pour le chemin normal.
+bedrock. Le `onStateReplaced` de la stèle appelle `removeAllExtensions()` chaque fois que
+son bloc est remplacé — cassé, écrasé par `/setblock`, détruit par une explosion —, si bien
+que seuls des outils qui réécrivent les chunks sans mises à jour de blocs laissent des
+extensions derrière eux.
 
 ```mcfunction
 /pedestal spin
@@ -308,8 +313,9 @@ Pour être complet, puisque la forme de ce jeu de commandes surprend :
 Il y avait autrefois une interface d'administration en jeu, ouverte par `/eac`. Elle a été
 retirée quand l'administration est passée sur CheeseDash, et la racine `/eac` affiche
 désormais le message d'indication cité plus haut. `network/PacketExtras.java` est le
-vestige de ce flux : son `register()` est un no-op documenté, conservé seulement pour que
-l'ancienne référence d'`AdminCommand` compile encore.
+vestige de ce flux : son `register()` est un no-op documenté. Son commentaire dit qu'il est
+conservé pour `AdminCommand`, mais le seul appelant restant est
+`EggAndCheese.onInitialize`.
 
 ---
 

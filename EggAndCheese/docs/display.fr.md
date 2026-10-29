@@ -11,8 +11,9 @@ est la chasse ; l'autre moitié est du mobilier.
 `BlockItem` en `maxCount(1)` — chaque exemplaire est unique parce que chacun porte son
 propre ADN — et c'est `CollectibleItem.create(type, dna)` qui en construit un.
 
-Son `CUSTOM_DATA` contient le compound `dna` et, quand l'item vient d'un œuf enregistré,
-une chaîne `registryId`. L'id ne sert qu'à l'infobulle ; rien dans l'item décoratif n'est
+Son `CUSTOM_DATA` contient le compound `dna` et, quand l'item a été distribué par un clic
+droit d'admin ou par `POST /collectibles/:id/give-deco`, une chaîne `registryId`. La
+récompense qu'un joueur obtient par une découverte ne porte aucun id. L'id ne sert qu'à l'infobulle ; rien dans l'item décoratif n'est
 lié au registre.
 
 ### Infobulle
@@ -49,7 +50,7 @@ Le bloc :
 - a `noCollision()` et `nonOpaque()` — les joueurs le traversent,
 - ne porte qu'une propriété `FACING`, réglée à l'opposé de l'orientation du joueur qui
   pose,
-- a `strength(0.5f)`, et se casse donc à peu près aussi vite qu'un bloc de laine,
+- a `strength(0.5f)`, et se casse donc à peu près aussi vite que de la terre ou du sable,
 - n'est **pas** waterloggable, contrairement au bloc admin,
 - se rend en `ENTITYBLOCK_ANIMATED` avec un ticker purement client, comme l'œuf admin.
 
@@ -109,7 +110,7 @@ XXX
 |---|---|
 | `pedestal_stone` | `minecraft:stone_bricks` |
 | `pedestal_gold` | `minecraft:gold_ingot` |
-| … | le bloc ou le lingot correspondant à chaque variante |
+| … | les planches, briques, bloc, lingot, gemme ou éclat correspondant à chaque variante |
 
 Le résultat est une stèle. Les recettes sont du JSON de datapack ordinaire dans
 `data/eggandcheese/recipe/`, un fichier par variante : un pack peut donc en remplacer ou
@@ -121,14 +122,18 @@ en retirer n'importe laquelle sans toucher au mod.
 |---|---|
 | Clic droit avec un item, stèle vide | Un item est pris sur ton stack et exposé |
 | Clic droit à mains nues, stèle occupée | L'item exposé te revient |
-| Clic droit avec un item, stèle occupée | Rien — l'interaction passe outre |
-| Clic droit avec un **œuf admin**, quel que soit l'état | Rien — l'interaction passe outre |
+| Clic droit avec un item, stèle occupée | L'item exposé te revient — c'est l'action à mains nues qui s'exécute |
+| Clic droit avec un **œuf admin**, stèle occupée | L'item exposé te revient |
+| Clic droit avec un **œuf admin**, stèle vide | Rien n'est exposé — l'usage propre de l'item s'exécute : l'œuf admin est **posé** contre la face cliquée, comme sur n'importe quel bloc |
 
-`canAccept` n'exige qu'un stack non vide : une stèle expose donc n'importe quoi — un œuf
-collectible, un diamant, un gâteau. La seule exclusion explicite est
+`onUseWithItem` n'exige qu'un stack non vide : une stèle expose donc n'importe quoi — un
+œuf collectible, un diamant, un gâteau. La seule exclusion explicite est
 `AdminCollectibleItem` : donner l'item de placement admin à une stèle renvoie
-`PASS_TO_DEFAULT_BLOCK_INTERACTION` au lieu de le consommer, pour qu'on ne puisse pas
-perdre par mégarde l'item de placement d'un œuf dans le mobilier.
+`PASS_TO_DEFAULT_BLOCK_INTERACTION` au lieu de le consommer, si bien que le mobilier
+n'avale jamais l'item de placement. En 1.21.1, ce résultat fait suivre le clic, d'abord à
+l'action à mains nues de la stèle, puis à l'item lui-même — d'où le fait qu'un item visé
+sur une stèle occupée reprend celui qui y est exposé, et qu'un œuf admin visé sur une stèle
+vide se pose à côté comme un véritable œuf de chasse.
 
 L'item est pris par `stack.copyWithCount(1)` et le stack source décrémenté de un : un
 stack de 64 en perd donc exactement un.
@@ -166,9 +171,10 @@ réglages que la bedrock. Il ne peut être ni miné ni soufflé. C'est volontair
 extension est structurelle, et laisser un joueur casser le milieu d'un pilier laisserait
 la plateforme en suspension sans collision.
 
-⚠️ Si une stèle disparaît par une voie qui n'appelle pas `removeAllExtensions` — un
-`/setblock`, une opération WorldEdit, un rollback de chunk — ses blocs d'extension restent,
-et ils sont incassables. Retire-les avec `/setblock <x> <y> <z> air`. Il n'existe aucun
+⚠️ Si une stèle disparaît par une voie qui contourne les mises à jour de blocs — une
+opération WorldEdit, un rollback de chunk —, `removeAllExtensions` ne s'exécute jamais (un
+`/setblock` ou une explosion passent bien par `onStateReplaced` et font le ménage). Les
+blocs d'extension restent, et ils sont incassables. Retire-les avec `/setblock <x> <y> <z> air`. Il n'existe aucun
 autre moyen en jeu de s'en débarrasser.
 
 Le cache de formes est indexé sur la `pillarHeight` courante (`cachedShapesPh`) et
@@ -177,7 +183,7 @@ une stèle inchangée ne coûtent donc rien.
 
 ## L'advancement
 
-`data/eggandcheese/advancements/egg_found.json` est un unique advancement à un critère :
+`data/eggandcheese/advancements/egg_found.json` livre un unique advancement à un critère :
 
 ```json
 {
@@ -191,14 +197,20 @@ une stèle inchangée ne coûtent donc rien.
 }
 ```
 
-Le `"*"` est traité par `EggFoundCriterion.Conditions.matches`, qui accepte un `egg_id`
-absent, le littéral `*`, ou un id exact. Cet advancement se déclenche donc sur **n'importe
-quelle** découverte d'œuf. Il n'a pas de bloc `display`, ce qui le rend invisible dans
-l'écran des progrès et en fait un simple point d'accroche — FTB Quests peut le surveiller,
-et un datapack peut en dépendre.
+⚠️ **Minecraft 1.21.1 ne charge jamais ce fichier.** Depuis la 1.21, le dossier de datapack
+est `advancement/`, au singulier — les recettes du mod sont d'ailleurs bien dans
+`recipe/` —, si bien qu'un fichier sous `advancements/` est ignoré, et qu'aucun
+advancement d'id `eggandcheese:egg_found` n'existe en jeu. Ce qui fonctionne, c'est le
+**déclencheur de critère** du même nom : tout advancement qui le désigne se déclenche.
 
-Pour construire une tâche liée à un œuf précis, écris ton propre advancement avec l'id
-dans les conditions :
+Le `"*"` est traité par `EggFoundCriterion.Conditions.matches`, qui accepte un `egg_id`
+absent, le littéral `*`, ou un id exact. Pour réagir à **n'importe quelle** découverte,
+recopie le JSON ci-dessus dans ton propre datapack, par exemple sous
+`data/monpack/advancement/egg_found_any.json`. Sans bloc `display`, il reste invisible dans
+l'écran des progrès et sert de simple point d'accroche — FTB Quests peut surveiller
+`monpack:egg_found_any`, et un datapack peut en dépendre.
+
+Pour construire une tâche liée à un œuf précis, mets l'id dans les conditions :
 
 ```json
 {

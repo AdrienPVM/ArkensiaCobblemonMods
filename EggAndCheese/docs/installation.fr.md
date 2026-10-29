@@ -13,7 +13,7 @@ sérieux :
   texture d'œuf n'est dans le jar, donc un client qui ne fait pas tourner le mod n'a rien à
   dessiner.
 
-Le mod enregistre en outre 25 blocs et 25 items. Un client qui se connecte sans eux a un
+Le mod enregistre en outre 26 blocs et 25 items. Un client qui se connecte sans eux a un
 registre incomplet pour les blocs que le serveur lui envoie : considère donc une
 installation serveur seule comme non prise en charge plutôt que dégradée.
 
@@ -34,7 +34,7 @@ et Fabric Loader refuse de démarrer le serveur sans lui.
 
 | Mod | Ce que tu y gagnes | Sans lui |
 |---|---|---|
-| [FTB Quests](https://modrinth.com/mod/ftb-quests-fabric) | Une quête par œuf, créée et validée automatiquement | L'intégration se désactive et le journalise. Utilise l'advancement `eggandcheese:egg_found` à la place |
+| [FTB Quests](https://modrinth.com/mod/ftb-quests-fabric) | Une quête par œuf, créée et validée automatiquement | L'intégration se désactive et le journalise. Utilise à la place un advancement à toi sur le déclencheur `eggandcheese:egg_found` — voir [l'advancement](display.fr.md#ladvancement) |
 | fabric-permissions-api, par exemple via [LuckPerms](https://luckperms.net/) | Le nœud de permission `eggandcheese.admin` | Repli sur op niveau 2 |
 | [JourneyMap](https://modrinth.com/mod/journeymap) | Rien, à ce jour | `JourneyMapIntegration` existe mais n'est branché à rien — voir [architecture](architecture.fr.md#code-mort) |
 
@@ -92,9 +92,10 @@ Ce qu'il crée, paresseusement, c'est une entrée d'état persistant dans le mon
 world/data/eggandcheese_registry.dat
 ```
 
-Elle apparaît la première fois que quelque chose lit le registre — un appel du dashboard,
-une commande, un placement d'œuf — et contient à la fois les collectibles et les quatre
-réglages. Sur un monde neuf, elle démarre vide, avec `ftbQuestsEnabled` à faux,
+Elle est écrite à la première sauvegarde du monde qui suit une modification du registre —
+un placement d'œuf, une création ou un enregistrement de configuration depuis le dashboard ;
+une simple lecture (un `GET`, `/eac reload`) ne crée pas le fichier. Elle contient à la fois
+les collectibles et les quatre réglages. Sur un monde neuf, elle démarre vide, avec `ftbQuestsEnabled` à faux,
 `ftbQuestsChapter` à `"oeufs"`, `ftbAutoSync` à faux et `textureRenderDistance` à 20.
 
 Rien n'est écrit dans `config/`, rien dans une base de données, et aucun fichier hors du
@@ -136,7 +137,7 @@ Sans lui :
 
 ### Dans le dashboard
 
-Connecte-toi sur `http://<serveur>:44311`. Une section **Œufs** avec une icône 🥚 dans la
+Connecte-toi sur `http://<serveur>:44311`. Une section **EggAndCheese** avec une entrée 🥚 **Collectibles** dans la
 barre latérale signifie que l'entrypoint `cheesedash` a été découvert. Pour une
 vérification qui ne passe pas par le frontend :
 

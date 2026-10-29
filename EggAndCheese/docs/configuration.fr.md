@@ -47,21 +47,27 @@ appelle `ensureQuestExists` et crée la quête sur le moment.
 
 ### `ftbQuestsChapter`
 
-Un **nom** de chapitre, pas un id. `FtbQuestsHook` cherche le chapitre par son nom et le
-crée quand aucun ne correspond. Si plusieurs chapitres portent ce nom — ce qui est déjà
-arrivé, et que le hook journalise — les doublons sont fusionnés en un seul :
+Un **nom** de chapitre, pas un id — mais la recherche ne compare pas les titres.
+`FtbQuestsHook` dérive un nom de fichier du réglage (en minuscules, chaque caractère hors
+`a-z`, `0-9` et `_` remplacé par `_`, si bien que `Œufs de Pâques` devient
+`_ufs_de_p_ques`) et cherche un chapitre dont le nom de fichier FTB lui correspond, sans
+tenir compte de la casse. Quand aucun ne correspond, il en crée un avec ce nom de fichier,
+intitulé avec le texte brut du réglage. Si plusieurs chapitres correspondent — ce qui est
+déjà arrivé, et que le hook journalise — les doublons sont fusionnés en un seul :
 
 ```text
 [EAC-FTB] Merged 2 duplicate chapters into one 'oeufs'
 ```
 
-Le setter normalise `null` en `"oeufs"` : impossible de vider la valeur, et envoyer
-`{"ftbQuestsChapter": null}` la remet au défaut. Une chaîne vide, en revanche, est
-acceptée telle quelle et fera chercher au hook un chapitre nommé `""`.
+Le setter normaliserait `null` en `"oeufs"`, mais l'API n'arrive jamais jusque-là : envoyer
+`{"ftbQuestsChapter": null}` fait lever une exception à `getAsString()` sur le null JSON,
+et la requête échoue en `500`. Une chaîne vide, en revanche, est acceptée telle quelle et
+fera chercher au hook un chapitre dont le nom de fichier est `""`.
 
-Le défaut est français parce que le serveur pour lequel le mod a été écrit l'est. Si tu
-renommes ton chapitre, change ce réglage en conséquence, sans quoi le mod créera
-silencieusement un second chapitre à côté du tien.
+Le défaut est français parce que le serveur pour lequel le mod a été écrit l'est. Renommer
+le titre du chapitre dans l'éditeur de quêtes est sans conséquence — son nom de fichier ne
+change pas. C'est modifier *ce réglage* vers un texte qui donne un autre nom de fichier qui
+fait créer silencieusement au mod un second chapitre à côté du tien.
 
 ### `ftbAutoSync`
 
@@ -81,6 +87,12 @@ connexion sont dans
 Le setter borne à `>= 0` ; il n'y a pas de borne haute. Une valeur au-delà de la distance
 de rendu de ton pack équivaut à `0`, puisqu'un bloc plus loin que cela n'est de toute
 façon pas rendu.
+
+⚠️ L'onglet **Configuration** du dashboard ne peut pas enregistrer `0`. Son formulaire
+envoie `parseInt(valeur) || 10` : `0` — ou un champ vide — part donc en `10`, et un `0`
+stocké s'affiche lui aussi `10`. L'onglet s'enregistre en outre tout seul 1,5 seconde après
+chaque modification, en envoyant les quatre réglages d'un coup. Pour régler `0`, passe par
+l'API.
 
 Les changements prennent effet immédiatement sur les clients connectés, parce que
 `PUT /config` envoie un `SyncRegistryPayload` à chaque joueur connecté en dernière étape.
@@ -158,9 +170,9 @@ Annoté, clé par clé :
 - `ftbQuestsEnabled: true` — les quêtes sont créées, mises à jour, supprimées et validées
   en même temps que les œufs. Exige que FTB Quests soit installé ; sans effet s'il ne
   l'est pas.
-- `ftbQuestsChapter: "oeufs"` — le nom du chapitre tel qu'il apparaît dans ton livre de
-  quêtes. Fais-le correspondre exactement à ton chapitre existant, sinon un nouveau sera
-  créé.
+- `ftbQuestsChapter: "oeufs"` — désigne le chapitre dont le nom de fichier est `oeufs`.
+  Fais-lui produire le nom de fichier de ton chapitre existant, sinon un nouveau chapitre
+  sera créé.
 - `ftbAutoSync: false` — sans effet dans un sens comme dans l'autre. Laissé dans l'exemple
   parce que l'API l'accepte et que le dashboard l'affiche.
 - `textureRenderDistance: 32` — les œufs gardent leur modèle voxel complet jusqu'à 32

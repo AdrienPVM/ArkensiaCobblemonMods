@@ -110,9 +110,10 @@ names so the injector binds either way:
 }, at = @At("HEAD"), cancellable = true, require = 0)
 ```
 
-The first is the Yarn name, which is what a mod compiled against Yarn mappings exposes;
-the second is the intermediary name, which is what a mod compiled against intermediary
-exposes at runtime. Listing both avoids needing a refmap for a class this mod cannot
+The first is the Yarn name, which only matches in a Yarn-mapped development environment;
+the second is the intermediary name, which is what every mod jar — Minerally and
+CobblemonRaidDens included — carries at runtime in production, and the one that actually
+binds on a server. Listing both avoids needing a refmap for a class this mod cannot
 compile against. `require = 0` means a mixin that binds to nothing is not an error, which
 is how the mod stays loadable when Minerally or CobblemonRaidDens is absent. It is also a
 real hazard, covered under [known weaknesses](#known-weaknesses).
@@ -129,9 +130,9 @@ instead. Nothing overrides `minecraft:overworld`'s noise settings, carvers, feat
 structure sets. This is the part that would otherwise rewrite your whole server, and it
 is the reason the repackaging exists.
 
-**2. Three of the four worldgen mixins are gated on a sea level the overworld cannot
-reach.** `NoiseChunkGeneratorMixin`, `SpringFeatureMixin` and `LakeFeatureMixin` all
-return immediately when the sea level is at or above -25. The vanilla overworld's is 63.
+**2. Four of the five mixins are gated on a sea level the overworld cannot reach.**
+`NoiseChunkGeneratorMixin`, `SpringFeatureMixin`, `LakeFeatureMixin` and
+`MinerallyFeatureMixin` all return immediately when the sea level is at or above -25. The vanilla overworld's is 63.
 The injections are present in the overworld's code path, and the cost of that is a single
 `int` comparison per call.
 
@@ -151,8 +152,8 @@ Three honest qualifications on that:
   through a mod whose README says it leaves the overworld alone.
 - The datapack may still carry things that are global. The DimScope build ships four
   Lithostitched `worldgen_modifier` files, one of which adds a surface rule to
-  `minecraft:overworld` and two of which rewrite vanilla biome climate and colours
-  server-wide. They do nothing without Lithostitched installed. With it, they apply, and
+  `minecraft:overworld` while the other three rewrite the climate and colours of four
+  vanilla biomes server-wide. They do nothing without Lithostitched installed. With it, they apply, and
   that is the datapack's doing rather than this mod's.
 
 ## Where the coupling lives
@@ -167,7 +168,7 @@ private static final Identifier SETTINGS_ID = Identifier.of("aetherial_islands",
 ```
 
 A rename on the datapack side breaks dimension creation, loudly: the `orElseThrow` at
-line 44 produces a message naming the id it wanted, and CheeseGuard falls back to a void
+line 45 produces a message naming the id it wanted, and CheeseGuard falls back to a void
 generator. This is the failure mode you want, and it is the only one of the four that
 announces itself.
 
@@ -234,10 +235,11 @@ Stated plainly, because finding these by surprise is worse.
   datapack edit that raises the sea level silently disables the entire repair pipeline.
 - **The guard is on sea level, not on dimension.** Any other low-sea-level dimension on
   the server inherits the forced sea floor, with no way to opt out short of recompiling.
-- **Three javadoc comments carry wrong numbers.** `SpringFeatureMixin` and
-  `LakeFeatureMixin` say the threshold is -50 and the dimension sits at -55;
-  `MinerallyFeatureMixin` says -30. The code says -25 and the datapack says -30. Believe
-  the code.
+- **Two javadoc comments carry wrong numbers.** `SpringFeatureMixin` and
+  `LakeFeatureMixin` say the threshold is -50, and `SpringFeatureMixin` adds that the
+  dimension sits at -55. The code says -25 and the datapack says -30 —
+  `MinerallyFeatureMixin`'s javadoc ("< -25", "sits at -30") is the one that is right.
+  Believe the code.
 - **A failed settings lookup degrades into a void world over real region files.**
   CheeseGuard catches the provider's exception and falls back to a flat void generator.
   Chunks already on disk still load with their terrain; new chunks come out empty. The
@@ -246,8 +248,9 @@ Stated plainly, because finding these by surprise is worse.
 - **The sea floor ignores biome.** The same sand, gravel, clay and prismarine mix appears
   under a desert island and under a snowy taiga. No per-biome variation, by choice, but
   it does read as odd in a cold biome.
-- **The decoration pass is not profiled.** It runs 256 columns with up to about 33
-  `setBlockState` calls each for floor and water, plus decoration, on every chunk of the
+- **The decoration pass is not profiled.** It runs 256 columns with exactly 35
+  `setBlockState` calls each for bedrock, floor and water (every y from `min_y` to the sea
+  level, with this datapack), plus decoration, on every chunk of the
   dimension. It is cheap arithmetic and bounded, but nobody has measured the per-chunk
   cost, and chunk generation in a floating dimension is noticeably slower than in the
   overworld.
