@@ -37,8 +37,14 @@ CheeseDash opens two ports: **44311** (HTTP) and **44312** (WebSocket).
   reverse proxy that terminates TLS if you need remote access.
 - The **master token** lives in `config/cheesedash.json`. It grants `SUPER_ADMIN`,
   which includes arbitrary server command execution. Treat it like a root password.
-  Generate a long random value, never reuse one, and rotate it if it has ever been
-  pasted into a chat, a screenshot, or a log.
+  CheeseDash generates it for you (32 random bytes) on first start; keep that value
+  rather than replacing it with something memorable, and rotate it if it has ever been
+  pasted into a chat, a screenshot, or a log. Rotating through
+  `POST /api/v1/dashboard/token/regenerate` does **not** revoke the sessions already
+  opened with the old token, and neither does changing an account's role: restart the
+  server to be sure.
+- The login form's "remember" checkbox stores the raw token in the browser's
+  `localStorage`. Do not tick it for the master token on a shared machine.
 - `POST /api/v1/server/command` executes arbitrary Minecraft commands. Every call is
   audited, but audit is forensics, not prevention. Give accounts the lowest role that
   does their job: `READ_ONLY` or `OPERATOR` rather than `SUPER_ADMIN`.
@@ -47,10 +53,11 @@ CheeseDash opens two ports: **44311** (HTTP) and **44312** (WebSocket).
   60 seconds per IP — but `POST /api/v1/auth/login` is dispatched and returned *before*
   the check runs (`WebDashboard.java:114`, ahead of the `isRateLimited` call on line 120),
   and a failed login never calls `recordFailedAuth`. The limiter therefore only covers
-  invalid `Authorization` headers on the other routes. A master token can be attacked at
-  full speed, so the only thing standing between an attacker and your server is the
-  token's own entropy and your firewall. Treat network-level restriction as mandatory,
-  not advisory.
+  invalid `Authorization` headers on the other routes. The WebSocket on port 44312 has no
+  limiter at all either: a wrong token only closes the socket, and the client can
+  reconnect at once. A master token can be attacked at full speed, so the only thing
+  standing between an attacker and your server is the token's own entropy and your
+  firewall. Treat network-level restriction as mandatory, not advisory.
 
 ### CheeseStore — real payments
 
@@ -66,7 +73,9 @@ Before taking a single payment:
   backed up to a public location, or included in a server pack you distribute.
 - The checkout and webhook routes under `/store/api/*` are **public by design** — they
   have to be reachable by Stripe and by buyers. Serve them over HTTPS through a
-  reverse proxy. Never expose the admin dashboard on the same open port.
+  reverse proxy. They are served by CheeseDash's HTTP server, on the **same port** as
+  the admin dashboard (44311), so the proxy must forward only the `/store/` path and
+  never `/`, `/api/` or the WebSocket port.
 - **Verify webhook signatures in production.** An unauthenticated webhook endpoint
   lets anyone forge a "payment succeeded" event and grant themselves goods for free.
 - Test with Stripe test keys (`sk_test_…`) and the Stripe CLI before going live.
@@ -83,6 +92,10 @@ target. Re-test after any update to the mods they touch.
 
 - Keep `config/` out of version control. The root `.gitignore` already excludes it.
 - Review `config/cheesedash_audit.json` after any suspected compromise. It records the
-  IP, timestamp and payload of administrative actions.
+  IP, timestamp, account and a one-line description of dashboard actions — the full
+  command string for `POST /server/command`, but only the method and path (never the
+  body) for module writes. Some writes are not recorded at all (session revocations,
+  zone folders, the admin player name, webhook tests), and neither is anything done in
+  game.
 - Back up your world before enabling anything that resets dimensions or deletes
   chunks — CheeseGuard can do both.

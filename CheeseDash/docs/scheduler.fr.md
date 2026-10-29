@@ -38,13 +38,15 @@ c'est dans ce message qu'elle va.
 ## Actions ponctuelles
 
 Une action ponctuelle est créée par `POST /api/v1/server/schedule`, avec un type et un
-délai compris entre 5 et 86 400 secondes. Son id est `sa_` suivi de six caractères
-hexadécimaux.
+délai compris entre 5 et 86 400 secondes. Son id est `sa_` suivi d'au plus six caractères
+hexadécimaux (un nombre aléatoire inférieur à `0xFFFFFF`, sans zéros de remplissage).
 
 **Une seule peut être en attente.** `scheduleAction` commence par appeler
-`cancelAction()`, donc créer une seconde action écarte silencieusement la première — y
-compris son annonce en chat, que les joueurs ont déjà vue. Annule explicitement puis
-recrée si tu veux replanifier ; le dashboard ne t'avertira pas.
+`cancelAction()`, donc créer une seconde action écarte la première. Ce n'est pas
+silencieux : l'annulation s'exécute en entier, les joueurs reçoivent la ligne de chat
+« … annulé. » et un message `schedule_cancelled` part (que le mappeur Discord transforme
+en `RESTART_CANCELLED`), aussitôt suivi de l'annonce de la nouvelle action. Le dashboard,
+lui, ne t'avertit pas avant que cela arrive.
 
 Ce que fait le serveur à l'instant où l'action est créée :
 
@@ -53,10 +55,13 @@ Ce que fait le serveur à l'instant où l'action est créée :
 2. Il diffuse `schedule_created` sur le canal WebSocket `schedule`, ce qui déclenche à son
    tour l'événement Discord `RESTART_SCHEDULED` pour tout webhook abonné.
 3. Il journalise la ligne
-   `[CheeseDash] Restart scheduled in 600s by admin: Weekly maintenance`.
+   `[CheeseDash] Restart scheduled in 599s by admin: Weekly maintenance` pour un délai
+   de 600 secondes. Le chiffre est le temps restant, recalculé et tronqué à la seconde
+   quelques instants après la création : il affiche donc en général une seconde de moins.
 4. Il envoie immédiatement un avertissement en chat à tous les joueurs connectés, quel
-   que soit le délai. Un redémarrage planifié dans une heure s'annonce donc tout de
-   suite, puis à chaque seuil inférieur.
+   que soit le délai, construit à partir du même chiffre tronqué
+   (`Redémarrage dans 9 minutes 59s...` pour un délai de 600 secondes). Un redémarrage
+   planifié dans une heure s'annonce donc tout de suite, puis à chaque seuil inférieur.
 
 **Les actions ponctuelles ne sont jamais écrites sur disque.** Le fichier de
 configuration ne contient que les planifications récurrentes. Un serveur qui tombe
@@ -201,8 +206,8 @@ processus.
 ## Planifications récurrentes
 
 Une planification récurrente est une heure de la journée plus un ensemble de jours de la
-semaine, persistée dans `config/cheesedash_schedules.json`. Son id est `rec_` suivi de
-six caractères hexadécimaux.
+semaine, persistée dans `config/cheesedash_schedules.json`. Son id est `rec_` suivi d'au
+plus six caractères hexadécimaux.
 
 ```json
 {

@@ -82,8 +82,9 @@ passe pas lui-même la poignée de main.** `app.js` envoie `API.getToken()`, et 
 l'identifiant de session créé au login. Le serveur le compare au master token, la
 comparaison échoue, et la socket se ferme avec `4001`. `app.js` réessaie alors toutes les
 trois secondes tant que l'utilisateur reste connecté, et retombe sur un sondage de
-`GET /api/v1/status` toutes les dix secondes dès que la socket est tombée : c'est
-pourquoi la page d'ensemble affiche quand même un TPS, qui se rafraîchit lentement. Tout
+`GET /api/v1/status` toutes les deux secondes dès que la socket est tombée (le
+`setInterval` vaut 2000 ms, même si le commentaire au-dessus annonce 10 s) : c'est
+pourquoi la page d'ensemble affiche quand même un TPS. Tout
 ce qui est véritablement temps réel — le flux d'audit, les notifications d'arrivée et de
 départ, le décompte avant redémarrage — n'arrive jamais.
 
@@ -94,7 +95,8 @@ afficher.
 
 Note aussi qu'un canal ne porte aucun filtre de rôle. Une fois authentifiée avec le
 master token, une connexion peut s'abonner à n'importe quoi, y compris `audit`, qui
-rejoue qui a fait quoi depuis quelle IP.
+rejoue qui a fait quoi (l'IP elle-même est retirée du message WebSocket, voir
+[plus bas](#audit--canal-audit)).
 
 ---
 

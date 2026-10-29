@@ -9,14 +9,15 @@ CheeseDash démarre un serveur HTTP et un serveur WebSocket à l'intérieur du p
 de ton serveur Minecraft, et leur fait servir une interface d'administration en une
 seule page. Les autres mods s'enregistrent auprès de lui comme **modules**, via un
 entrypoint Fabric personnalisé ; chaque module reçoit son propre espace d'API sous
-`/api/v1/<prefix>/` et sa propre entrée dans la barre latérale. Celle-ci est construite
-à partir de ce qui est réellement installé, donc toutes les combinaisons fonctionnent :
-CheeseDash seul, avec un module, ou avec tous les modules de ce dépôt.
+`/api/v1/<prefix>/` et, pour les modules que le frontend fourni connaît, sa propre
+section dans la barre latérale. Une section n'apparaît que si son module est réellement
+installé, donc toutes les combinaisons fonctionnent : CheeseDash seul, avec un module, ou
+avec tous les modules de ce dépôt.
 
 Un administrateur se connecte avec un token, arrive sur une page de vue d'ensemble avec
-le TPS en direct et la liste des joueurs, et de là modifie des zones, lance une commande
-serveur, planifie un redémarrage ou lit le journal d'audit. Un compte `READ_ONLY` voit
-les mêmes pages et ne peut rien modifier.
+le TPS et le nombre de joueurs, et de là modifie des zones, lance une commande serveur,
+planifie un redémarrage ou lit le journal d'audit. Un compte `READ_ONLY` voit les mêmes
+pages, moins la section *Administration*, et ne peut rien modifier.
 
 La règle de conception derrière tout ça : **les administrateurs utilisent le dashboard,
 les joueurs utilisent les interfaces in-game.** CheeseDash n'enregistre **aucune
@@ -57,7 +58,7 @@ cd CheeseDash && ./gradlew build     # gradlew.bat sous Windows
 | Port | Protocole | Rôle |
 |------|-----------|------|
 | 44311 | HTTP | dashboard et API REST |
-| 44312 | WebSocket | TPS en direct, événements joueurs, flux de logs, flux d'audit |
+| 44312 | WebSocket | TPS en direct, événements joueurs, décompte de redémarrage, flux d'audit — master token uniquement, voir [WebSocket](docs/websocket.fr.md) |
 
 Le port WebSocket vaut toujours le port HTTP plus un. Il n'a pas de réglage propre.
 
@@ -71,11 +72,13 @@ Le port WebSocket vaut toujours le port HTTP plus un. Il n'a pas de réglage pro
 
 ## Essayer l'interface sans serveur
 
-`preview.html` est le dashboard complet branché sur des données factices. Ouvre-le
-directement depuis le disque — sans build, sans Minecraft, sans réseau — et connecte-toi
-avec le token `demo`. Toutes les vues s'affichent avec des zones, des joueurs et des
-commandes inventés, ce qui en fait le moyen le plus rapide de voir ce que fait le mod
-avant de l'installer, et la façon de travailler sur le frontend sans serveur qui tourne.
+`preview.html` est une ancienne maquette autonome du dashboard, en français. Ouvre-le
+directement depuis le disque — sans build, sans Minecraft ; le navigateur a seulement
+besoin des CDN — et il s'ouvre directement sur la vue d'ensemble, le formulaire de
+connexion étant sauté. Seule cette vue d'ensemble a des données factices ; les autres
+entrées affichent un écran provisoire `Phase 2 — implémentation en cours`. Il donne une
+idée de l'apparence, pas des vraies vues, qui demandent un serveur qui tourne. Détails
+dans [interface web](docs/web-ui.fr.md#previewhtml--une-ancienne-maquette-autonome).
 
 ## Documentation
 
@@ -113,7 +116,7 @@ Tout vit sous `/api/v1/`. `POST /auth/login` est la seule route qui n'exige pas
 
 | Méthode | Endpoint | Rôle |
 |---------|----------|------|
-| GET | `/ping` | test de santé, répond même avant la fin du démarrage du serveur |
+| GET | `/ping` | test de santé, ne touche à aucun état du jeu |
 | GET | `/status` | TPS, nombre de joueurs, MOTD, version, nombre de modules |
 | GET | `/modules` | quels modules sont chargés — c'est ce qui construit la barre latérale |
 | GET | `/server/stats` · `/server/logs?n=` · `/server/mods` | introspection du serveur |

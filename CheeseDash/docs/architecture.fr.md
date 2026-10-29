@@ -63,8 +63,9 @@ transparent, et c'est le compromis assumé ici — l'alternative était une abst
 routage que personne n'aurait lue.
 
 **`DashboardRegistry`** est de l'état statique : une `LinkedHashMap` préfixe → module,
-pour que l'ordre de la barre latérale suive l'ordre dans lequel Fabric a renvoyé les
-entrypoints. Il détient aussi les références au serveur WebSocket et au gestionnaire
+si bien que `GET /modules` liste les modules dans l'ordre où Fabric a renvoyé les
+entrypoints (la barre latérale, elle, garde l'ordre fixe de `NAV_SECTIONS` dans
+`app.js`). Il détient aussi les références au serveur WebSocket et au gestionnaire
 Discord, ce qui rend `DashboardRegistry.broadcast(channel, json)` appelable depuis
 n'importe quel mod sans avoir d'objet CheeseDash sous la main.
 
@@ -111,7 +112,8 @@ laquelle un handler ne doit jamais attendre quelque chose de long.
 le jar via le `include` de Gradle pour qu'aucun mod supplémentaire ne soit nécessaire. Le
 port est calculé comme `config.getPort() + 1` et n'a pas de réglage propre. Une connexion
 doit envoyer `{"type":"auth","token":…}` dans les cinq secondes, sinon un thread de
-nettoyage la ferme avec le code `4001` ; ensuite elle s'abonne à des canaux et reçoit ce
+nettoyage, qui passe toutes les cinq secondes, la ferme avec le code `4001` (donc au bout
+de cinq à dix secondes) ; ensuite elle s'abonne à des canaux et reçoit ce
 qui y est diffusé. Détail du protocole dans [WebSocket](websocket.fr.md).
 
 Une asymétrie à connaître : le WebSocket compare le token au **master token uniquement**,
@@ -183,14 +185,17 @@ FabricLoader.getInstance()
 `cheesedash` est un nom d'entrypoint personnalisé, pas quelque chose que Fabric connaît
 lui-même. Tout mod qui le déclare est instancié et enregistré, indexé par son préfixe ;
 un préfixe en doublon est refusé avec un avertissement et le second module est écarté.
-L'ordre de chargement est celui que Fabric renvoie, et il détermine l'ordre de la barre
-latérale.
+L'ordre de chargement est celui que Fabric renvoie, et il détermine l'ordre de
+`GET /modules`.
 
 Les modules sont ensuite notifiés deux fois dans la vie du serveur, sur `SERVER_STARTED`
 et `SERVER_STOPPING`, moments où ils récupèrent et relâchent la référence au
-`MinecraftServer`. Les deux notifications s'exécutent sur le thread serveur,
-respectivement avant le démarrage du serveur HTTP et après son arrêt — donc le
-`onServerStart` d'un module ne peut pas recevoir une requête qui le court-circuiterait.
+`MinecraftServer`. Les deux notifications s'exécutent sur le thread serveur.
+`onServerStart` passe avant le démarrage du serveur HTTP : il ne peut donc pas recevoir
+une requête qui le court-circuiterait. `onServerStop` passe *avant* l'arrêt du serveur
+HTTP, et non après : pendant ce bref intervalle, une requête peut encore atteindre un
+module qui a déjà relâché sa référence au serveur, et c'est à cela que sert sa propre
+branche `503`.
 
 Le contrat complet est dans [écrire un module](writing-a-module.fr.md).
 
@@ -211,7 +216,8 @@ Dites franchement, parce que les découvrir par surprise est pire.
   login n'est pas bridée — seulement auditée.
 - **Le WebSocket n'accepte que le master token**, ce qui force quiconque a besoin des vues
   en direct à détenir le justificatif de plus grande valeur. Le système de rôles n'atteint
-  pas du tout le WebSocket.
+  pas du tout le WebSocket, et le frontend fourni, qui envoie son identifiant de session,
+  ne passe jamais la poignée de main.
 - **`GET /webhooks/{id}` renvoie l'URL Discord non masquée à n'importe quel rôle
   authentifié**, `READ_ONLY` compris. Pareil pour `GET /server/logs` et tout ce qui se
   trouve dans le log.
@@ -225,9 +231,10 @@ Dites franchement, parce que les découvrir par surprise est pire.
 **Robustesse**
 
 - **Un `cheesedash.json` malformé est remplacé silencieusement.** Le parsing des comptes
-  partage le `try` extérieur : une seule mauvaise valeur de `role`, ou une virgule en
-  trop, abandonne toute la lecture et retombe sur le chemin de premier démarrage — nouveau
-  master token, tous les comptes perdus. Les chargeurs de webhooks et de planifications
+  partage le `try` extérieur : une seule mauvaise valeur de `role` abandonne la suite de
+  la lecture et retombe sur le chemin de premier démarrage — nouveau master token, et le
+  compte fautif ainsi que tous ceux qui le suivent perdus. Une virgule en trop est pire :
+  rien n'est chargé, et tous les comptes disparaissent. Les chargeurs de webhooks et de planifications
   font l'inverse et ne sautent que la mauvaise entrée ; le chargeur de config aurait dû
   être écrit ainsi.
 - **`AuditLogger` crée un thread et réécrit tout le fichier par entrée.** À 10 000
@@ -240,8 +247,8 @@ Dites franchement, parce que les découvrir par surprise est pire.
   réellement lente a besoin d'un autre motif.
 - **Quatre threads HTTP**, sans limite de file au-delà du backlog de 64. Quatre handlers
   lents bloquent tout.
-- **`enabled: false` démarre quand même le serveur WebSocket**, occupant `port + 1` pour
-  rien.
+- **`enabled: false` démarre quand même le serveur WebSocket**, qui occupe `port + 1` et
+  sert toujours tout client qui envoie le master token.
 
 **Cohérence de l'API**
 
@@ -254,7 +261,9 @@ Dites franchement, parce que les découvrir par surprise est pire.
 - **`DELETE /admin/sessions/{id}` répond `200 {"revoked":false}`** pour une session
   inexistante, là où tout le reste de l'espace de noms admin répondrait `404`.
 - **Les préfixes du cœur masquent silencieusement les préfixes de modules.** Un module
-  qui s'appellerait `server` ne recevrait simplement jamais de requête.
+  qui s'appellerait `server` ne recevrait jamais les chemins que traite le cœur
+  (`/server/logs`, `/server/schedule`…), et un module qui s'appellerait `admin` ne
+  recevrait rien du tout.
 
 **Montée en charge**
 
@@ -267,8 +276,9 @@ Dites franchement, parce que les découvrir par surprise est pire.
   les arguments du processus courant, puis en cherchant `fabric-server-launch*.jar` ou
   `server*.jar` dans le répertoire de travail. Sur un hôte qui démarre via un script
   d'enrobage ou avec un nom de jar inhabituel, le redémarrage échoue sur
-  `Cannot find server jar for restart` après que le monde a déjà été sauvegardé et que le
-  serveur est en train de s'arrêter — laissant le serveur éteint plutôt que relancé. Teste
+  `Cannot find server jar for restart` après que le monde a déjà été sauvegardé ;
+  l'exception est seulement journalisée et l'arrêt a lieu quand même — laissant le serveur
+  éteint plutôt que relancé. Teste
   un `RESTART` une fois sur un nouvel hôte avant de lui confier une planification
   récurrente.
 

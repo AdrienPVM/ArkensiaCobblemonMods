@@ -70,6 +70,12 @@ author gets a baseline audit trail for free. A module that wants something more
 descriptive writes its own entry **in addition** — the automatic one is not suppressed,
 so you will see both.
 
+The automatic entry is written after `handleRequest` returns, whatever status the module
+answered: a write the module rejected with a `400` or a `404` is still logged as if it
+had happened. Two cases leave no entry at all: a request refused by the central
+`requireWrite` gate (a `READ_ONLY` account trying to write), and a module handler that
+throws, because the exception skips the audit call on its way to the `500`.
+
 Note the ordering for `server.command`: the audit entry is written **before** the command
 runs. A command that throws is still in the log. That is the right way round for an
 audit trail, but it means an entry is not proof the command succeeded.
@@ -149,8 +155,10 @@ trimmed at load time.
 
 ### From the dashboard
 
-The *Administration → Audit* view in the sidebar, which any role can open. It paginates
-over the REST route below.
+The *Administration → Audit* view. The sidebar shows the *Administration* section only to
+`SUPER_ADMIN`, so the other roles do not see the link; the view itself has no role
+check, and they can still open it by going to `#audit`. It loads the 200 most recent
+entries, then 100 more per "load more", over the REST route below.
 
 ### From the API
 
@@ -195,8 +203,9 @@ recorded — pushed before the disk write. The payload carries every field **exc
 
 The omission looks deliberate — the live feed is for watching activity, the stored log is
 for investigating it — but nothing in the code says so. Note also that the WebSocket
-only accepts the master token, so the live feed is in practice `SUPER_ADMIN` only, while
-the REST route is open to everyone. Details in
+only accepts the master token, so the live feed reaches only a client that holds it —
+not the bundled dashboard, which sends its session id instead — while the REST route is
+open to everyone. Details in
 [WebSocket](websocket.md#only-the-master-token-is-accepted).
 
 ### From the file
@@ -238,7 +247,8 @@ if (audit != null && session != null) {
 }
 ```
 
-The two-argument overload takes username, role and IP from the session, which is what
+The three-argument overload, `log(session, action, detail)`, takes username, role and IP
+from the session, which is what
 you want on an HTTP thread. The five-argument form —
 `log(username, role, action, detail, ip)` — is for the case with no session, as the login
 route uses for a failed attempt.

@@ -52,11 +52,14 @@ Une erreur vaut `{"error":"<message>"}` ; un `500` ajoute
 > elles, l'attrapent et répondent `400 {"error":"Invalid JSON"}`. Traite un `500` dont le
 > `detail` contient une erreur de parsing comme ton bug, pas celui du serveur.
 
-**Le `503` est un état réel, pas une panne.** La référence au serveur Minecraft est
-posée sur `SERVER_STARTED`, au moment même où le serveur HTTP démarre. Toute route qui a
-besoin du jeu — `/status`, `/server/stats`, `/server/logs`, `/server/command` — répond
-`503 {"error":"Server not ready"}` jusque-là. `/ping` ne le fait volontairement pas,
-ce qui en fait un test de santé utilisable pendant le démarrage.
+**Le `503` est une branche défensive que tu ne devrais pas voir.** Les routes qui ont
+besoin du jeu — `/status`, `/server/stats`, `/server/logs`, `/server/command` —
+répondent `503 {"error":"Server not ready"}` tant que la référence au serveur Minecraft
+est nulle. Mais dans le handler de `SERVER_STARTED`, cette référence est posée
+(`CheeseDashMod.java:180`) *avant* le démarrage du serveur HTTP (ligne 195) : quand le
+port accepte des connexions, elle est déjà là. Pendant le démarrage, le symptôme est une
+connexion refusée, pas un `503`. `/ping` ne consulte jamais cette référence et ne touche
+à aucun état du jeu, ce qui en fait la sonde la moins coûteuse une fois le port ouvert.
 
 ---
 
@@ -95,15 +98,16 @@ serveur soit prêt.
 | Champ | Remarques |
 |---|---|
 | `tps` | Mesuré par CheeseDash lui-même toutes les 20 ticks, plafonné à 20.0, arrondi à une décimale |
-| `uptime` | ⚠️ **C'est l'heure courante en millisecondes epoch**, pas un uptime. Pour un vrai uptime, utilise `GET /server/stats` |
+| `uptime` | ⚠️ **C'est l'heure courante en millisecondes epoch**, pas un uptime. Pour un vrai uptime, utilise `GET /server/stats`. La vue d'ensemble fournie tombe dans le piège et affiche cette valeur comme un uptime de plusieurs dizaines de milliers de jours |
 | `wsPort` | Toujours `port + 1`. Le frontend le lit ici plutôt que de le supposer |
 | `username`, `role` | La session de l'appelant, omis s'il est d'une façon ou d'une autre absent |
 
 ### `GET /modules`
 
-**lecture.** Ce qui est installé. C'est le tableau à partir duquel la barre latérale est
-construite, et c'est pourquoi le dashboard s'adapte à n'importe quelle combinaison de
-mods sans configuration.
+**lecture.** Ce qui est installé. Le frontend filtre sa barre latérale d'après les
+préfixes de ce tableau, et c'est pourquoi le dashboard s'adapte à n'importe quelle
+combinaison de mods sans configuration ; les cartes de modules de la vue d'ensemble
+affichent les trois autres champs.
 
 ```json
 [
@@ -468,7 +472,9 @@ au processus sont couverts dans [planificateur](scheduler.fr.md).
 ### `POST /server/schedule`
 
 **admin.** Planifie une action ponctuelle. Une seule peut être en attente ; en créer une
-seconde annule silencieusement la première.
+seconde annule la première, et cette annulation n'est pas silencieuse : les joueurs
+reçoivent la ligne de chat habituelle d'annulation et un message `schedule_cancelled`
+part sur le WebSocket, juste avant que le nouveau décompte ne commence.
 
 ```json
 {"type": "RESTART", "delaySeconds": 600, "message": "Weekly maintenance"}
@@ -596,10 +602,13 @@ Un préfixe inconnu donne `404 {"error":"Route not found: /nope/whatever"}`. Tou
 exception sortant d'un handler de module devient un `500` avec le message d'exception
 dans `detail`, et est journalisée avec sa stack trace.
 
-> ⚠️ **Ces préfixes sont masqués par les routes du cœur** et ne doivent pas être
+> ⚠️ **Ces préfixes entrent en collision avec les routes du cœur** et ne doivent pas être
 > utilisés par un module : `ping`, `status`, `modules`, `auth`, `admin`, `dashboard`,
 > `server`, `webhooks`. Les contrôles du cœur passent d'abord, donc un module qui
-> enregistrerait `server` ne serait jamais atteint — et rien ne t'en avertit. Les
+> enregistrerait `server` ne recevrait que les chemins et méthodes que le cœur ne traite
+> pas lui-même — `GET /server/foo` l'atteindrait, `GET /server/logs` jamais — et sous
+> `admin/` il ne recevrait rien du tout, puisque le cœur répond `404` à toute route admin
+> inconnue. Rien ne t'en avertit. Les
 > collisions entre deux modules, *elles*, sont signalées au démarrage :
 > `Duplicate module prefix 'x' — skipping …`.
 

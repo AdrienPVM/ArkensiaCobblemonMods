@@ -4,12 +4,15 @@
 
 Un module CheeseDash est un mod Fabric qui implémente une interface et la déclare comme
 entrypoint. CheeseDash le découvre au démarrage, lui donne un espace de noms sous
-`/api/v1/<prefix>/`, le place dans la barre latérale, et lui route toutes les requêtes
-sous ce préfixe. L'authentification, la gestion des sessions, le filtrage par rôle sur
+`/api/v1/<prefix>/`, le liste dans `GET /api/v1/modules`, et lui route toutes les
+requêtes sous ce préfixe. Une entrée dans la barre latérale est un travail séparé, côté
+frontend : la barre latérale est la liste fixe `NAV_SECTIONS` de `app.js`, filtrée par
+les préfixes installés, donc un nouveau module n'a de section qu'une fois que tu l'y as
+ajoutée ([interface web](web-ui.fr.md#ajouter-une-vue)). L'authentification, la gestion des sessions, le filtrage par rôle sur
 les écritures, le journal d'audit, les en-têtes de sécurité et la politique CORS sont
 déjà faits quand ton code s'exécute.
 
-Quinze mods de ce dépôt font exactement cela.
+Treize mods de ce dépôt font exactement cela.
 [`CheeseKart/src/main/java/com/cheesekart/dashboard/`](../../CheeseKart/src/main/java/com/cheesekart/dashboard/)
 est le plus court des vrais exemples — une classe de module de 38 lignes et neuf
 routes — et mérite d'être ouvert à côté de cette page.
@@ -90,23 +93,23 @@ Deux choix délibérés s'offrent à toi ici :
 
 - **`depends`** signifie que ton mod refuse de charger sans CheeseDash. Correct pour un
   mod dont tout l'intérêt est le dashboard.
-- **`suggests`** signifie qu'il charge dans les deux cas, et que ta classe de module
-  n'est simplement jamais instanciée — Fabric ne résout pas un entrypoint dont la classe
-  dépend d'un mod absent. Correct pour un mod qui fonctionne seul en jeu et ne gagne
+- **`suggests`** signifie qu'il charge dans les deux cas, et que sans CheeseDash ta
+  classe de module n'est simplement jamais instanciée — le seul code qui demande à Fabric
+  les entrypoints `cheesedash`, c'est CheeseDash lui-même. Correct pour un mod qui fonctionne seul en jeu et ne gagne
   qu'une page d'administration. Attention : tout le reste de ton mod qui importerait une
   classe `com.cheesedash` lèverait alors `NoClassDefFoundError`, donc garde cette surface
   d'import à l'intérieur du package `dashboard`.
 
 ### 3. Implémenter `DashboardModule`
 
-Quatre méthodes sont obligatoires, quatre autres ont une implémentation par défaut.
+Cinq méthodes sont obligatoires, quatre autres ont une implémentation par défaut.
 
 | Méthode | Obligatoire | À quoi elle sert |
 |---|---|---|
 | `String getPrefix()` | oui | Ton espace de noms. `"kart"` donne `/api/v1/kart/*`. En minuscules, sans slash |
-| `String getDisplayName()` | oui | Libellé de la barre latérale, p. ex. `"CheeseKart"` |
-| `String getNavIcon()` | oui | Un seul emoji pour la barre latérale |
-| `String getNavDescription()` | oui | Une courte ligne sous le libellé |
+| `String getDisplayName()` | oui | Nom affiché, p. ex. `"CheeseKart"`, renvoyé par `GET /modules` et montré sur les cartes de modules de la vue d'ensemble |
+| `String getNavIcon()` | oui | Un seul emoji, montré sur la même carte |
+| `String getNavDescription()` | oui | Une courte ligne sous le nom |
 | `void handleRequest(HttpExchange, String subRoute)` | oui | Toutes les requêtes vers ton préfixe. `subRoute` est le chemin après le préfixe, commençant par `/` |
 | `void onServerStart(MinecraftServer)` | défaut vide | Là où tu captures la référence au serveur |
 | `void onServerStop()` | défaut vide | Lâche cette référence, arrête tes propres threads |
@@ -115,7 +118,8 @@ Quatre méthodes sont obligatoires, quatre autres ont une implémentation par d�
 
 > ⚠️ Ne choisis pas un préfixe qui entre en collision avec une route du cœur : `ping`,
 > `status`, `modules`, `auth`, `admin`, `dashboard`, `server`, `webhooks`. Les contrôles
-> du cœur passent d'abord, ton module n'est jamais atteint, et rien ne t'en avertit. Les
+> du cœur passent d'abord, donc ton module ne voit jamais les chemins que traite le cœur
+> (et rien du tout sous `admin`), et rien ne t'en avertit. Les
 > collisions avec un autre *module*, elles, sont signalées au démarrage et le second
 > module est ignoré.
 
@@ -152,8 +156,8 @@ WebDashboard.servePngWithRevalidation(exchange, path);  // ETag + Last-Modified,
 
 Il répond `404` si le fichier manque, `304` quand le `If-None-Match` ou le
 `If-Modified-Since` du client correspond toujours, et sinon les octets avec une fenêtre
-de cache de cinq minutes. CobbleCheeseScore l'utilise pour ses images de scoreboard
-rendues.
+de cache de cinq minutes. CheeseItems (images de morphos) et CheeseStore (images de
+produits) l'utilisent.
 
 ### Permissions
 
@@ -173,11 +177,11 @@ explicite, mais ce n'est pas ce qui te protège. Ce que tu **dois** ajouter toi-
 c'est `requireAdmin` sur tout ce qu'un `OPERATOR` ne devrait pas toucher : tout
 supprimer, réécrire un fichier de configuration, déplacer de l'argent réel.
 
-> Une mise en garde tirée d'un vrai bug de ce dépôt : `KartApi` appelle
-> `WebDashboard.requireWrite(exchange)` et **ignore le résultat**, puis continue vers le
-> handler. Si la barrière centrale n'existait pas, cela aurait laissé un compte
-> `READ_ONLY` écrire, avec le corps du `403` déjà envoyé et une seconde tentative de
-> réponse à sa suite. Branche toujours sur la valeur de retour.
+> `KartApi` montre le bon schéma : chaque branche d'écriture commence par
+> `if (!WebDashboard.requireWrite(exchange)) return;`. Appeler un `require*` en ignorant
+> son résultat serait pire que de ne pas l'appeler — un appelant `READ_ONLY` recevrait
+> le corps du `403`, puis ton handler s'exécuterait quand même et sa propre réponse
+> échouerait sur des en-têtes déjà envoyés. Branche toujours sur la valeur de retour.
 
 ### Contexte de session
 
@@ -316,9 +320,9 @@ public class CountDashboardModule implements DashboardModule {
 
     @Override
     public void handleRequest(HttpExchange exchange, String subRoute) throws IOException {
-        // La référence au serveur n'est posée que sur SERVER_STARTED, et le serveur HTTP
-        // accepte des connexions à partir de ce même instant. Réponds honnêtement entre
-        // les deux.
+        // onServerStop efface la référence avant la fermeture du serveur HTTP : une
+        // requête tardive peut donc arriver sans serveur. Réponds honnêtement dans cet
+        // intervalle.
         if (server == null) {
             WebDashboard.respond(exchange, 503, "{\"error\":\"CheeseCount not ready\"}");
             return;

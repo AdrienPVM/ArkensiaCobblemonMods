@@ -78,8 +78,9 @@ Second, and worse: **the shipped dashboard itself does not get past the handshak
 `function getToken() { return getSessionId(); }` — the session id created at login. The
 server compares it to the master token, the comparison fails, and the socket closes with
 `4001`. `app.js` then retries every three seconds while the user stays logged in, and
-falls back to polling `GET /api/v1/status` every ten seconds whenever the socket is
-down, which is why the overview page still shows a TPS figure that refreshes slowly.
+falls back to polling `GET /api/v1/status` every two seconds whenever the socket is
+down (the `setInterval` is 2000 ms, although the comment above it says 10 s), which is why
+the overview page still shows a TPS figure.
 Anything genuinely live — the audit stream, join/leave toasts, the restart countdown —
 does not arrive.
 
@@ -90,7 +91,8 @@ manages to display.
 
 A channel also carries no role filter of its own. Once a connection is
 authenticated with the master token it can subscribe to anything, including `audit`,
-which replays who did what from which IP.
+which replays who did what (the IP itself is left out of the WebSocket message, see
+[below](#audit--channel-audit)).
 
 ---
 

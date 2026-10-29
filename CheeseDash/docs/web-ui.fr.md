@@ -51,7 +51,8 @@ ta modification a disparu, c'est pour cette raison.
 `/dashboard<chemin>`. `/` renvoie `/index.html` ; un chemin contenant `..` donne un
 `403` ; un chemin inconnu retombe sur `index.html`, pour que le routage côté client
 survive à un rechargement sur un lien profond. Les types de contenu viennent de
-l'extension, dans `WebDashboard.detectContentType` ; le HTML est servi sans cache, et
+l'extension, dans `WebDashboard.detectContentType` ; le HTML est servi sans aucun
+en-tête `Cache-Control`, et
 **tout le reste reçoit `Cache-Control: public, max-age=3600`**. Cette heure de cache est
 la deuxième raison pour laquelle une modification semble sans effet : recharge la page de
 force, ou redémarre le serveur, après avoir touché un `.js` ou un `.css`.
@@ -81,8 +82,9 @@ enregistrés.
 Trois conséquences :
 
 - **Un nouveau `view-*.js` doit être ajouté à `index.html`,** entre `app.js` et la fin de
-  la liste. Un fichier de vue qui n'y figure pas ne se charge jamais, et le routeur
-  échoue sur « vue inconnue ».
+  la liste. Un fichier de vue qui n'y figure pas ne se charge jamais, et l'appel du
+  routeur à son constructeur lève une `ReferenceError` (`buildKart is not defined`),
+  affichée à la place de la vue.
 - **`app.js` doit venir avant les fichiers de vue,** puisqu'ils s'appuient sur ses
   helpers partagés.
 - **Ni `import`, ni `export`.** Les fonctions sont globales par déclaration. `const` et
@@ -90,7 +92,8 @@ Trois conséquences :
 
 Les dépendances CDN sont le CDN de développement de Tailwind, DaisyUI 4.10.1, Alpine.js
 3.14.1 et Google Fonts (Geist, Geist Mono). La politique de sécurité de contenu posée par
-`WebDashboard.addSecurityHeaders` autorise exactement ces origines, plus
+`WebDashboard.addSecurityHeaders` autorise ces origines (et `https://unpkg.com` pour les
+scripts, d'où rien n'est chargé aujourd'hui), plus
 `https://mc-heads.net`, `https://minecraft.wiki` et `https://img.pokemondb.net` pour les
 images, et `ws:`/`wss:` pour le WebSocket. **Le dashboard a donc besoin d'un accès
 Internet depuis le navigateur**, pas depuis le serveur. Sur un réseau isolé, la mise en
@@ -118,10 +121,10 @@ async function buildZones(app) {
 }
 ```
 
-`buildView` est un `switch` sur l'identifiant de vue qui appelle le bon constructeur, et
+`loadView` est un `switch` sur l'identifiant de vue qui appelle le bon constructeur, et
 le résultat est injecté via le `x-html` d'Alpine. Les routes de détail sont le même
-identifiant suivi d'un second segment (`zones/spawn`), dispatchées par un deuxième
-`switch`. Le fragment d'URL porte la vue courante, donc un rafraîchissement te ramène là
+identifiant suivi d'un second segment après deux-points (`zones:spawn`), dispatchées par
+un deuxième `switch`. Le fragment d'URL porte la vue courante, donc un rafraîchissement te ramène là
 où tu étais.
 
 Les helpers partagés vivent dans `app.js`, les helpers spécifiques dans la vue qui les
@@ -285,18 +288,25 @@ DaisyUI n'est gardé que là où le thème l'override proprement : `.input`, `.s
 
 ---
 
-## `preview.html` — toute l'interface, sans serveur
+## `preview.html` — une ancienne maquette autonome
 
-`preview.html` est une copie autonome du dashboard branchée sur des données factices.
-Ouvre-le depuis le disque : pas de build, pas de Minecraft, pas de réseau. Connecte-toi
-avec le token `demo` (toute chaîne de plus de quatre caractères est acceptée, et plus
-court affiche `Token invalide — essayez "demo" pour la démo`), et chaque vue s'affiche
-avec des zones, des joueurs, des produits et des commandes inventés.
+`preview.html` est une page séparée et autonome, avec son propre composant Alpine inline
+et ses données factices, écrites en dur en français. Elle ne charge aucun des fichiers
+`assets/*.js`. Ouvre-la depuis le disque : pas de build, pas de Minecraft, mais le
+navigateur a quand même besoin des CDN de Tailwind et d'Alpine.
 
-C'est le moyen le plus rapide de voir à quoi ressemble le mod avant de l'installer, et la
-façon pratique de travailler la mise en page et le CSS sans serveur. C'est un fichier
-séparé, avec sa propre couche de données factices inline, ce qui veut dire qu'il dérive :
-une vue ajoutée à `index.html` n'est pas dans `preview.html` tant que tu ne l'y mets pas.
+Elle s'ouvre directement sur le dashboard : `init()` pose `auth = true`, donc le
+formulaire de connexion est sauté. (Ce formulaire, si tu le réactives, accepte `demo` ou
+toute chaîne de plus de quatre caractères, et plus court affiche
+`Token invalide — essayez "demo" pour la démo`.) Seule la vue d'ensemble a des données
+factices — TPS, nombre de joueurs, compteurs de zones, de dimensions et d'événements,
+une liste d'activité récente. La barre latérale compte sept autres entrées (Zones,
+Groupes, Chunks, Dimensions, Événements, Joueurs, Serveur), et chacune affiche un écran
+provisoire `Phase 2 — implémentation en cours`.
+
+Elle montre donc l'apparence et la palette, pas la vraie interface, et elle a beaucoup
+dérivé par rapport à `index.html` : aucune des 26 vues n'y figure. Pour travailler sur
+une vraie vue, il te faut un serveur qui tourne.
 
 ---
 
@@ -309,7 +319,7 @@ De bout en bout, pour un module de préfixe `kart` :
 2. Écris `assets/view-kart.js` avec `async function buildKart(app)` renvoyant du HTML.
    Entoure chaque appel API d'un `try/catch` et signale les échecs avec
    `app.toast(e.message, 'error')`.
-3. Ajoute `case 'kart': return await buildKart(this);` aux routes de liste de `buildView`
+3. Ajoute `case 'kart': return await buildKart(this);` aux routes de liste de `loadView`
    dans `app.js`, et un cas de détail si la vue en a un.
 4. Ajoute la section à `NAV_SECTIONS` avec `prefix: 'kart'`, pour qu'elle se masque
    quand le mod est absent.

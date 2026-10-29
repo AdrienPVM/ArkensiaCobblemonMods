@@ -82,6 +82,12 @@ le compte est supprimé. Régénérer le master token ne révoque rien, ce qui v
 d'être su si tu le régénères justement parce que tu le crois fuité : redémarre le serveur
 pour en être sûr.
 
+Changer le rôle d'un compte (`PUT /admin/accounts/{username}`) ne révoque rien non plus.
+Le rôle est copié dans la session au moment où elle est créée : une session ouverte avant
+une rétrogradation garde son ancien rôle jusqu'à son expiration ou sa révocation. Après
+avoir rétrogradé quelqu'un, révoque ses sessions depuis `GET /admin/sessions`, ou
+régénère son token, ce qui le fait pour toi.
+
 ---
 
 ## Ce que peut faire chaque rôle
@@ -174,6 +180,12 @@ Ce qui découle du fait que la frontière vit dans le cœur et non dans le modul
   `POST /admin/accounts` ou `POST /admin/accounts/{username}/regenerate`. Toute autre
   représentation d'un compte l'omet. Il reste stocké en clair dans
   `config/cheesedash.json` : c'est le fichier qui est le secret, pas un hash du token.
+- **La case « Mémoriser sur cet appareil » du formulaire de connexion stocke le token
+  brut dans le navigateur.** Cochée, la page garde le token lui-même (et pas seulement
+  l'identifiant de session) dans le `localStorage`, sous `cg_remember_token`, et s'en
+  sert pour se reconnecter en silence à la visite suivante, même après un redémarrage du
+  serveur. Quiconque accède à ce profil de navigateur a ton token ; pour le master token,
+  laisse la case décochée sur toute machine partagée. Se déconnecter l'efface.
 
 ---
 
@@ -181,8 +193,9 @@ Ce qui découle du fait que la frontière vit dans le cœur et non dans le modul
 
 Le middleware tient un compteur par IP : **20 authentifications échouées par fenêtre de
 60 secondes**, après quoi cette IP reçoit `429 {"error":"Too many requests"}` jusqu'au
-renouvellement de la fenêtre. La fenêtre n'est pas glissante : elle repart à la première
-échéance qui suit une interruption.
+renouvellement de la fenêtre. La fenêtre n'est pas glissante : elle repart du premier
+échec qui suit une pause. Le contrôle passe avant l'authentification : tant qu'une IP est
+bloquée, même un identifiant de session valide venant de cette IP reçoit le `429`.
 
 > ⚠️ **Ce mécanisme ne couvre pas la route de login.** `/auth/login` est reconnue et
 > dispatchée *avant* le contrôle de débit, et un login échoué n'incrémente jamais le
@@ -206,7 +219,7 @@ Chaque réponse de `/api/` et du handler de fichiers statiques porte :
 | `X-XSS-Protection` | `1; mode=block` |
 | `Referrer-Policy` | `no-referrer` |
 | `Access-Control-Allow-Origin` | `""` (vide) |
-| `Content-Security-Policy` | `default-src 'self'`, avec des autorisations de scripts et de styles pour les CDN Tailwind et jsDelivr, les polices depuis `fonts.gstatic.com`, les images depuis `data:`, `blob:`, `mc-heads.net`, `minecraft.wiki` et `img.pokemondb.net`, et `connect-src 'self' ws: wss:` pour le WebSocket |
+| `Content-Security-Policy` | `default-src 'self'`, avec des autorisations de scripts pour les CDN Tailwind, jsDelivr et unpkg, de styles pour Tailwind, jsDelivr et `fonts.googleapis.com`, les polices depuis `fonts.gstatic.com`, les images depuis `data:`, `blob:`, `mc-heads.net`, `minecraft.wiki` et `img.pokemondb.net`, et `connect-src 'self' ws: wss:` pour le WebSocket |
 
 La CSP inclut `'unsafe-inline'` et `'unsafe-eval'` parce qu'Alpine.js évalue des
 expressions tirées d'attributs HTML. C'est un véritable affaiblissement de la politique,
@@ -238,7 +251,11 @@ scripts fonctionnent. CORS protège le navigateur de l'administrateur, pas le se
   Aucune donnée du serveur ne se trouve dans ces fichiers.
 - Tout chemin qui ne correspond pas à un fichier retombe sur `index.html`, pour que le
   routeur en une seule page le traite.
-- Toutes les routes sous le **préfixe public** d'un module, s'il en déclare un.
+- Toutes les routes sous le **préfixe public** d'un module, s'il en déclare un. Dans ce
+  dépôt, quatre modules le font : CheeseStore (`/store/`), CobbleCheeseScore
+  (`/scores/`), CheeseItems (`/cheeseitems/`) et son module Morphos (`/morphos/`). Ils
+  vivent sur le même port que le dashboard : un reverse proxy censé n'exposer que l'un
+  d'eux doit filtrer par chemin, pas par port.
 
 ---
 
@@ -284,15 +301,17 @@ port » d'un hébergeur mutualisé en considérant le travail fait.
 
 `WebSocketServer.onMessage` compare le token du message `auth` à `config.getToken()` et à
 rien d'autre. Les identifiants de session ne fonctionnent pas, les tokens de compte non
-plus. Une connexion qui échoue ou qui ne s'authentifie pas dans les 5 secondes est fermée
-avec le code `4001`.
+plus. Une connexion qui échoue est fermée aussitôt avec le code `4001` ; une connexion
+qui ne s'authentifie pas est fermée avec le même code par un balayage qui passe toutes les
+5 secondes, donc au bout de 5 à 10 secondes.
 
-Donc un utilisateur `OPERATOR` ou `READ_ONLY` dont le navigateur veut le TPS en direct
-doit recevoir le master token, ce qui annule complètement le système de rôles. La
-recommandation honnête : les comptes additionnels fonctionnent bien pour l'API REST et
-les pages construites dessus, et les vues à mise à jour en direct sont de fait une
-fonctionnalité `SUPER_ADMIN`. Les détails du protocole sont dans
-[WebSocket](websocket.fr.md).
+Un compte `OPERATOR` ou `READ_ONLY` ne possède donc aucun justificatif que le WebSocket
+accepte, et seul un client muni du master token reçoit les données en direct. Le dashboard
+livré n'y parvient même pas : il envoie son identifiant de session, jamais le token brut,
+si bien que sa socket est refusée pour tous les comptes, master compris, et que les pages
+retombent sur du sondage. Les comptes additionnels fonctionnent bien pour l'API REST et
+les pages construites dessus. Les détails du protocole sont dans
+[WebSocket](websocket.fr.md#seul-le-master-token-est-accepté).
 
 ---
 

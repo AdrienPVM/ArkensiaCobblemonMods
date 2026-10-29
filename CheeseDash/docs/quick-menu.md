@@ -12,7 +12,7 @@ It is not an admin GUI. It cannot edit zones, read the audit log or do anything 
 dashboard does. It sends command strings, and the server decides whether you may run
 them.
 
-Three small files:
+Four small files:
 
 | File | Lines | Role |
 |---|---|---|
@@ -171,9 +171,10 @@ where they stand, and the command carries their permission level. An operator ca
 reach anything through the quick menu that they could not type in chat. This is the
 opposite of `POST /api/v1/server/command`, which runs as the console.
 
-**Execution is handed to the server thread** with `server.execute(...)`, because the
-packet arrives on a netty thread and touching the game from there is how you corrupt a
-world.
+**Execution is queued with `server.execute(...)`.** On Fabric API for 1.21.1 a play
+payload handler is already invoked on the server thread, so this is not what keeps the
+game thread-safe — it merely defers the command to the next task the server runs,
+after the permission check that has already happened.
 
 **It is logged, not audited.** Both the refusal and the execution go to the server log at
 `WARN` and `INFO`. Nothing reaches `config/cheesedash_audit.json`, so an operator's quick

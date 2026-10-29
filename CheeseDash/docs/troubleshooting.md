@@ -24,8 +24,9 @@ No `[CheeseDash]` line anywhere in the log.
   missing dependency in the crash log, so read the top of the log rather than the
   bottom.
 - `GET /api/v1/server/mods` — or the Fabric startup banner — lists `cheesedash`.
-- Java is 21 or newer: `java -version`. On Java 17 the class files fail to verify and
-  the mod is rejected.
+- Java is 21 or newer: `java -version`. Minecraft 1.21.1 itself needs Java 21, and
+  CheeseDash's `fabric.mod.json` declares `"java": ">=21"`, so Fabric refuses to start
+  on anything older and names the requirement.
 
 ---
 
@@ -116,11 +117,11 @@ the page pulls Tailwind, DaisyUI and Alpine from.
 - If an account token was regenerated, the old one stops working immediately and every
   session it created was revoked.
 - If the config file was malformed at the last start, CheeseDash **silently generated a
-  new master token and overwrote the file**, taking every account with it. Look for
-  `Failed to read config, regenerating` and `TOKEN MISSING` in the log. The token you
-  have is then genuinely stale; use the one now in the file. This is the single nastiest
-  failure mode in the mod — see
-  [configuration](configuration.md#the-accounts-array).
+  new master token and overwrote the file**, losing some or all of the accounts with it.
+  Look for `Failed to read config, regenerating` followed by the
+  `FIRST RUN — Dashboard token generated` banner in the log. The token you have is then
+  genuinely stale; use the one now in the file. This is the single nastiest failure mode
+  in the mod — see [configuration](configuration.md#the-accounts-array).
 
 To be sure the credential itself is the problem, bypass the page:
 
@@ -153,26 +154,30 @@ Note what this does *not* cover: failed logins on `/auth/login` are not counted,
 **Cause.** The session expired. Sessions last 24 hours from their **last use**, and they
 are also dropped entirely when the server restarts.
 
-**Fix.** Log in again. The frontend does this for you when you reload the page; a script
-has to call `/auth/login` again. If a script needs to run unattended for longer than a
+**Fix.** Log in again. If you ticked "remember" on the login form, the frontend does it
+for you when you reload the page, with the raw token it kept in `localStorage`;
+otherwise it shows the login form. A script has to call `/auth/login` again. If a script needs to run unattended for longer than a
 day, have it re-login on any `401` rather than caching a session id forever.
 
 ---
 
 ## A route returns `503 Server not ready`
 
-**Cause.** The Minecraft server reference has not been set yet. It is assigned on
-`SERVER_STARTED`, and the HTTP server opens in that same event — so there is a short
-window, and a longer one on a server that is still generating a world, where the API is
-up and the game is not.
+**Cause.** The core answers `503` only while its Minecraft server reference is null. In
+the `SERVER_STARTED` handler that reference is set (`CheeseDashMod.java:180`) before the
+HTTP server is started (line 195), so in practice a core route does not answer `503`:
+while the game is still starting, the port is simply closed and you get a refused
+connection.
 
-**Fix.** Wait and retry. Use `GET /api/v1/ping` as your readiness probe: it never
-answers `503`, because it does not touch the game.
+**Fix.** Wait and retry. Use `GET /api/v1/ping` as your readiness probe once the port
+answers, with the token in the `Authorization` header like every other route; it touches
+no game state.
 
-If `503` persists after the world has loaded, something stopped the startup event early.
-Look for an exception from another mod between
-`[CheeseDash] Server started — notifying …` and
-`[CheeseDash] ✅ Started on port`.
+If the port never opens after the world has loaded, something stopped the startup event
+early. Look for an exception from another mod after
+`[CheeseDash] Server started — notifying …` and before
+`[CheeseDash] ✅ Started on port`: a module whose `onServerStart` throws aborts the
+handler before the HTTP server is started.
 
 A module's own `503` — `{"error":"CheeseKart not ready"}` and the like — means that
 module did not receive its server reference, which is the same cause one level down.
@@ -190,7 +195,8 @@ module did not receive its server reference, which is the same cause one level d
    `Duplicate module prefix 'x' — skipping …`.
 3. Its prefix collides with a **core** route — `ping`, `status`, `modules`, `auth`,
    `admin`, `dashboard`, `server`, `webhooks`. The module registers fine and appears in
-   `/modules`, but no request ever reaches it, and nothing warns you.
+   `/modules`, but every path the core handles itself never reaches it (and nothing at
+   all under `admin/` does), and nothing warns you.
 4. The mod declares CheeseDash under `suggests` and something went wrong resolving the
    entrypoint class, so Fabric skipped it silently.
 
@@ -219,7 +225,8 @@ ignored and doomed.
 have no API and always need a restart.
 
 ⚠️ Validate your JSON before restarting. A syntax error, or an unknown `role` value,
-makes CheeseDash discard the whole file and generate a new master token. Keep a backup.
+makes CheeseDash generate a new master token and rewrite the file, losing accounts on
+the way (all of them for a syntax error). Keep a backup.
 
 ---
 
@@ -257,17 +264,20 @@ REST works, everything real-time is frozen.
 
 1. Port 44312 is not reachable — the common case when you tunnelled or proxied only
    44311.
-2. You are logged in with an **account token or session id**, not the master token. The
-   WebSocket accepts the master token and nothing else, so an `OPERATOR`'s browser can
-   never authenticate to it. See
+2. The client sends something other than the master token. The WebSocket accepts the
+   master token and nothing else — and the bundled dashboard always sends its session
+   id, even when you logged in with the master token, so its own socket is refused for
+   every account. See
    [the note on this](auth-and-roles.md#the-websocket-is-master-token-only).
 3. The WebSocket server failed to bind. HTTP keeps working, so nothing obvious breaks —
    check for `[CheeseDash] WebSocket started on port 44312` in the log, and for its
    absence.
 
-**Fix.** Forward or proxy `port + 1` as well, and use the master token when you need
-live views. A proxy must also pass the `Upgrade` and `Connection` headers through, or the
-handshake fails with a `200` instead of a `101`.
+**Fix.** Forward or proxy `port + 1` as well. A proxy must also pass the `Upgrade` and
+`Connection` headers through, or the handshake fails with a `200` instead of a `101`.
+For the bundled pages, cause 2 has no configuration fix: they fall back to polling
+`GET /api/v1/status` every two seconds. Live data needs a client of your own that sends
+the master token.
 
 A connection that authenticates but shows nothing is a different problem: the client
 subscribed to no channels. The browser console shows the `subscribe` message the page
@@ -277,12 +287,13 @@ sent.
 
 ## A scheduled restart stopped the server instead of restarting it
 
-**Cause.** `ServerScheduler` saves the worlds, stops the server, and spawns a fresh JVM
-with the same arguments. To do that it has to find the server jar: first by looking for
-`-jar` in the current process arguments, then by scanning the working directory for
-`fabric-server-launch*.jar` or `server*.jar`. On a host that launches through a wrapper
-script, a shaded launcher or an unusually named jar, neither lookup succeeds and it
-throws `Cannot find server jar for restart` — after the shutdown is already under way.
+**Cause.** `ServerScheduler` saves the worlds, spawns a fresh JVM with the same
+arguments, then stops the current server. To spawn it, it has to find the server jar:
+first by looking for `-jar` in the current process arguments, then by scanning the
+working directory for `fabric-server-launch*.jar` or `server*.jar`. On a host that
+launches through a wrapper script, a shaded launcher or an unusually named jar, neither
+lookup succeeds and it throws `Cannot find server jar for restart`. The exception is
+only logged (`Failed to spawn restart process: …`), and the stop goes ahead anyway.
 
 **Fix.** Test a single `RESTART` on any new host before trusting a recurring schedule
 with it. If it fails, let your panel's own auto-restart handle the relaunch and use
@@ -304,8 +315,9 @@ relaunch was attempted.
 2. If the test succeeds but real events never arrive, `PUT` an `events` array onto the
    webhook with the ids you want. `GET /webhooks/event-types` lists all 23.
 3. Check `enabled` is `true`.
-4. Each webhook has its own outbound rate limit, so a burst of identical events is
-   deliberately dropped rather than queued.
+4. Each webhook has its own outbound rate limit: any event that comes less than two
+   seconds after the previous send to the same webhook, whatever its type, is dropped
+   rather than queued.
 
 Detail in [Discord webhooks](discord-webhooks.md).
 

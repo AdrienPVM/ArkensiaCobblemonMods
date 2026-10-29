@@ -51,11 +51,14 @@ is `{"error":"<message>"}`; a `500` adds `{"detail":"<exception message>"}`.
 > answer `400 {"error":"Invalid JSON"}`. Treat a `500` with a parse error in `detail` as
 > your bug, not the server's.
 
-**`503` is a real state, not a failure.** The Minecraft server reference is set on
-`SERVER_STARTED`, while the HTTP server starts in the same event. Any route that needs
-the game — `/status`, `/server/stats`, `/server/logs`, `/server/command` — answers
-`503 {"error":"Server not ready"}` until then. `/ping` deliberately does not, which is
-what makes it a usable health check during startup.
+**`503` is a defensive branch you should not see.** The routes that need the game —
+`/status`, `/server/stats`, `/server/logs`, `/server/command` — answer
+`503 {"error":"Server not ready"}` while the Minecraft server reference is null. But in
+the `SERVER_STARTED` handler that reference is set (`CheeseDashMod.java:180`) *before*
+the HTTP server is started (line 195), so by the time the port accepts connections it
+is already there. During startup the symptom is a refused connection, not a `503`.
+`/ping` never checks the reference and touches no game state, which makes it the
+cheapest probe once the port is open.
 
 ---
 
@@ -93,14 +96,15 @@ it does not touch the game.
 | Field | Notes |
 |---|---|
 | `tps` | Measured by CheeseDash itself every 20 ticks, clamped to a maximum of 20.0, rounded to one decimal |
-| `uptime` | ⚠️ **This is the current wall-clock time in epoch milliseconds**, not an uptime. For an actual uptime use `GET /server/stats` |
+| `uptime` | ⚠️ **This is the current wall-clock time in epoch milliseconds**, not an uptime. For an actual uptime use `GET /server/stats`. The bundled overview page falls into the trap and displays this value as an uptime of tens of thousands of days |
 | `wsPort` | Always `port + 1`. The frontend reads it from here rather than assuming |
 | `username`, `role` | The caller's own session, omitted if somehow absent |
 
 ### `GET /modules`
 
-**read.** What is installed. This is the array the sidebar is built from, which is why
-the dashboard adapts to any combination of mods with no configuration.
+**read.** What is installed. The frontend filters its sidebar against the prefixes in
+this array, which is why the dashboard adapts to any combination of mods with no
+configuration; the overview's module cards show the other three fields.
 
 ```json
 [
@@ -460,7 +464,9 @@ Sunday.
 ### `POST /server/schedule`
 
 **admin.** Schedules a one-shot action. Only one can be pending; creating a second
-silently cancels the first.
+cancels the first, and that cancellation is not silent: players get the usual
+"… cancelled." chat line and a `schedule_cancelled` message goes out on the WebSocket,
+just before the new countdown starts.
 
 ```json
 {"type": "RESTART", "delaySeconds": 600, "message": "Weekly maintenance"}
@@ -584,10 +590,12 @@ An unknown prefix is `404 {"error":"Route not found: /nope/whatever"}`. Any exce
 thrown out of a module handler becomes `500` with the exception message in `detail`, and
 is logged with a stack trace.
 
-> ⚠️ **These prefixes are shadowed by core routes** and must not be used by a module:
+> ⚠️ **These prefixes collide with core routes** and must not be used by a module:
 > `ping`, `status`, `modules`, `auth`, `admin`, `dashboard`, `server`, `webhooks`. The
-> core checks run first, so a module registering `server` would never be reached — and
-> nothing warns you about it. Registry collisions between two modules *are* warned
+> core checks run first, so a module registering `server` would only receive the paths
+> and methods the core does not handle itself — `GET /server/foo` would reach it,
+> `GET /server/logs` never would — and under `admin/` it would receive nothing at all,
+> since the core answers `404` for any unknown admin route. Nothing warns you about it. Registry collisions between two modules *are* warned
 > about, at startup: `Duplicate module prefix 'x' — skipping …`.
 
 A module can also serve an **unauthenticated public context** outside `/api/`, which is

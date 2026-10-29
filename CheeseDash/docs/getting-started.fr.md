@@ -16,14 +16,17 @@ d'aucun serveur.
 ## Étape 0, optionnelle : la regarder d'abord
 
 Ouvre `CheeseDash/preview.html` dans un navigateur, directement depuis le disque. Sans
-build, sans serveur. Tape `demo` dans le champ du token et appuie sur **Access
-dashboard**.
+build, sans serveur (le navigateur a quand même besoin d'internet pour les CDN de
+Tailwind et d'Alpine). Il s'ouvre directement sur le dashboard : son `init()` pose
+`auth = true`, donc le formulaire de connexion — qui accepterait `demo` ou n'importe quel
+token de plus de quatre caractères — est sauté.
 
-Toutes les vues fonctionnent, appuyées sur des données factices : zones inventées,
-joueurs inventés, commandes inventées. Rien de ce que tu cliques n'atteint un serveur, et
-rien n'est sauvegardé. Ce fichier existe pour que tu puisses juger le mod avant de
-l'installer, et pour que le travail sur le frontend n'exige pas un serveur Minecraft qui
-tourne.
+N'en attends pas trop. `preview.html` est une maquette autonome ancienne, en français, et
+non la vraie interface : seule la vue d'ensemble a des données factices (TPS, nombre de
+joueurs, compteurs, une liste d'activité récente), et les sept autres entrées de la barre
+latérale — Zones, Groupes, Chunks, Dimensions, Événements, Joueurs, Serveur — affichent
+un écran provisoire `Phase 2 — implémentation en cours`. Rien de ce que tu cliques
+n'atteint un serveur. Pour voir les vraies vues, il te faut les étapes 1 à 4.
 
 ---
 
@@ -48,12 +51,14 @@ apparaît exactement une fois :
 [CheeseDash] ╔═══════════════════════════════════════════════════╗
 [CheeseDash] ║       FIRST RUN — Dashboard token generated       ║
 [CheeseDash] ║  Save this token, you'll need it to log in:       ║
-[CheeseDash] ║   EXAMPLE-TOKEN-do-not-use-mWqZ4rKxv2NbSvQ1pX     ║
-[CheeseDash] ║  Port: 44311                                      ║
+[CheeseDash] ║     EXAMPLE-TOKEN-do-not-use-mWqZ4rKxv2NbSvQ1pX     ║
+[CheeseDash] ║  Port: 44311                                         ║
 [CheeseDash] ╚═══════════════════════════════════════════════════╝
 ```
 
-Copie cette chaîne. C'est le **master token**, et il accorde `SUPER_ADMIN`, ce qui inclut
+Les lignes du token et du port débordent réellement de l'encadré : le code les complète
+à une largeur fixe qui ne correspond pas à la bordure. Copie la chaîne du token. C'est le
+**master token**, et il accorde `SUPER_ADMIN`, ce qui inclut
 l'exécution de n'importe quelle commande serveur — traite-le exactement comme un mot de
 passe root. Si tu rates l'encadré, la même valeur est dans `config/cheesedash.json`, clé
 `token`.
@@ -77,23 +82,30 @@ http://localhost:44311
 ```
 
 Depuis ta propre machine, n'ouvre **pas** encore le port 44311 sur le pare-feu.
-Tunnelise-le par SSH : une seule commande, et le TLS est offert.
+Tunnelise-le par SSH : une seule commande, et le chiffrement est offert.
 
 ```bash
 ssh -L 44311:localhost:44311 -L 44312:localhost:44312 user@ton-serveur
 ```
 
-Puis ouvre `http://localhost:44311` en local. Transfère aussi le 44312, sinon le
-graphique de TPS en direct et la liste des joueurs ne se mettront jamais à jour : ces
-données arrivent par le WebSocket, pas par HTTP. Pourquoi c'est préférable à une simple
-ouverture des ports : [exposition réseau](auth-and-roles.fr.md#exposition-réseau).
+Puis ouvre `http://localhost:44311` en local. Transfère aussi le 44312 : c'est le port du
+WebSocket. Avec les pages fournies, cela ne change rien de visible aujourd'hui — leur
+socket est refusée quoi que tu fasses ([pourquoi](websocket.fr.md#seul-le-master-token-est-accepté)),
+et le TPS et le nombre de joueurs de l'en-tête viennent d'un sondage de
+`GET /api/v1/status` toutes les deux secondes — mais tout client en direct en a besoin.
+Pourquoi un tunnel plutôt qu'une simple ouverture des ports :
+[exposition réseau](auth-and-roles.fr.md#exposition-réseau).
 
-Tu devrais voir une carte de connexion sombre avec un seul champ, `ACCESS TOKEN`, et un
-pied de page qui affiche `Port 44311 · TLS recommended in production`.
+Tu devrais voir une carte de connexion sombre avec un seul champ de token, une case
+« Mémoriser sur cet appareil » et un pied de page. L'interface est en français par
+défaut : la langue vient du `localStorage` (`cg-lang`), vaut `fr` par défaut, et la carte
+de connexion n'a pas de sélecteur de langue. Le champ s'intitule donc `TOKEN D'ACCÈS` et
+le pied de page affiche `Port 44311 · TLS recommandé en production` (ce texte est fixe,
+quel que soit ton port).
 
 ## Étape 4 : se connecter
 
-Colle le master token et appuie sur **Access dashboard**.
+Colle le master token et appuie sur **Accéder au dashboard**.
 
 Derrière ce bouton, la page envoie :
 
@@ -116,16 +128,30 @@ curl -X POST http://localhost:44311/api/v1/auth/login \
 lui-même. La session dure 24 heures et le compteur repart à chaque requête : un
 administrateur qui garde son onglet ouvert n'est jamais déconnecté.
 
-Tu arrives sur **Overview** : TPS, nombre de joueurs, usage du heap, uptime, et une barre
-latérale dont le contenu dépend entièrement des modules installés. Avec CheeseDash seul,
-tu obtiens *General* et *Administration* et rien d'autre — c'est correct, pas un bug.
+Tu arrives sur la **Vue d'ensemble** : le TPS et le nombre de joueurs dans l'en-tête,
+puis des cartes de statistiques, le MOTD et la version, les modules installés et quelques
+actions rapides, à côté d'une barre latérale dont le contenu dépend entièrement des
+modules installés. Avec CheeseDash seul, tu obtiens *Général* et *Administration* et rien
+d'autre — c'est correct, pas un bug. Les cartes qui relèvent de modules affichent `—`.
+
+Deux choses te sauteront aux yeux lors de cette première visite :
+
+- Une demi-seconde après la connexion, une fenêtre te demande ton nom en jeu (*Joueur
+  admin*), parce que `adminPlayerName` est encore vide. Tape ton nom Minecraft, ou
+  ferme-la ; le nom est enregistré par `PUT /api/v1/dashboard/admin-player`.
+- Le chiffre d'*uptime* est faux, typiquement des dizaines de milliers de jours. La vue
+  d'ensemble lit `uptime` dans `GET /api/v1/status`, qui contient l'heure courante en
+  epoch et non une durée ([détails](rest-api.fr.md#get-status)).
 
 Si le token est refusé, voir
 [dépannage](troubleshooting.fr.md#le-login-renvoie-401-invalid-token).
 
 ## Étape 5 : lancer une commande depuis le navigateur
 
-Va dans **Server** dans la barre latérale, trouve la boîte de commande, et lance quelque
+Avec CheeseDash seul, il n'y a pas d'entrée **Serveur** dans la barre latérale : elle
+appartient à la section CheeseGuard, qui n'apparaît que si CheeseGuard est installé. La
+vue elle-même relève pourtant du cœur. Ouvre-la avec l'action rapide **Console serveur**
+de la vue d'ensemble (ou va sur `#server`), trouve la boîte de commande, et lance quelque
 chose d'inoffensif :
 
 ```mcfunction
@@ -215,13 +241,14 @@ Les noms d'utilisateur sont validés : 1 à 32 caractères, `[a-zA-Z0-9_-]` uniq
 `admin` est réservé au master token. Le compte est écrit directement dans
 `config/cheesedash.json` sous `accounts[]`, donc il survit à un redémarrage.
 
-Ton modérateur se connecte comme à l'étape 4, avec son propre token. Il verra les mêmes
-pages ; chaque requête mutante qui exige `SUPER_ADMIN` répondra `403` avec
+Ton modérateur se connecte comme à l'étape 4, avec son propre token. Il voit les mêmes
+pages, moins la section *Administration*, que la barre latérale n'affiche qu'à
+`SUPER_ADMIN` ; chaque requête mutante qui exige `SUPER_ADMIN` répondra `403` avec
 `{"error":"Insufficient permissions — requires SUPER_ADMIN"}`.
 
 ## Étape 8 : planifier un redémarrage, puis l'annuler
 
-Une dernière étape, pour voir le planificateur et le WebSocket travailler ensemble :
+Une dernière étape, pour voir le planificateur à l'œuvre :
 
 ```bash
 curl -X POST http://localhost:44311/api/v1/server/schedule \
@@ -230,8 +257,10 @@ curl -X POST http://localhost:44311/api/v1/server/schedule \
   -d '{"type":"RESTART","delaySeconds":600,"message":"Weekly maintenance"}'
 ```
 
-Un compte à rebours démarre, les joueurs sont avertis en jeu à intervalles décroissants,
-et le dashboard affiche l'action en attente en direct. Annule-la avant son déclenchement :
+Un compte à rebours démarre et les joueurs sont avertis en jeu à intervalles
+décroissants. La vue **Serveur** affiche l'action en attente avec un décompte que le
+navigateur calcule à partir de `scheduledAt`, lu dans `GET /api/v1/server/schedule`
+(aucune poussée WebSocket n'atteint la page fournie). Annule-la avant son déclenchement :
 
 ```bash
 curl -X DELETE http://localhost:44311/api/v1/server/schedule/active \

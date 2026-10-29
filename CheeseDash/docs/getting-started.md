@@ -14,13 +14,17 @@ and stop there — it needs no server at all.
 
 ## Step 0, optional: look at it first
 
-Open `CheeseDash/preview.html` in a browser, straight from disk. No build, no server.
-Type `demo` in the token field and press **Access dashboard**.
+Open `CheeseDash/preview.html` in a browser, straight from disk. No build, no server
+(the browser still needs internet access for the Tailwind and Alpine CDNs). It opens
+directly on the dashboard: its `init()` sets `auth = true`, so the login form — which
+would accept `demo` or any token longer than four characters — is skipped.
 
-Every view works, backed by mock data: invented zones, invented players, invented
-orders. Nothing you click reaches a server, and nothing is saved. It exists so you can
-judge the mod before installing it, and so frontend work does not need a Minecraft
-server running.
+Keep your expectations low. `preview.html` is an early, standalone mock in French, not
+the real interface: only the overview has mock data (TPS, player count, counters, a
+list of recent activity), and the seven other sidebar entries — Zones, Groupes, Chunks,
+Dimensions, Événements, Joueurs, Serveur — show a `Phase 2 — implémentation en cours`
+placeholder. Nothing you click reaches a server. To see the real views you need steps 1
+to 4.
 
 ---
 
@@ -45,12 +49,13 @@ exactly once:
 [CheeseDash] ╔═══════════════════════════════════════════════════╗
 [CheeseDash] ║       FIRST RUN — Dashboard token generated       ║
 [CheeseDash] ║  Save this token, you'll need it to log in:       ║
-[CheeseDash] ║   EXAMPLE-TOKEN-do-not-use-mWqZ4rKxv2NbSvQ1pX     ║
-[CheeseDash] ║  Port: 44311                                      ║
+[CheeseDash] ║     EXAMPLE-TOKEN-do-not-use-mWqZ4rKxv2NbSvQ1pX     ║
+[CheeseDash] ║  Port: 44311                                         ║
 [CheeseDash] ╚═══════════════════════════════════════════════════╝
 ```
 
-Copy that string. It is the **master token** and it grants `SUPER_ADMIN`, which includes
+The token and port lines really are wider than the box: the code pads them to a fixed
+width that does not match the border. Copy the token string. It is the **master token** and it grants `SUPER_ADMIN`, which includes
 running arbitrary server commands — treat it exactly as you would a root password. If
 you miss the banner, the same value is in `config/cheesedash.json` under `token`.
 
@@ -73,23 +78,31 @@ http://localhost:44311
 ```
 
 From your own machine, do **not** open port 44311 on the firewall yet. Tunnel it over
-SSH instead, which takes one command and gives you TLS for free:
+SSH instead, which takes one command and encrypts the traffic for free:
 
 ```bash
 ssh -L 44311:localhost:44311 -L 44312:localhost:44312 user@your-server
 ```
 
-Then open `http://localhost:44311` locally. Forward 44312 as well or the live TPS graph
-and the player list will never update — that data arrives over the WebSocket, not over
-HTTP. Why this matters rather than just opening the ports:
+Then open `http://localhost:44311` locally. Forward 44312 as well: it is the WebSocket
+port. With the bundled pages it makes no visible difference today — their socket is
+refused whatever you do ([why](websocket.md#only-the-master-token-is-accepted)), and the
+TPS and player count in the header come from polling `GET /api/v1/status` every two
+seconds — but any live client needs it. Why a tunnel rather than just opening the ports:
 [network exposure](auth-and-roles.md#network-exposure).
 
-You should see a dark login card with a single field, `ACCESS TOKEN`, and a footer
-reading `Port 44311 · TLS recommended in production`.
+You should see a dark login card with a single token field, a "remember" checkbox and a
+footer. **The page opens in French**: the language comes from `localStorage` (`cg-lang`),
+defaults to `fr`, and the login card has no language switch. So the field reads
+`TOKEN D'ACCÈS`, the checkbox `Mémoriser sur cet appareil` and the footer
+`Port 44311 · TLS recommandé en production` (that footer text is fixed, whatever your
+port). Once logged in, the FR/EN pills in the header switch to English — `ACCESS TOKEN`,
+`Remember on this device`, `Access dashboard` — and the choice sticks for next time.
 
 ## Step 4: log in
 
-Paste the master token and press **Access dashboard**.
+Paste the master token and press **Accéder au dashboard** (**Access dashboard** once the
+interface is in English).
 
 Behind that button, the page sends:
 
@@ -112,16 +125,30 @@ From here on, every request carries `Authorization: Bearer ses_9mJ...` instead o
 token itself. The session lasts 24 hours and the clock restarts on every request, so an
 admin who keeps the tab open is never logged out.
 
-You land on **Overview**: TPS, player count, heap usage, uptime, and a sidebar whose
-contents depend entirely on which modules are installed. With CheeseDash alone you get
-*General* and *Administration* and nothing else — that is correct, not a bug.
+You land on the **Overview** (*Vue d'ensemble* in French): TPS and player count in the
+header, then stat cards, the MOTD and version, the installed modules and a few quick
+actions, next to a sidebar whose contents depend entirely on which modules are
+installed. With CheeseDash alone you get *General* and *Administration* and nothing
+else — that is correct, not a bug. The cards that belong to modules show `—`.
+
+Two things you will notice on that first visit:
+
+- Half a second after login a dialog asks for your in-game name (*Admin player*),
+  because `adminPlayerName` is still empty. Type your Minecraft name, or close it; the
+  name is saved with `PUT /api/v1/dashboard/admin-player`.
+- The *Uptime* figure is wrong, typically tens of thousands of days. The overview reads
+  `uptime` from `GET /api/v1/status`, which holds the current epoch time, not an uptime
+  ([details](rest-api.md#get-status)).
 
 If the token is refused, see
 [troubleshooting](troubleshooting.md#login-returns-401-invalid-token).
 
 ## Step 5: run a command from the browser
 
-Go to **Server** in the sidebar, find the command box, and run something harmless:
+With CheeseDash alone there is no **Server** entry in the sidebar: it belongs to the
+CheeseGuard section, which only appears when CheeseGuard is installed. The view itself
+is core, though. Open it with the **Server console** quick action on the overview (or go
+to `#server`), find the command box, and run something harmless:
 
 ```mcfunction
 say CheeseDash is up
@@ -209,13 +236,14 @@ Usernames are validated: 1 to 32 characters, `[a-zA-Z0-9_-]` only, and `admin` i
 reserved for the master token. The account is written straight into
 `config/cheesedash.json` under `accounts[]`, so it survives a restart.
 
-Your moderator logs in the same way at step 4, with their own token. They will see the
-same pages; every mutating request they make that needs `SUPER_ADMIN` answers `403` with
-`{"error":"Insufficient permissions — requires SUPER_ADMIN"}`.
+Your moderator logs in the same way at step 4, with their own token. They see the same
+pages minus the *Administration* section, which the sidebar shows only to
+`SUPER_ADMIN`; every mutating request they make that needs `SUPER_ADMIN` answers `403`
+with `{"error":"Insufficient permissions — requires SUPER_ADMIN"}`.
 
 ## Step 8: schedule a restart, then cancel it
 
-A last one to see the scheduler and the WebSocket working together:
+A last one, to see the scheduler at work:
 
 ```bash
 curl -X POST http://localhost:44311/api/v1/server/schedule \
@@ -224,8 +252,10 @@ curl -X POST http://localhost:44311/api/v1/server/schedule \
   -d '{"type":"RESTART","delaySeconds":600,"message":"Weekly maintenance"}'
 ```
 
-A countdown starts, players are warned in game at decreasing intervals, and the
-dashboard shows the pending action live. Cancel it before it fires:
+A countdown starts and players are warned in game at decreasing intervals. The
+**Server** view shows the pending action with a countdown that the browser computes from
+`scheduledAt`, read from `GET /api/v1/server/schedule` (no WebSocket push reaches the
+bundled page). Cancel it before it fires:
 
 ```bash
 curl -X DELETE http://localhost:44311/api/v1/server/schedule/active \

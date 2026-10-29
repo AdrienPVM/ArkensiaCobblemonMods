@@ -47,7 +47,7 @@ curl -X PUT http://localhost:44311/api/v1/webhooks/wh_3f8a1c \
 ```
 
 La clé `events` remplace l'ensemble complet : lis, modifie, réécris. Les noms
-d'événements inconnus sont **écartés en silence** — les échecs de `EnumSet.valueOf` sont
+d'événements inconnus sont **écartés en silence** — les échecs de `DiscordEventType.valueOf` sont
 attrapés et ignorés — donc une coquille te coûte cet abonnement sans aucune erreur.
 Compare ce que tu as envoyé avec ce que `GET /api/v1/webhooks/{id}` te renvoie, et
 vérifie `eventCount`.

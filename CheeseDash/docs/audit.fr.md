@@ -72,6 +72,13 @@ d'un module obtient une piste d'audit de base gratuitement. Un module qui veut q
 chose de plus parlant écrit sa propre entrée **en plus** : l'entrée automatique n'est pas
 supprimée, tu verras donc les deux.
 
+L'entrée automatique est écrite après le retour de `handleRequest`, quel que soit le
+statut que le module a répondu : une écriture que le module a refusée avec un `400` ou un
+`404` est quand même journalisée comme si elle avait eu lieu. Deux cas ne laissent aucune
+entrée : une requête refusée par le garde central `requireWrite` (un compte `READ_ONLY`
+qui tente d'écrire), et un handler de module qui lève une exception, puisque celle-ci
+saute l'appel d'audit en route vers le `500`.
+
 Note l'ordre pour `server.command` : l'entrée d'audit est écrite **avant** l'exécution de
 la commande. Une commande qui lève une exception est quand même dans le journal. C'est le
 bon sens pour une piste d'audit, mais cela signifie qu'une entrée n'est pas la preuve
@@ -155,8 +162,11 @@ réussi journalise `[CheeseDash] Loaded 412 audit entries`, et un fichier conten
 
 ### Depuis le dashboard
 
-La vue *Administration → Audit* dans la barre latérale, que tous les rôles peuvent
-ouvrir. Elle pagine sur la route REST ci-dessous.
+La vue *Administration → Audit*. La barre latérale n'affiche la section *Administration*
+qu'à `SUPER_ADMIN`, donc les autres rôles ne voient pas le lien ; la vue elle-même ne
+contrôle aucun rôle, et ils peuvent quand même l'ouvrir en allant sur `#audit`. Elle
+charge les 200 entrées les plus récentes, puis 100 de plus à chaque « charger plus », via
+la route REST ci-dessous.
 
 ### Depuis l'API
 
@@ -202,8 +212,9 @@ l'enregistrement — poussé avant l'écriture disque. Le payload porte tous les
 
 L'omission a l'air volontaire — le flux en direct sert à surveiller l'activité, le journal
 stocké à l'instruire — mais rien dans le code ne le dit. Note aussi que le WebSocket
-n'accepte que le master token : le flux en direct est donc en pratique réservé au
-`SUPER_ADMIN`, alors que la route REST est ouverte à tous. Détails dans
+n'accepte que le master token : le flux en direct n'atteint donc qu'un client qui le
+détient — pas le dashboard fourni, qui envoie son identifiant de session à la place —
+alors que la route REST est ouverte à tous. Détails dans
 [WebSocket](websocket.fr.md#seul-le-master-token-est-accepté).
 
 ### Depuis le fichier
@@ -246,8 +257,8 @@ if (audit != null && session != null) {
 }
 ```
 
-La surcharge à deux arguments prend le nom d'utilisateur, le rôle et l'IP dans la
-session : c'est ce que tu veux sur un thread HTTP. La forme à cinq arguments —
+La surcharge à trois arguments, `log(session, action, detail)`, prend le nom
+d'utilisateur, le rôle et l'IP dans la session : c'est ce que tu veux sur un thread HTTP. La forme à cinq arguments —
 `log(username, role, action, detail, ip)` — est pour le cas sans session, comme la route
 de login l'utilise pour une tentative échouée.
 

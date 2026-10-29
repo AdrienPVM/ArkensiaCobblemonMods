@@ -176,9 +176,10 @@ lui. Un opérateur ne peut atteindre, par le menu rapide, rien qu'il n'aurait pu
 dans le chat. C'est l'inverse de `POST /api/v1/server/command`, qui s'exécute en tant que
 console.
 
-**L'exécution est confiée au thread serveur** par `server.execute(...)`, parce que le
-paquet arrive sur un thread netty et que toucher au jeu depuis là est la bonne façon de
-corrompre un monde.
+**L'exécution est mise en file par `server.execute(...)`.** Sous Fabric API pour 1.21.1,
+un handler de payload de jeu est déjà appelé sur le thread serveur : ce n'est donc pas
+cela qui garantit la sûreté des threads — l'appel ne fait que repousser la commande à la
+prochaine tâche exécutée par le serveur, après le contrôle de permission déjà effectué.
 
 **C'est journalisé, pas audité.** Le refus comme l'exécution partent dans le log du
 serveur, en `WARN` et en `INFO`. Rien n'atteint `config/cheesedash_audit.json` : l'activité

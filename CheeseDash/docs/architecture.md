@@ -59,8 +59,9 @@ is why the class is both infrastructure and public API.
 annotations, no reflection. It is repetitive and completely transparent, which is the
 trade accepted here — the alternative was a routing abstraction nobody would have read.
 
-**`DashboardRegistry`** is static state: a `LinkedHashMap` of prefix → module, so the
-sidebar order follows the order Fabric returned the entrypoints. It also holds the
+**`DashboardRegistry`** is static state: a `LinkedHashMap` of prefix → module, so
+`GET /modules` lists the modules in the order Fabric returned the entrypoints (the
+sidebar itself keeps the fixed order of `NAV_SECTIONS` in `app.js`). It also holds the
 WebSocket server and the Discord manager references, which is what makes
 `DashboardRegistry.broadcast(channel, json)` callable from any mod without a CheeseDash
 object in hand.
@@ -104,8 +105,8 @@ long.
 **WebSocket, port 44312**, from `org.java-websocket:Java-WebSocket:1.5.7`, bundled into
 the jar with Gradle's `include` so no extra mod is needed. The port is computed as
 `config.getPort() + 1` and has no setting of its own. A connection must send
-`{"type":"auth","token":…}` within five seconds or a cleanup thread closes it with code
-`4001`; after that it subscribes to channels and receives whatever is broadcast to them.
+`{"type":"auth","token":…}` within five seconds or a cleanup thread, which runs every
+five seconds, closes it with code `4001` (so after five to ten seconds); after that it subscribes to channels and receives whatever is broadcast to them.
 Protocol detail in [WebSocket](websocket.md).
 
 One asymmetry worth knowing: the WebSocket compares the token against the **master token
@@ -177,13 +178,15 @@ FabricLoader.getInstance()
 `cheesedash` is a custom entrypoint name, not something Fabric itself knows about. Any
 mod declaring it gets instantiated and registered, keyed by its prefix; a duplicate
 prefix is refused with a warning and the second module is dropped. Load order is whatever
-Fabric returns, and it determines sidebar order.
+Fabric returns, and it determines the order of `GET /modules`.
 
 Modules are then notified twice over the server's life, on `SERVER_STARTED` and
 `SERVER_STOPPING`, which is where they pick up and release the `MinecraftServer`
-reference. Both notifications run on the server thread before the HTTP server starts and
-after it stops respectively — so a module's `onServerStart` cannot receive a request that
-races it.
+reference. Both notifications run on the server thread. `onServerStart` runs before the
+HTTP server starts, so it cannot receive a request that races it. `onServerStop` runs
+*before* the HTTP server is stopped, not after: for that brief window a request can still
+reach a module that has already let go of its server reference, which is what its own
+`503` branch is for.
 
 The full contract is in [writing a module](writing-a-module.md).
 
@@ -202,7 +205,8 @@ Stated plainly, because finding these by surprise is worse.
   brute-force attempt against the login endpoint is unthrottled — only audited.
 - **The WebSocket accepts the master token only**, which forces anyone who needs live
   views to hold the highest-value credential. The role system does not reach the
-  WebSocket at all.
+  WebSocket at all, and the bundled frontend, which sends its session id, never gets
+  past the handshake.
 - **`GET /webhooks/{id}` returns the Discord URL unmasked to any authenticated role**,
   `READ_ONLY` included. So does `GET /server/logs` with whatever is in the log.
 - **Regenerating the master token does not revoke sessions.** Compromise recovery needs a
@@ -214,8 +218,9 @@ Stated plainly, because finding these by surprise is worse.
 **Robustness**
 
 - **A malformed `cheesedash.json` is silently replaced.** Account parsing shares the
-  outer `try`, so one bad `role` string, or a trailing comma, abandons the whole read and
-  falls through to the first-run path: new master token, every account gone. The webhook
+  outer `try`, so one bad `role` string abandons the rest of the read and falls through
+  to the first-run path: new master token, and the faulty account plus every one after
+  it gone. A trailing comma is worse: nothing is loaded, so every account goes. The webhook
   and schedule loaders do the opposite and skip only the bad entry — the config loader
   should have been written that way too.
 - **`AuditLogger` spawns a thread and rewrites the entire file per entry.** At 10 000
@@ -228,8 +233,8 @@ Stated plainly, because finding these by surprise is worse.
   operation needs a different pattern.
 - **Four HTTP threads**, no queue limit beyond the backlog of 64. Four slow handlers
   stall everything.
-- **`enabled: false` still starts the WebSocket server**, occupying `port + 1` for no
-  reason.
+- **`enabled: false` still starts the WebSocket server**, occupying `port + 1` and still
+  serving any client that sends the master token.
 
 **API consistency**
 
@@ -242,7 +247,8 @@ Stated plainly, because finding these by surprise is worse.
 - **`DELETE /admin/sessions/{id}` answers `200 {"revoked":false}`** for a session that
   does not exist, where everything else in the admin namespace would answer `404`.
 - **Core prefixes shadow module prefixes silently.** A module calling itself `server`
-  simply never receives a request.
+  never receives the paths the core handles (`/server/logs`, `/server/schedule`…), and one
+  calling itself `admin` never receives anything.
 
 **Scale**
 
@@ -254,8 +260,8 @@ Stated plainly, because finding these by surprise is worse.
   current process arguments, then by looking for `fabric-server-launch*.jar` or
   `server*.jar` in the working directory. On a host that launches via a wrapper script or
   a non-standard jar name, the restart fails with `Cannot find server jar for restart`
-  after the world has already been saved and the server is on its way down — leaving the
-  server stopped rather than restarted. Test a `RESTART` once on a new host before
+  after the world has already been saved; the exception is only logged and the stop goes
+  ahead anyway — leaving the server stopped rather than restarted. Test a `RESTART` once on a new host before
   trusting it with a recurring schedule.
 
 ---

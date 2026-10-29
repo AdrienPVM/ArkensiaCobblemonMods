@@ -51,7 +51,8 @@ At runtime `WebDashboard.StaticHandler` reads from the classpath at
 `/dashboard<path>`. `/` maps to `/index.html`; a path containing `..` is a `403`; an
 unknown path falls back to `index.html` so client-side routing survives a page reload on
 a deep link. Content types come from the file extension in
-`WebDashboard.detectContentType`, HTML is served with no cache, and **everything else
+`WebDashboard.detectContentType`, HTML is served with no `Cache-Control` header at all,
+and **everything else
 gets `Cache-Control: public, max-age=3600`**. That hour of caching is the second reason
 an edit appears to do nothing: hard-reload the page, or restart the server, after
 touching a `.js` or `.css` file.
@@ -81,15 +82,17 @@ themselves by then.
 Three things follow from this arrangement:
 
 - **A new `view-*.js` must be added to `index.html`,** between `app.js` and the end of
-  the list. A view file that is not referenced there simply never loads, and the router
-  fails with "unknown view".
+  the list. A view file that is not referenced there simply never loads, and the
+  router's call to its builder throws a `ReferenceError` (`buildKart is not defined`),
+  which is shown in place of the view.
 - **`app.js` must come before the view files,** since they rely on its shared helpers.
 - **No `import`, no `export`.** Functions are global by declaration. `const` and `let`
   only — never `var`.
 
 The CDN dependencies are Tailwind's play CDN, DaisyUI 4.10.1, Alpine.js 3.14.1 and
 Google Fonts (Geist, Geist Mono). The content security policy set by
-`WebDashboard.addSecurityHeaders` allows exactly those origins plus
+`WebDashboard.addSecurityHeaders` allows those origins (and `https://unpkg.com` for
+scripts, which nothing currently loads from) plus
 `https://mc-heads.net`, `https://minecraft.wiki` and `https://img.pokemondb.net` for
 images, and `ws:`/`wss:` for the WebSocket. **The dashboard therefore needs outbound
 internet access from the browser,** not from the server. On an air-gapped network the
@@ -116,9 +119,9 @@ async function buildZones(app) {
 }
 ```
 
-`buildView` is a `switch` over the view id that calls the right builder, and the result
+`loadView` is a `switch` over the view id that calls the right builder, and the result
 is injected with Alpine's `x-html`. Detail routes are the same id with a second segment
-(`zones/spawn`), dispatched through a second `switch`. The URL hash carries the current
+after a colon (`zones:spawn`), dispatched through a second `switch`. The URL hash carries the current
 view, so a refresh lands where you were.
 
 Shared helpers live in `app.js` and specific ones in the view that uses them. The rule
@@ -274,18 +277,24 @@ buttons, `.cg-table` for tables, `.section-card` and its header/title/body for p
 
 ---
 
-## `preview.html` — the whole interface, no server
+## `preview.html` — an early standalone mock
 
-`preview.html` is a standalone copy of the dashboard wired to mock data. Open it from
-disk: no build, no Minecraft, no network. Log in with the token `demo` (any string over
-four characters is accepted, and anything shorter shows
-`Token invalide — essayez "demo" pour la démo`), and every view renders with invented
-zones, players, products and orders.
+`preview.html` is a separate, self-contained page with its own inline Alpine component
+and mock data, hardcoded in French. It loads none of the `assets/*.js` files. Open it
+from disk: no build, no Minecraft, but the browser still needs the Tailwind and Alpine
+CDNs.
 
-It is the fastest way to see what the mod looks like before installing it, and the
-practical way to work on layout and CSS without a server running. It is a separate file
-with its own inline mock layer, which means it drifts: a view you add to `index.html` is
-not in `preview.html` until you put it there.
+It opens straight on the dashboard: `init()` sets `auth = true`, so the login form is
+skipped. (That form, if you re-enable it, accepts `demo` or any string over four
+characters, and anything shorter shows `Token invalide — essayez "demo" pour la démo`.)
+Only the overview has mock data — TPS, player count, counters for zones, dimensions
+and events, a list of recent activity. The sidebar has seven more entries (Zones,
+Groupes, Chunks, Dimensions, Événements, Joueurs, Serveur), and each of them shows a
+`Phase 2 — implémentation en cours` placeholder.
+
+So it shows the look and the palette, not the real interface, and it has drifted far
+from `index.html`: none of the 26 views is in it. To work on a real view you need a
+running server.
 
 ---
 
@@ -298,7 +307,7 @@ Start to finish, for a module with prefix `kart`:
 2. Write `assets/view-kart.js` with `async function buildKart(app)` returning HTML.
    Wrap every API call in `try/catch` and report failures with `app.toast(e.message,
    'error')`.
-3. Add `case 'kart': return await buildKart(this);` to the list routes in `buildView`
+3. Add `case 'kart': return await buildKart(this);` to the list routes in `loadView`
    in `app.js`, and a detail case too if the view has one.
 4. Add the section to `NAV_SECTIONS` with `prefix: 'kart'`, so it hides itself when the
    mod is absent.

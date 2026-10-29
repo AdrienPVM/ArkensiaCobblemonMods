@@ -81,6 +81,12 @@ is deleted. Regenerating the **master** token does not revoke anything, which is
 knowing if you are regenerating it because you think it leaked: restart the server to
 be sure.
 
+Changing an account's role (`PUT /admin/accounts/{username}`) does not revoke anything
+either. The role is copied into the session when the session is created, so a session
+opened before a demotion keeps its old role until it expires or is revoked. After
+demoting someone, revoke their sessions from `GET /admin/sessions`, or regenerate their
+token, which does it for you.
+
 ---
 
 ## What each role can do
@@ -168,6 +174,12 @@ What follows from the boundary living in the core rather than in the module:
   `POST /admin/accounts` or `POST /admin/accounts/{username}/regenerate`. Every other
   representation of an account omits it. It is still stored in cleartext in
   `config/cheesedash.json`; the file is the secret, not a hash of it.
+- **The login form's "remember" checkbox stores the raw token in the browser.** Ticked,
+  the page keeps the token itself (not just the session id) in `localStorage` under
+  `cg_remember_token`, and uses it to log in again silently on the next visit, even
+  after a server restart. Anyone with access to that browser profile has your token;
+  for the master token, leave the box unticked on any machine you share. Logging out
+  clears it.
 
 ---
 
@@ -176,6 +188,8 @@ What follows from the boundary living in the core rather than in the module:
 The middleware keeps a per-IP counter: **20 failed authentications per 60-second
 window**, after which that IP gets `429 {"error":"Too many requests"}` until the window
 rolls over. The window is not sliding — it restarts from the first failure after a gap.
+The check runs before authentication, so while an IP is blocked even a valid session id
+from that IP gets the `429`.
 
 > ⚠️ **It does not cover the login route.** `/auth/login` is matched and dispatched
 > *before* the rate-limit check, and a failed login never increments the counter. What
@@ -198,7 +212,7 @@ Every response from `/api/` and from the static file handler carries:
 | `X-XSS-Protection` | `1; mode=block` |
 | `Referrer-Policy` | `no-referrer` |
 | `Access-Control-Allow-Origin` | `""` (empty) |
-| `Content-Security-Policy` | `default-src 'self'`, with script and style allowances for the Tailwind and jsDelivr CDNs, fonts from `fonts.gstatic.com`, images from `data:`, `blob:`, `mc-heads.net`, `minecraft.wiki` and `img.pokemondb.net`, and `connect-src 'self' ws: wss:` for the WebSocket |
+| `Content-Security-Policy` | `default-src 'self'`, with script allowances for the Tailwind, jsDelivr and unpkg CDNs, style allowances for Tailwind, jsDelivr and `fonts.googleapis.com`, fonts from `fonts.gstatic.com`, images from `data:`, `blob:`, `mc-heads.net`, `minecraft.wiki` and `img.pokemondb.net`, and `connect-src 'self' ws: wss:` for the WebSocket |
 
 The CSP includes `'unsafe-inline'` and `'unsafe-eval'` because Alpine.js evaluates
 expressions out of HTML attributes. That is a real weakening of the policy, accepted in
@@ -228,7 +242,11 @@ fine. CORS protects the admin's browser, not the server.
   those files.
 - Any path that does not resolve to a file falls back to `index.html`, so the
   single-page router can handle it.
-- Every route under a module's **public prefix**, if it declares one.
+- Every route under a module's **public prefix**, if it declares one. In this
+  repository four modules do: CheeseStore (`/store/`), CobbleCheeseScore (`/scores/`),
+  CheeseItems (`/cheeseitems/`) and its Morphos module (`/morphos/`). They live on the
+  same port as the dashboard, so a reverse proxy that is meant to expose one of them must
+  filter by path, not by port.
 
 ---
 
@@ -273,14 +291,16 @@ feature and call it done.
 
 `WebSocketServer.onMessage` compares the `auth` message's token against
 `config.getToken()` and nothing else. Session ids do not work, and neither do account
-tokens. A connection that fails or does not authenticate within 5 seconds is closed
-with code `4001`.
+tokens. A connection that fails is closed at once with code `4001`; one that does not
+authenticate is closed with the same code by a sweep that runs every 5 seconds, so after
+5 to 10 seconds.
 
-So an `OPERATOR` or `READ_ONLY` user whose browser wants live TPS has to be handed the
-master token, which defeats the role system entirely. The honest guidance: additional
-accounts work fine for the REST API and the pages built on it, and live-update views are
-effectively a `SUPER_ADMIN` feature. Details of the protocol are in
-[WebSocket](websocket.md).
+So an `OPERATOR` or `READ_ONLY` account has no credential the WebSocket accepts, and only
+a client holding the master token gets live data. The bundled dashboard does not even
+manage that: it sends its session id, never the raw token, so its socket is refused for
+every account, the master included, and the pages fall back to polling. Additional
+accounts work fine for the REST API and the pages built on it. Details of the protocol
+are in [WebSocket](websocket.md#only-the-master-token-is-accepted).
 
 ---
 

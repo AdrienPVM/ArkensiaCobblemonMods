@@ -8,13 +8,15 @@
 CheeseDash starts an HTTP server and a WebSocket server inside your Minecraft server
 process and serves a single-page admin interface from them. Other mods register
 **modules** with it through a Fabric custom entrypoint; each module gets its own API
-namespace under `/api/v1/<prefix>/` and its own entry in the sidebar. The sidebar is
-built from whatever is actually installed, so any combination works — CheeseDash alone,
-with one module, or with every module in this repository.
+namespace under `/api/v1/<prefix>/` and, for the modules the bundled frontend knows, its
+own section in the sidebar. A section only appears when its module is actually
+installed, so any combination works — CheeseDash alone, with one module, or with every
+module in this repository.
 
-An admin logs in with a token, lands on an overview page with live TPS and the player
-list, and from there edits zones, runs a server command, schedules a restart or reads
-the audit trail. A `READ_ONLY` account sees the same pages and cannot change anything.
+An admin logs in with a token, lands on an overview page with the TPS and the player
+count, and from there edits zones, runs a server command, schedules a restart or reads
+the audit trail. A `READ_ONLY` account sees the same pages, minus the *Administration*
+section, and cannot change anything.
 
 The design rule behind all of it: **admins use the dashboard, players use in-game
 GUIs.** CheeseDash registers **no commands at all** — there is nothing to type in chat,
@@ -54,7 +56,7 @@ cd CheeseDash && ./gradlew build     # gradlew.bat on Windows
 | Port | Protocol | Purpose |
 |------|----------|---------|
 | 44311 | HTTP | dashboard and REST API |
-| 44312 | WebSocket | live TPS, player events, log stream, audit stream |
+| 44312 | WebSocket | live TPS, player events, restart countdown, audit stream — master token only, see [WebSocket](docs/websocket.md) |
 
 The WebSocket port is always the HTTP port plus one. It has no setting of its own.
 
@@ -67,11 +69,12 @@ The WebSocket port is always the HTTP port plus one. It has no setting of its ow
 
 ## Try the interface without a server
 
-`preview.html` is the whole dashboard wired to mock data. Open it straight from disk —
-no build, no Minecraft, no network — and log in with the token `demo`. Every view
-renders with made-up zones, players and orders, which makes it the fastest way to see
-what the mod does before installing it, and the way to work on the frontend without a
-server running.
+`preview.html` is an early standalone mock of the dashboard, in French. Open it straight
+from disk — no build, no Minecraft; the browser only needs the CDNs — and it opens
+directly on the overview, the login form being skipped. Only that overview has mock
+data; the other entries show a `Phase 2 — implémentation en cours` placeholder. It
+gives a feel for the look, not for the real views, which need a running server. Details
+in [web UI](docs/web-ui.md#previewhtml--an-early-standalone-mock).
 
 ## Documentation
 
@@ -109,7 +112,7 @@ require `Authorization: Bearer <token>`.
 
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
-| GET | `/ping` | health check, answers even before the server finishes starting |
+| GET | `/ping` | health check, touches no game state |
 | GET | `/status` | TPS, player count, MOTD, version, module count |
 | GET | `/modules` | which modules are loaded — this is what builds the sidebar |
 | GET | `/server/stats` · `/server/logs?n=` · `/server/mods` | server introspection |

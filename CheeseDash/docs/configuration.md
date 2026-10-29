@@ -77,8 +77,10 @@ The one global off switch. With `enabled: false`:
 
 No HTTP server, no static files, no API — so no module route works either, even though
 the modules themselves loaded normally. The WebSocket server is started regardless,
-which is arguably a bug; it is harmless, because without the HTTP side nothing tells a
-client to connect, but it does mean port `port + 1` stays occupied.
+which is arguably a bug: port `port + 1` stays open, accepts connections, and streams
+TPS, player events and audit entries to any client that sends the master token. If you
+disable the dashboard for security reasons, block that port too; see
+[WebSocket](websocket.md#lifecycle-threading-and-failure-modes).
 
 ### `adminPlayerName`
 
@@ -113,12 +115,16 @@ Prefer creating accounts through `POST /api/v1/admin/accounts` rather than by ha
 route validates the username, refuses duplicates, generates the token for you, and
 returns it exactly once.
 
-> ⚠️ **One malformed account loses everything.** Account parsing happens inside the same
-> `try` block as the rest of the load, and an unknown `role` string throws. The whole
-> read is then abandoned with `Failed to read config, regenerating`, and the mod falls
-> through to its first-run path: a **new master token is generated and the file is
-> overwritten**, taking every account with it. The same applies to a trailing comma or
-> any other JSON syntax error. Keep a backup before editing by hand, and if you must,
+> ⚠️ **One malformed account costs you the master token and accounts.** Account parsing
+> happens inside the same `try` block as the rest of the load, and an unknown `role`
+> string (or a missing `username` or `token`) throws. The rest of the read is then
+> abandoned with `Failed to read config, regenerating`, and the mod falls through to its
+> first-run path: a **new master token is generated and the file is overwritten**. What
+> was already loaded before the exception survives — `port`, `enabled`,
+> `adminPlayerName`, `zoneFolders` and the accounts listed *before* the faulty one — but
+> the faulty account and every account after it are gone. A trailing comma or any other
+> JSON syntax error is worse: nothing is loaded at all, so the file is rewritten with
+> defaults and no account. Keep a backup before editing by hand, and if you must,
 > validate the JSON first.
 
 ---

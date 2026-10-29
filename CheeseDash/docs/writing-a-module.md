@@ -4,11 +4,13 @@
 
 A CheeseDash module is a Fabric mod that implements one interface and declares it as an
 entrypoint. CheeseDash finds it at startup, gives it a namespace under
-`/api/v1/<prefix>/`, puts it in the sidebar, and routes every request below that prefix
-to it. Authentication, session handling, role gating on writes, audit logging, security
+`/api/v1/<prefix>/`, lists it in `GET /api/v1/modules`, and routes every request below
+that prefix to it. A sidebar entry is a separate, frontend-side job: the sidebar is the
+fixed `NAV_SECTIONS` list in `app.js`, filtered by installed prefixes, so a new module
+gets a section only once you add one ([web UI](web-ui.md#adding-a-view)). Authentication, session handling, role gating on writes, audit logging, security
 headers and the CORS policy are already done by the time your code runs.
 
-Fifteen mods in this repository do exactly this.
+Thirteen mods in this repository do exactly this.
 [`CheeseKart/src/main/java/com/cheesekart/dashboard/`](../../CheeseKart/src/main/java/com/cheesekart/dashboard/)
 is the shortest real one — a 38-line module class and nine routes — and worth opening
 next to this page.
@@ -87,23 +89,23 @@ Two deliberate choices available to you here:
 
 - **`depends`** means your mod refuses to load without CheeseDash. Right for a mod whose
   whole point is the dashboard.
-- **`suggests`** means it loads either way, and your module class is simply never
-  instantiated — Fabric does not resolve an entrypoint for a class whose dependency is
-  absent. Right for a mod that works in game on its own and merely gains an admin page.
+- **`suggests`** means it loads either way, and without CheeseDash your module class is
+  simply never instantiated — the only code that asks Fabric for `cheesedash`
+  entrypoints is CheeseDash itself. Right for a mod that works in game on its own and merely gains an admin page.
   Careful: anything else in your mod that imports a `com.cheesedash` class will then
   throw `NoClassDefFoundError`, so keep that import surface inside the
   `dashboard` package.
 
 ### 3. Implement `DashboardModule`
 
-Four methods are required, four more have defaults.
+Five methods are required, four more have defaults.
 
 | Method | Required | What it is for |
 |---|---|---|
 | `String getPrefix()` | yes | Your namespace. `"kart"` means `/api/v1/kart/*`. Lowercase, no slashes |
-| `String getDisplayName()` | yes | Sidebar label, e.g. `"CheeseKart"` |
-| `String getNavIcon()` | yes | A single emoji for the sidebar |
-| `String getNavDescription()` | yes | One short line under the label |
+| `String getDisplayName()` | yes | Display name, e.g. `"CheeseKart"`, returned by `GET /modules` and shown on the overview's module cards |
+| `String getNavIcon()` | yes | A single emoji, shown on the same card |
+| `String getNavDescription()` | yes | One short line under the name |
 | `void handleRequest(HttpExchange, String subRoute)` | yes | Every request to your prefix. `subRoute` is the path after the prefix, starting with `/` |
 | `void onServerStart(MinecraftServer)` | default no-op | Where you capture the server reference |
 | `void onServerStop()` | default no-op | Drop that reference, stop your own threads |
@@ -111,8 +113,9 @@ Four methods are required, four more have defaults.
 | `void handlePublicRequest(HttpExchange, String path)` | default no-op | Handles `/{publicPrefix}/api/*` |
 
 > ⚠️ Do not pick a prefix that collides with a core route: `ping`, `status`, `modules`,
-> `auth`, `admin`, `dashboard`, `server`, `webhooks`. Core checks run first, your module
-> is never reached, and nothing warns you. Collisions with another *module* are warned
+> `auth`, `admin`, `dashboard`, `server`, `webhooks`. Core checks run first, so your
+> module never sees the paths the core handles (and nothing at all under `admin`), and
+> nothing warns you. Collisions with another *module* are warned
 > about at startup and the second module is skipped.
 
 ---
@@ -146,7 +149,7 @@ WebDashboard.servePngWithRevalidation(exchange, path);  // ETag + Last-Modified,
 
 It answers `404` if the file is missing, `304` when the client's `If-None-Match` or
 `If-Modified-Since` still matches, and otherwise the bytes with a five-minute cache
-window. CobbleCheeseScore uses it for rendered scoreboard images.
+window. CheeseItems (morpho images) and CheeseStore (product images) use it.
 
 ### Permissions
 
@@ -166,11 +169,11 @@ explicit, but it is not what protects you. What you **do** have to add yourself 
 `requireAdmin` on anything an `OPERATOR` should not touch — deleting everything,
 rewriting a config file, moving real money.
 
-> A caution from a real bug in this repository: `KartApi` calls
-> `WebDashboard.requireWrite(exchange)` and **discards the result**, then continues to
-> the handler. Had the central gate not existed, that would have let a `READ_ONLY`
-> account write, with the `403` body already sent and a second response attempt
-> following it. Always branch on the return value.
+> `KartApi` shows the pattern: every write branch starts with
+> `if (!WebDashboard.requireWrite(exchange)) return;`. Calling a `require*` and ignoring
+> its result would be worse than not calling it — a `READ_ONLY` caller would get the
+> `403` body, then your handler would run anyway and its own response would fail on
+> headers already sent. Always branch on the return value.
 
 ### Session context
 
@@ -309,8 +312,8 @@ public class CountDashboardModule implements DashboardModule {
 
     @Override
     public void handleRequest(HttpExchange exchange, String subRoute) throws IOException {
-        // The server reference is only set on SERVER_STARTED, and the HTTP server
-        // accepts connections from that same moment. Answer honestly in between.
+        // onServerStop clears the reference before the HTTP server closes, so a late
+        // request can arrive with no server. Answer honestly in that window.
         if (server == null) {
             WebDashboard.respond(exchange, 503, "{\"error\":\"CheeseCount not ready\"}");
             return;

@@ -140,6 +140,11 @@ The server log, in order:
 [CheeseDash] Initialization complete.
 ```
 
+That is a first run. From the second start on, the config file exists and a line
+`[CheeseDash] Config loaded — port: 44311, enabled: true, accounts: 0` appears after the
+module count, followed by `[CheeseDash] Loaded N audit entries` once there is an audit
+file.
+
 Then, once the world has finished loading:
 
 ```text
@@ -158,15 +163,15 @@ get `Disabled in config, skipping.` — or the bind failed, which logs:
 
 See [troubleshooting](troubleshooting.md#the-dashboard-never-starts-and-the-log-says-address-already-in-use).
 
-On a true first run, the token banner is printed too, and it is the only time the token
-is shown in the log:
+On a true first run, the token banner is printed too — during initialization, right
+after the module count — and it is the only time the token is shown in the log:
 
 ```text
 [CheeseDash] ╔═══════════════════════════════════════════════════╗
 [CheeseDash] ║       FIRST RUN — Dashboard token generated       ║
 [CheeseDash] ║  Save this token, you'll need it to log in:       ║
 [CheeseDash] ║   T3Kq...                                         ║
-[CheeseDash] ║  Port: 44311                                      ║
+[CheeseDash] ║  Port: 44311                                         ║
 [CheeseDash] ╚═══════════════════════════════════════════════════╝
 ```
 
@@ -191,19 +196,20 @@ and will not appear in the sidebar:
 
 ### From outside the game
 
-The cheapest check needs no browser and no token:
+`/ping` is not exempt from authentication — the only route under `/api/` that is, is
+`POST /auth/login` — so even the cheapest check needs the token:
 
 ```bash
-curl http://localhost:44311/api/v1/ping
+curl -H "Authorization: Bearer <token>" http://localhost:44311/api/v1/ping
 ```
 
 ```json
 {"status":"ok","mod":"cheesedash"}
 ```
 
-`/ping` is handled before the authentication middleware would have anything to say
-about a missing header, so a `401` here means something else is answering on that port.
-Then confirm the module list, which does need the token:
+Without the header you get `401 {"error":"Unauthorized"}`, which still proves CheeseDash
+is the one answering on that port (and counts as one failed authentication for the
+[rate limiter](auth-and-roles.md#rate-limiting)). Then confirm the module list:
 
 ```bash
 curl -H "Authorization: Bearer <token>" http://localhost:44311/api/v1/modules

@@ -36,22 +36,28 @@ to see a reason for the downtime, that message is where it goes.
 ## One-shot actions
 
 A one-shot action is created through `POST /api/v1/server/schedule` with a type and a
-delay between 5 and 86 400 seconds. Its id is `sa_` plus six hex characters.
+delay between 5 and 86 400 seconds. Its id is `sa_` plus up to six hex characters (a
+random number below `0xFFFFFF`, not zero-padded).
 
 **Only one can be pending.** `scheduleAction` begins by calling `cancelAction()`, so
-creating a second one silently discards the first — including its chat announcement,
-which players already saw. Cancel explicitly and create again if you mean to reschedule;
-the dashboard will not warn you.
+creating a second one discards the first. It is not silent: the cancellation runs in
+full, so players get the "… cancelled." chat line and a `schedule_cancelled` message goes
+out (which the Discord mapper turns into `RESTART_CANCELLED`), immediately followed by
+the new action's own announcement. The dashboard itself will not warn you before it
+happens.
 
 What the server does the moment the action is created:
 
 1. Starts a countdown ticker, one tick per second, on the scheduler's thread pool.
 2. Broadcasts `schedule_created` on the `schedule` WebSocket channel, which in turn
    fires the `RESTART_SCHEDULED` Discord event for any webhook subscribed to it.
-3. Logs the line `[CheeseDash] Restart scheduled in 600s by admin: Weekly maintenance`.
-4. Sends an immediate chat warning to every online player, whatever the delay. So a
-   restart scheduled an hour out announces itself at once, then again at each threshold
-   below.
+3. Logs the line `[CheeseDash] Restart scheduled in 599s by admin: Weekly maintenance`
+   for a 600-second delay. The figure is the remaining time, recomputed and truncated to
+   whole seconds a few instants after creation, so it usually reads one second short.
+4. Sends an immediate chat warning to every online player, whatever the delay, built from
+   that same truncated figure (`Restart in 9 minutes 59s...` for a 600-second delay).
+   So a restart scheduled an hour out announces itself at once, then again at each
+   threshold below.
 
 **One-shot actions are never written to disk.** The config file holds recurring
 schedules only. A server that goes down during a countdown comes back with nothing
@@ -182,7 +188,7 @@ warning without CheeseDash touching the process.
 ## Recurring schedules
 
 A recurring schedule is a time of day plus a set of weekdays, persisted to
-`config/cheesedash_schedules.json`. Its id is `rec_` plus six hex characters.
+`config/cheesedash_schedules.json`. Its id is `rec_` plus up to six hex characters.
 
 ```json
 {

@@ -78,9 +78,11 @@ Le seul interrupteur global. Avec `enabled: false` :
 
 Pas de serveur HTTP, pas de fichiers statiques, pas d'API — donc aucune route de module
 ne fonctionne, même si les modules eux-mêmes se sont chargés normalement. Le serveur
-WebSocket démarre malgré tout, ce qui est discutable ; c'est inoffensif, puisque sans le
-côté HTTP rien n'indique à un client de se connecter, mais cela veut dire que le port
-`port + 1` reste occupé.
+WebSocket démarre malgré tout, ce qui est discutable : le port `port + 1` reste ouvert,
+accepte les connexions et diffuse le TPS, les arrivées de joueurs et les entrées d'audit
+à tout client qui envoie le master token. Si tu désactives le dashboard pour des raisons
+de sécurité, bloque aussi ce port ; voir
+[WebSocket](websocket.fr.md#cycle-de-vie-threads-et-modes-de-panne).
 
 ### `adminPlayerName`
 
@@ -115,14 +117,17 @@ Préfère créer les comptes via `POST /api/v1/admin/accounts` plutôt qu'à la 
 valide le nom, refuse les doublons, génère le token pour toi, et le renvoie exactement
 une fois.
 
-> ⚠️ **Un seul compte malformé fait tout perdre.** Le parsing des comptes se fait dans le
-> même bloc `try` que le reste du chargement, et une valeur de `role` inconnue lève une
-> exception. Toute la lecture est alors abandonnée avec
-> `Failed to read config, regenerating`, et le mod retombe sur son chemin de premier
-> démarrage : **un nouveau master token est généré et le fichier est écrasé**, emportant
-> tous les comptes. Même chose pour une virgule en trop ou n'importe quelle autre erreur
-> de syntaxe JSON. Garde une sauvegarde avant d'éditer à la main, et si tu le fais,
-> valide d'abord le JSON.
+> ⚠️ **Un seul compte malformé te coûte le master token et des comptes.** Le parsing des
+> comptes se fait dans le même bloc `try` que le reste du chargement, et une valeur de
+> `role` inconnue (ou un `username` ou un `token` absent) lève une exception. La suite de
+> la lecture est alors abandonnée avec `Failed to read config, regenerating`, et le mod
+> retombe sur son chemin de premier démarrage : **un nouveau master token est généré et
+> le fichier est écrasé**. Ce qui était déjà chargé avant l'exception survit — `port`,
+> `enabled`, `adminPlayerName`, `zoneFolders` et les comptes listés *avant* le compte
+> fautif — mais le compte fautif et tous ceux qui le suivent disparaissent. Une virgule en
+> trop ou n'importe quelle autre erreur de syntaxe JSON est pire : rien n'est chargé, et
+> le fichier est réécrit avec les valeurs par défaut et aucun compte. Garde une sauvegarde
+> avant d'éditer à la main, et si tu le fais, valide d'abord le JSON.
 
 ---
 

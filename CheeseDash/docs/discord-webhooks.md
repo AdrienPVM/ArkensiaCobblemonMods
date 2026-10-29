@@ -44,7 +44,7 @@ curl -X PUT http://localhost:44311/api/v1/webhooks/wh_3f8a1c \
 ```
 
 The `events` key replaces the whole set, so read-modify-write it. Unknown event names
-are **dropped silently** — `EnumSet.valueOf` failures are caught and ignored — so a typo
+are **dropped silently** — `DiscordEventType.valueOf` failures are caught and ignored — so a typo
 costs you that subscription with no error. Compare what you sent with what
 `GET /api/v1/webhooks/{id}` returns back, and check `eventCount`.
 

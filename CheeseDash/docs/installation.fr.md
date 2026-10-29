@@ -145,6 +145,11 @@ Le log du serveur, dans l'ordre :
 [CheeseDash] Initialization complete.
 ```
 
+C'est un premier démarrage. À partir du deuxième, le fichier de config existe et une
+ligne `[CheeseDash] Config loaded — port: 44311, enabled: true, accounts: 0` apparaît
+après le nombre de modules, suivie de `[CheeseDash] Loaded N audit entries` dès qu'un
+fichier d'audit existe.
+
 Puis, une fois le monde chargé :
 
 ```text
@@ -164,15 +169,16 @@ donne :
 
 Voir [dépannage](troubleshooting.fr.md#le-dashboard-ne-démarre-jamais-et-le-log-dit-address-already-in-use).
 
-À un véritable premier démarrage, l'encadré du token est affiché aussi, et c'est la
-seule fois où le token apparaît dans le log :
+À un véritable premier démarrage, l'encadré du token est affiché aussi — pendant
+l'initialisation, juste après le nombre de modules — et c'est la seule fois où le token
+apparaît dans le log :
 
 ```text
 [CheeseDash] ╔═══════════════════════════════════════════════════╗
 [CheeseDash] ║       FIRST RUN — Dashboard token generated       ║
 [CheeseDash] ║  Save this token, you'll need it to log in:       ║
 [CheeseDash] ║   T3Kq...                                         ║
-[CheeseDash] ║  Port: 44311                                      ║
+[CheeseDash] ║  Port: 44311                                         ║
 [CheeseDash] ╚═══════════════════════════════════════════════════╝
 ```
 
@@ -198,19 +204,21 @@ avec un avertissement et n'apparaîtra pas dans la barre latérale :
 
 ### Depuis l'extérieur du jeu
 
-La vérification la moins chère ne demande ni navigateur ni token :
+`/ping` n'est pas exempté d'authentification — la seule route de `/api/` qui l'est, c'est
+`POST /auth/login` —, donc même la vérification la moins chère demande le token :
 
 ```bash
-curl http://localhost:44311/api/v1/ping
+curl -H "Authorization: Bearer <token>" http://localhost:44311/api/v1/ping
 ```
 
 ```json
 {"status":"ok","mod":"cheesedash"}
 ```
 
-`/ping` est traité avant que le middleware d'authentification n'ait quoi que ce soit à
-dire sur un en-tête manquant : un `401` ici signifie donc qu'autre chose répond sur ce
-port. Confirme ensuite la liste des modules, qui exige le token :
+Sans l'en-tête, tu obtiens `401 {"error":"Unauthorized"}`, ce qui prouve quand même que
+c'est bien CheeseDash qui répond sur ce port (et compte comme un échec d'authentification
+pour le [limiteur de débit](auth-and-roles.fr.md#limitation-de-débit)). Confirme ensuite
+la liste des modules :
 
 ```bash
 curl -H "Authorization: Bearer <token>" http://localhost:44311/api/v1/modules
