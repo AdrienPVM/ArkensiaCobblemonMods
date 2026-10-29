@@ -329,9 +329,8 @@ comment, harmless, but it tells you how the file grew.
 
 ## Package rename
 
-The Java package was `com.roicheese.eggandcheese` before the mod was open-sourced; it is now
-`com.roicheese.eggandcheese`. A pre-rename jar or branch carries the old root, and an
-addon compiled against it will not load against this one.
+The Java package root is `com.roicheese.eggandcheese`. An addon has to be compiled
+against that root to load alongside this jar.
 
 Nothing in the resources changed. The asset and data namespace is `eggandcheese`, derived
 from the mod id and not from the package, so `eggandcheese:egg_found`,

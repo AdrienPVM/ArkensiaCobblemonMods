@@ -339,10 +339,8 @@ grossi.
 
 ## Renommage du package
 
-Le package Java était `com.roicheese.eggandcheese` avant l'ouverture du code ; il est
-désormais `com.roicheese.eggandcheese`. Un jar ou une branche antérieurs au renommage
-portent l'ancienne racine, et un addon compilé contre eux ne chargera pas contre
-celui-ci.
+La racine du package Java est `com.roicheese.eggandcheese`. Un addon doit être compilé
+contre cette racine pour se charger à côté de ce jar.
 
 Rien n'a changé dans les ressources. L'espace de noms des assets et des données est
 `eggandcheese`, dérivé de l'id du mod et non du package : `eggandcheese:egg_found`,

@@ -137,10 +137,9 @@ tick end — not `server.execute`, which runs inline when you are already on the
 thread — and chunk reads check `isChunkLoaded` first. Both defences must stay. The account
 is in [integrity](docs/integrity.md#never-force-load-a-chunk-from-a-block-entity-load-handler).
 
-The Java package was renamed from `com.roicheese.eggandcheese` to
-`com.roicheese.eggandcheese` when the mod was published. Resource identifiers are
-unaffected: the namespace is `eggandcheese`, derived from the mod id, so
-`eggandcheese:egg_found` and every recipe id are unchanged.
+The Java package is `com.roicheese.eggandcheese`. Resource identifiers use the
+`eggandcheese` namespace, derived from the mod id, so `eggandcheese:egg_found` and every
+recipe id follow that prefix.
 
 ## License
 

@@ -145,10 +145,9 @@ lectures de chunk vérifient d'abord `isChunkLoaded`. Les deux défenses doivent
 récit est dans
 [intégrité](docs/integrity.fr.md#ne-jamais-forcer-le-chargement-dun-chunk-depuis-un-handler-de-chargement-de-block-entity).
 
-Le package Java a été renommé de `com.roicheese.eggandcheese` en
-`com.roicheese.eggandcheese` lors de la publication du mod. Les identifiants de ressources
-ne sont pas concernés : l'espace de noms est `eggandcheese`, dérivé de l'id du mod, donc
-`eggandcheese:egg_found` et tous les ids de recette sont inchangés.
+Le package Java est `com.roicheese.eggandcheese`. Les identifiants de ressources
+utilisent l'espace de noms `eggandcheese`, dérivé de l'id du mod : `eggandcheese:egg_found`
+et tous les ids de recette suivent ce préfixe.
 
 ## Licence
 
