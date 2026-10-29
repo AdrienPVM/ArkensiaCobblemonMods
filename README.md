@@ -62,7 +62,7 @@ Browser ──WS   44312──┘                ├── CheeseMarket
 | Mod | What it does | Requires |
 |-----|--------------|----------|
 | **[CobbleCap](CobbleCap/)** | Badge-based Pokémon level cap progression, champion detection, a Hall of Fame, run timers and decorative statue dioramas. | Cobblemon |
-| **[CobbleShift](CobbleShift/)** | Transforms players into Pokémon with passive abilities, plus the CobbleHunt and Hot Potato minigames. Talks to Cobblemon through reflection, so it degrades gracefully. | Cobblemon (soft) |
+| **[CobbleShift](CobbleShift/)** | Transforms players and EasyNPC characters into Pokémon, with type-based passive abilities and ranged attacks. Talks to Cobblemon through reflection, so it degrades gracefully. | Cobblemon (soft) |
 | **[CobbleCheeseScore](CobbleCheeseScore/)** | Multiple configurable leaderboards with PNG export for in-world map rendering. | CheeseDash |
 | **[CobblemonDungeons](CobblemonDungeons/)** | Configurable dungeon system: instances, tickets, trainers, leaderboards and run history. | Cobblemon, RCTApi, CheeseDash |
 | **[CheeseExtraCommands](CheeseExtraCommands/)** | Verification commands used by NPC quest chains: EV, IV, species and ball-variety checks. | Cobblemon (soft) |

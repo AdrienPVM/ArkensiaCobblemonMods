@@ -65,7 +65,7 @@ Navigateur ──WS   44312──┘                ├── CheeseMarket
 | Mod | Rôle | Nécessite |
 |-----|------|-----------|
 | **[CobbleCap](CobbleCap/)** | Progression du niveau maximum des Pokémon par badges, détection des champions, Hall of Fame, chronos et dioramas de statues décoratifs. | Cobblemon |
-| **[CobbleShift](CobbleShift/)** | Transforme les joueurs en Pokémon avec capacités passives, plus les mini-jeux CobbleHunt et Hot Potato. Dialogue avec Cobblemon par réflexion, donc se dégrade proprement en son absence. | Cobblemon (optionnel) |
+| **[CobbleShift](CobbleShift/)** | Transforme les joueurs et les PNJ EasyNPC en Pokémon, avec des capacités passives selon le type et des attaques à distance. Dialogue avec Cobblemon par réflexion, donc se dégrade proprement en son absence. | Cobblemon (optionnel) |
 | **[CobbleCheeseScore](CobbleCheeseScore/)** | Classements multiples configurables, avec export PNG pour affichage sur carte in-game. | CheeseDash |
 | **[CobblemonDungeons](CobblemonDungeons/)** | Système de donjons configurable : instances, tickets, dresseurs, classements et historique des runs. | Cobblemon, RCTApi, CheeseDash |
 | **[CheeseExtraCommands](CheeseExtraCommands/)** | Commandes de vérification utilisées par les chaînes de quêtes PNJ : contrôle des EV, IV, espèces et variété de balls. | Cobblemon (optionnel) |
