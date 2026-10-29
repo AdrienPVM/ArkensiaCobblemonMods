@@ -142,7 +142,7 @@ mid-redirect never triggers it.
 → `502 {"error":"Failed to retrieve session"}`; Stripe not configured → `503`. A
 session id Stripe does not know is not an error on this side: Stripe's error body has
 no `status`, so the route answers `200 {"status":""}`. None of these lose the payment,
-because the webhook still arrives. The route has no rate limit.
+because the webhook still arrives.
 
 ### 5. The webhook — the authoritative path
 
@@ -178,22 +178,25 @@ needs to stop retrying.
 
 In both cases the webhook still answers `200 {"received":true}`, so Stripe does not
 retry: the payment is taken and no order exists in the mod. **Do not delete a product
-while payments for it may still be in flight.** The session's `payment_status` is not
-read either — any `checkout.session.completed` event, or a retrieved session whose
-`status` is `"complete"`, creates the order.
+while payments for it may still be in flight.** And keep the store's Stripe account on
+immediate payment methods (cards and card wallets): **do not enable deferred payment
+methods** in Stripe for this store, because the mod does not handle them.
 
 Then `DeliveryManager.createDelivery` runs. **This is the idempotency boundary.** The
 Stripe session id is the order id, and `createDelivery` returns `false` if a delivery
 with that id already exists, logging `Duplicate delivery attempt for orderId=...`.
 That is what keeps the verify path (step 4) and the webhook (step 5) from delivering
 the same purchase twice — whichever arrives first wins, the second is a no-op.
-The check-then-append is not atomic, though (`createDelivery` is not synchronized and
-CheeseDash serves HTTP on a four-thread pool), so a verify call and a webhook landing
-in the same instant could in principle both pass the check and create two orders.
+This guard is not watertight in every case: if you ever see two orders carrying the
+same `orderId`, deliver by hand only what is missing and
+[read the troubleshooting entry](troubleshooting.md#everything-was-delivered-twice).
 
 A created delivery stores the **resolved** commands: `{player}` is substituted at
 creation time, from the name in the Stripe metadata. Renaming the product's commands
 afterwards does not change a delivery already in the queue.
+
+> ⚠️ That name comes from the checkout request and is inserted into the commands
+> **without validation**. Write product commands that stay safe with any name.
 
 The record is appended to `config/cheesestore_deliveries.json` immediately, and a
 `store_purchase` message goes out on the `store` WebSocket channel.
@@ -300,11 +303,9 @@ Read this part as a list of your responsibilities, not the mod's.
 
 **The `playerUUID` is supplied by the browser.** Step 2 takes `playerUUID` and
 `playerName` from the request body and does not verify that the person paying owns
-that account. The storefront resolves names through
-`GET /store/api/players` (which reads `usercache.json` plus the online list), but
-nothing stops a hand-crafted POST from naming someone else's UUID. In practice that
-means a buyer can gift a purchase to an arbitrary account — usually harmless, but it
-also means you cannot treat a delivery record as proof of who paid. The credit-based
+that account. In practice a purchase can be delivered to an account other than the
+payer's — usually harmless, but it means you cannot treat a delivery record as proof
+of who paid. The credit-based
 purchase routes (`/cosmetics/buy`, `/morpho/buy`, `/playcosmetics/{id}/buy`) are
 different: those require an OAuth session **and** a linked Minecraft account, so they
 know who is spending.

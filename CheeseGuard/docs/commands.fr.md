@@ -33,8 +33,7 @@ l'ont délibérément pas.
 
 ⚠️ `flag`, `addmember`, `removemember` et tout le sous-arbre `group` étaient **sans garde
 jusqu'au 29 octobre 2026** : n'importe quel joueur pouvait désarmer la protection d'une
-zone dont il devinait l'identifiant, et les identifiants de zone dérivent du nom de la
-zone — donc ils se devinent. Ils sont protégés désormais. Si tu fais tourner un jar plus
+zone. Ils sont protégés désormais ; mets le jar à jour. Si tu fais tourner un jar plus
 ancien, protège ces nœuds avec un mod de permissions ou garde le serveur en liste blanche.
 
 Que `tp` et `toggle` restent ouvertes est délibéré et beaucoup plus bénin, mais bon à

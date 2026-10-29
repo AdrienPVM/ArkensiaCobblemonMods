@@ -201,8 +201,8 @@ déconnectés depuis — l'état par joueur survit volontairement à une reconne
 |---|---|---|---|
 | `raid` | mot unique | oui | l'identifiant d'un raid actuellement en phase `OPEN` |
 
-**Aucune permission requise.** C'est la seule sous-commande que tout joueur peut lancer.
-Comme `testreward`, elle doit être lancée par un joueur plutôt que par la console ou un bloc
+**Aucune permission requise.** `enter` est la sous-commande destinée aux joueurs ; toutes
+les autres exigent le niveau de permission 2. Comme `testreward`, elle doit être lancée par un joueur plutôt que par la console ou un bloc
 de commande.
 
 C'est aussi le chemin d'entrée de secours. Normalement les joueurs entrent en parlant au

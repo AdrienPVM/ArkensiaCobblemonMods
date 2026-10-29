@@ -321,7 +321,9 @@ en entier dans [l'API dashboard](dashboard.fr.md#ce-que-le-cœur-applique-réell
 **L'UUID d'un acheteur par carte n'est pas vérifié.**
 `POST /store/api/checkout` accepte `playerUUID` et `playerName` depuis le corps de la
 requête et les prend pour argent comptant. Les routes de crédits n'ont pas ce problème —
-elles résolvent l'UUID depuis une session liée — mais le parcours carte, si.
+elles résolvent l'UUID depuis une session liée — mais le parcours carte, si. Le pseudo
+est en outre inséré dans les commandes de livraison sans validation : écris des
+commandes de produit qui restent sûres quel que soit le pseudo.
 
 **Aucune validation PNG, aucune limite de taille sur les envois.**
 `saveBase64Image` décode le corps en base64 et l'écrit dans `<id>.png` sans vérifier

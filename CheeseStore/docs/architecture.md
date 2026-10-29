@@ -297,7 +297,8 @@ defence in this mod. Fully described in
 **A paying buyer's UUID is unverified.** `POST /store/api/checkout` accepts
 `playerUUID` and `playerName` from the request body and takes them on trust. The
 credit routes do not have this problem — they resolve the UUID from a linked session —
-but the card path does.
+but the card path does. The name is also inserted into the delivery commands without
+validation, so write product commands that stay safe with any name.
 
 **No PNG validation, no size cap on uploads.** `saveBase64Image` base64-decodes the
 body and writes it to `<id>.png` with no check that it is an image and no limit on

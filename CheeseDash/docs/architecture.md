@@ -202,7 +202,8 @@ Stated plainly, because finding these by surprise is worse.
   tunnel or a reverse proxy. Tokens and session ids are cleartext on the wire.
 - **The login route is not rate-limited.** The limiter sits behind the `/auth/login`
   short-circuit, so it only throttles bad `Authorization` headers on other routes. A
-  brute-force attempt against the login endpoint is unthrottled — only audited.
+  brute-force attempt against the login endpoint is unthrottled — only audited. Keep
+  the generated tokens and keep the ports behind a firewall or tunnel.
 - **The WebSocket accepts the master token only**, which forces anyone who needs live
   views to hold the highest-value credential. The role system does not reach the
   WebSocket at all, and the bundled frontend, which sends its session id, never gets

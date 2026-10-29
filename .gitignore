@@ -44,9 +44,10 @@ remappedSrc/
 # ─────────────────────────────────────────────────────────────────────────────
 # Third-party jars used as compile-time dependencies.
 # These belong to their respective authors and must NEVER be redistributed
-# here. Contributors supply their own copies — see each libs/README.md.
+# here. Contributors supply their own copies — see localdeps/README.md.
+# (Already covered by `*.jar` above; kept explicit so the intent survives edits.)
 # ─────────────────────────────────────────────────────────────────────────────
-libs/*.jar
+localdeps/*.jar
 dist/
 
 # ─────────────────────────────────────────────────────────────────────────────

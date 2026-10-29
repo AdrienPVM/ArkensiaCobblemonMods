@@ -270,8 +270,7 @@ face does not. [Why](champion-morphing.md#the-skin-is-not-written).
 per-player.
 
 **Fix.** There is no fix from configuration — it is a design limitation, acknowledged in the
-source. Two entries a second apart with opposite modes both land on whichever was written
-last. [Details](champion-morphing.md#the-régis-mode-swap-is-global). Serialise entries, or
+source. Overlapping entries can land on a variant they did not choose. [Details](champion-morphing.md#the-régis-mode-swap-is-global). Serialise entries, or
 accept it as Arkensia does at five to ten entries a week.
 
 ## A statue is invisible, or renders as Steve

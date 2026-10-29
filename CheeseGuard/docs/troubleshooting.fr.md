@@ -68,9 +68,8 @@ console sont le sous-arbre `state`, `playerworld`, `event announce`, `event scor
 ## Un joueur a modifié les flags d'une zone
 
 **Cause.** Sur un jar construit avant le 29 octobre 2026, `/cg flag`, `/cg addmember`,
-`/cg removemember` et `/cg group *` ne portaient **aucune garde de permission**. N'importe
-quel joueur pouvait les lancer sur n'importe quel identifiant de zone, et ces identifiants
-dérivent du nom de la zone — donc ils se devinent.
+`/cg removemember` et le sous-arbre `/cg group` ne portaient **aucune garde de
+permission** : n'importe quel joueur pouvait les lancer.
 
 **Remède.** Mets le jar à jour : ces quatre nœuds sont au niveau 2 désormais. Les niveaux
 sont compilés dans l'arbre Brigadier, il n'y a donc pas de réglage : sur un jar plus

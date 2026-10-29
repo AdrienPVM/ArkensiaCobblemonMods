@@ -410,8 +410,8 @@ changé, cherche dans le log `[CobbleCap] … swap aborted` ou `Régis JSON copy
 demande `ranked` sans instantané compétitif retombe sans bruit sur le fichier classique.
 
 ⚠️ Le basculement de JSON est **global au serveur**, alors que le score de scoreboard est
-par joueur. Deux joueurs choisissant des modes différents au même moment affrontent la
-variante écrite en dernier. C'est une vraie limite de la conception, et non un bug à
+par joueur. Quand des entrées se chevauchent, un joueur peut affronter
+une variante qu'il n'a pas choisie. C'est une vraie limite de la conception, et non un bug à
 contourner côté commande ; voir
 [le morphing du champion](champion-morphing.fr.md#le-basculement-de-mode-de-régis-est-global).
 

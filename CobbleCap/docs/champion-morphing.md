@@ -214,12 +214,14 @@ aborts.
 
 ⚠️ There is **one** live file, and it is server-global. The player's chosen mode is stored
 per player on the `cobblecap_mode` scoreboard, but the trainer they actually fight is
-whichever variant was written last. Two players entering the Conseil 4 a second apart with
-opposite modes will both fight the second one's choice. The source acknowledges this: the
+whichever variant was written last. When entries overlap, a
+player can fight the variant someone else selected, so a ranked win is not guaranteed to
+have been earned against the ranked team. The source acknowledges this: the
 design is "Option B", chosen on the grounds that at five to ten entries a week the race is
 rare, and the no-op check coalesces repeats. It is a real correctness hole, not an
 oversight, and the only robust fix is per-player trainer instances — which is what
-`Conseil4TrainerCloner` was meant to do before it was disabled.
+`Conseil4TrainerCloner` was meant to do before it was disabled. Until then, letting one
+challenger in at a time removes the problem.
 
 ## The fallback: a Cobblemon NPC
 

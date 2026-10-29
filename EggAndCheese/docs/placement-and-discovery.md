@@ -94,11 +94,13 @@ Two overrides protect a placed egg:
 
 A third one, `onBreak`, returns the state unchanged for a non-admin, but that cancels
 nothing: Minecraft removes the block after `onBreak` whatever it returns. ⚠️ So the
-protection has two holes. A non-admin in **creative mode** — which skips the breaking
-delta — removes the egg instantly, and an **explosion** destroys it, since the block keeps
-the default blast resistance of `0`. In both cases no item is returned and the entry is
+protection has two holes: a non-admin in **creative mode** can remove the egg, and so can
+an **explosion**. In both cases no item is returned and the entry is
 not marked `positionLost`: it keeps pointing at an empty spot, and only the integrity
-report's `unloadedEntries` reveals it.
+report's `unloadedEntries` reveals it. Keep non-admins out of creative mode, and place hunt
+eggs inside a [CheeseGuard](../../CheeseGuard/README.md) zone with the `explosions` flag
+denied; the flag is checked where the explosion starts, so let the zone extend a few blocks
+past the egg.
 
 An admin who does break it gets the egg back as an item carrying its DNA, scale and
 `registryId`, inserted straight into the inventory (or dropped at their feet if the

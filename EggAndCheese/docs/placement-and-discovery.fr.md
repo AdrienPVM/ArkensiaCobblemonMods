@@ -96,11 +96,13 @@ Deux redéfinitions protègent un œuf posé :
 
 Une troisième, `onBreak`, renvoie l'état inchangé pour un non-admin, mais cela n'annule
 rien : Minecraft retire le bloc après `onBreak`, quoi qu'il renvoie. ⚠️ La protection a donc
-deux trous. Un non-admin en **mode créatif** — qui ne passe pas par la vitesse de minage —
-retire l'œuf instantanément, et une **explosion** le détruit, puisque le bloc garde la
-résistance aux explosions par défaut, `0`. Dans les deux cas aucun item n'est rendu et
+deux trous : un non-admin en **mode créatif** peut retirer l'œuf, et une **explosion** aussi.
+Dans les deux cas aucun item n'est rendu et
 l'entrée n'est pas marquée `positionLost` : elle continue de pointer vers un emplacement
-vide, que seul le champ `unloadedEntries` du rapport d'intégrité révèle.
+vide, que seul le champ `unloadedEntries` du rapport d'intégrité révèle. Tiens les non-admins à
+l'écart du mode créatif, et place les œufs de chasse dans une zone
+[CheeseGuard](../../CheeseGuard/README.fr.md) où le flag `explosions` est refusé ; le flag est
+vérifié là où l'explosion part, donc fais déborder la zone de quelques blocs autour de l'œuf.
 
 Un admin qui casse bien le bloc récupère l'œuf en item, porteur de son ADN, de son échelle
 et de son `registryId`, inséré directement dans l'inventaire (ou lâché à ses pieds si

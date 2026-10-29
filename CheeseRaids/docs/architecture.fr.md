@@ -261,9 +261,9 @@ tick dans les deux cas.
 **La file d'effets avale une apparition structurante.** Décrit dans la section
 [la file d'effets](#la-file-deffets).
 
-**Les récompenses ne dépendent pas de la participation.** Tout joueur de l'instance connecté à
-la mort du boss est récompensé, qu'il ait atteint le disque ou non. Le drapeau `arrived` existe
-et est suivi ; le chemin de récompense ne le lit pas.
+**Les récompenses ne dépendent pas de la participation.** Le drapeau `arrived` existe et est
+suivi ; le chemin de récompense ne le lit pas, donc une récompense ne reflète pas ce qu'un
+joueur a fait pendant le raid.
 
 **`stop` n'éjecte pas.** La commande comme la route REST nettoient l'arène sans téléporter
 personne. Le chemin d'éjection existe (`ejectAll`) et est appelé depuis la séquence de victoire

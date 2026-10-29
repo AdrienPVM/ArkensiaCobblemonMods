@@ -156,8 +156,8 @@ par la sortie forcée du dashboard. Il masque toujours le HUD, puis bifurque sel
 `teleportMode` :
 
 - `SAME_SERVER` — téléportation vers le `returnPos` de l'emplacement actif.
-- `CROSS_SERVER` — envoi d'un `DungeonJoinPayload` avec un identifiant de donjon vide
-  portant les données du joueur, puis transfert vers `mainServer` 40 ticks plus tard.
+- `CROSS_SERVER` — envoi du transfert de retour (`DungeonJoinPayload`), puis transfert vers
+  `mainServer` 40 ticks plus tard.
 
 Ce qui est rapatrié dépend de la mort du boss. En cas de succès et avec `syncPlayerData`
 activé, l'état complet du joueur — inventaire, équipe Cobblemon, PC — est sérialisé et,
@@ -228,18 +228,20 @@ Le mode `CROSS_SERVER` repose sur trois pièces mobiles :
    un serveur de donjon ; toute autre valeur, absence comprise, en fait un serveur
    principal. Le résultat est mis en cache au premier appel et journalisé sous
    `Cobblemon Dungeons server role: dungeon` ou `… : main`. Le changer exige un redémarrage.
-2. **Le payload de connexion.** `DungeonJoinPayload` porte l'identifiant du donjon, celui du
-   groupe, la taille du groupe, un blob NBT de données joueur et le tier. Le client le
-   conserve pendant le changement de serveur et le rejoue à la connexion suivante, ce qui
-   rend un transfert atomique sans base de données.
+2. **Le payload de connexion.** `DungeonJoinPayload` porte le transfert lui-même. Le client
+   le relaie pendant le changement de serveur, ce qui rend un transfert atomique sans base
+   de données.
 3. **Le plugin du proxy.** L'état du groupe est transmis entre serveurs par le mécanisme
    BungeeCord `Forward` et par le canal personnalisé `cobblemon_dungeons:proxy_forward`.
    Velocity ne les transmet pas de lui-même, d'où `velocity-party-forwarder/`. Voir
    [l'installation](installation.fr.md).
 
-Avec SQL activé, le PC est retiré du payload et lu en base à la place, parce qu'un PC complet
-n'a rien à faire dans un message de plugin. Sans SQL, le payload est le seul canal et
-transporte tout.
+Avec SQL activé, le PC est lu en base au lieu de voyager avec le transfert, parce qu'un PC
+complet n'a rien à faire dans un message de plugin.
+
+⚠️ Les payloads client→serveur du mode `CROSS_SERVER` ne sont pas validés par le serveur, et
+un client modifié peut en abuser. N'utilise pas ce mode sur un serveur public tant que ce
+n'est pas corrigé.
 
 ### Fragilité connue
 

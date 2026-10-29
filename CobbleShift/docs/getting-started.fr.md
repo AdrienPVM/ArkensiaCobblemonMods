@@ -177,8 +177,8 @@ de tête par un Dracaufeu et, au rafraîchissement suivant, elle reçoit Résist
 l'invisibilité n'est plus rafraîchie et s'éteint en `abilityEffectDuration` (huit secondes
 par défaut).
 
-⚠️ Un Pokémon de tête de type Spectre accorde une vraie Invisibilité, rafraîchie
-indéfiniment, à quiconque attrape un Fantominus. Sur un serveur PvP, tranche la question
+⚠️ L'effet du type Spectre est une vraie Invisibilité et peut donner un avantage en PvP. Sur
+un serveur PvP, tranche la question
 avant de laisser le sous-système actif. Le tableau complet des types se trouve dans
 [les capacités passives](abilities.fr.md).
 

@@ -213,7 +213,8 @@ Dites franchement, parce que les découvrir par surprise est pire.
 - **La route de login n'est pas soumise à la limitation de débit.** Le limiteur se trouve
   derrière le court-circuit de `/auth/login`, donc il ne bride que les mauvais en-têtes
   `Authorization` sur les autres routes. Une attaque par force brute contre l'endpoint de
-  login n'est pas bridée — seulement auditée.
+  login n'est pas bridée — seulement auditée. Garde les tokens générés et place les
+  ports derrière un pare-feu ou un tunnel.
 - **Le WebSocket n'accepte que le master token**, ce qui force quiconque a besoin des vues
   en direct à détenir le justificatif de plus grande valeur. Le système de rôles n'atteint
   pas du tout le WebSocket, et le frontend fourni, qui envoie son identifiant de session,

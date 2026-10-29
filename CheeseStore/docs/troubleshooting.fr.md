@@ -117,10 +117,10 @@ de session Stripe, et le journalise :
 ```
 
 Voir cette ligne, c'est le système qui fonctionne — c'est le chemin de redirection et le
-webhook qui se font la course, ce qui est normal et attendu. Le contrôle n'est pas
-atomique pour autant : si les deux arrivent au même instant sur deux threads HTTP, tous
-deux peuvent le passer, et deux commandes d'achat avec le **même** `orderId`
-apparaissent. C'est un bug de code, pas un acheteur qui a payé deux fois.
+webhook qui se font la course, ce qui est normal et attendu. Dans de rares cas, le
+contrôle peut quand même laisser passer une seconde commande d'achat avec le **même**
+`orderId`. C'est un bug de code, pas un acheteur qui a payé deux fois : ne livre à la
+main que ce qui manque, et compare avec Stripe.
 
 **Si les biens sont réellement arrivés deux fois**, les deux commandes ont des
 identifiants différents, ce qui veut dire deux vraies sessions de checkout. Vérifie la

@@ -12,11 +12,11 @@
 | Fabric API | n'importe quelle build 1.21.1 | utilisé pour `CommandRegistrationCallback`. Compilé contre `0.107.0+1.21.1` |
 | [CheeseDash](../../CheeseDash/) | n'importe quelle version | exigé par `depends`, et utilisé pour rien. Voir plus bas |
 
-⚠️ Fabric API n'est **pas** déclaré dans `fabric.mod.json`. Le mod se charge sans lui puis
-lève un `NoClassDefFoundError` sur
-`net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback` pendant son
-initialisation, ce qui emmène généralement le serveur avec lui. Installe Fabric API ; le
-loader ne te le rappellera pas.
+Fabric API n'est **pas** déclaré dans le `fabric.mod.json` de ce mod, mais tu ne peux pas
+te retrouver sans lui : CheeseDash, que ce mod exige, le déclare. Sans Fabric API, le loader
+refuse de démarrer et signale que CheeseDash a besoin de `fabric-api`. Installe-le et le
+message disparaît. Ce trou ne compterait que si la dépendance `cheesedash` était un jour
+retirée — [détails](architecture.fr.md).
 
 ⚠️ CheeseDash est exigé et inutilisé. Fabric Loader refuse de démarrer sans le jar
 CheeseDash, alors que ce mod n'enregistre aucun module dashboard et ne référence aucune

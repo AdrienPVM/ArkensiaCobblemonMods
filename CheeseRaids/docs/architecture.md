@@ -245,9 +245,8 @@ The copy protects the list, not the objects in it.
 **The effects queue swallows a load-bearing spawn.** Described under
 [the effects queue](#the-effects-queue).
 
-**Rewards are not gated on participation.** Every player in the instance who is online when
-the boss dies is rewarded, whether or not they ever reached the disk. The `arrived` flag
-exists and is tracked; the reward path does not read it.
+**Rewards are not gated on participation.** The `arrived` flag exists and is tracked; the
+reward path does not read it, so a reward does not reflect what a player did in the raid.
 
 **`stop` does not eject.** Both the command and the REST route clean up the arena without
 teleporting anyone out. The eject path exists (`ejectAll`) and is called from the victory

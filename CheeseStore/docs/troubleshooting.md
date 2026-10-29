@@ -112,9 +112,9 @@ a second order with the same Stripe session id, and logs it:
 ```
 
 Seeing that line is the system working — it is the redirect path and the webhook
-racing, which is normal and expected. The check is not atomic, though: if the two
-arrive at the same instant on two HTTP threads, both can pass it and two orders with
-the **same** `orderId` appear. That is a code bug, not a buyer paying twice.
+racing, which is normal and expected. In rare cases the check can still let a second
+order with the **same** `orderId` through. That is a code bug, not a buyer paying
+twice: deliver by hand only what is missing, and compare against Stripe.
 
 **If goods really arrived twice**, the two orders have different ids, which means two
 real checkout sessions. Check the orders view: if there are two distinct `orderId`s

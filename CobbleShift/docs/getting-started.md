@@ -168,8 +168,8 @@ appears. Swap her lead to a Charizard and, on the next refresh, she gets Fire Re
 the invisibility is no longer refreshed and runs out within `abilityEffectDuration`
 (eight seconds by default).
 
-⚠️ Ghost-type leads grant real, indefinitely refreshed Invisibility to anyone who catches
-a Gastly. On a PvP server, decide about that before you leave the subsystem on. The full
+⚠️ The Ghost-type effect is real Invisibility and can give an advantage in PvP. On a PvP
+server, decide about that before you leave the subsystem on. The full
 type table is in [passive abilities](abilities.md).
 
 Pin a player to a type regardless of their party:

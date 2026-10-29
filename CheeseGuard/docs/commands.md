@@ -30,9 +30,8 @@ gate; a few read-only and player-facing ones deliberately do not.
 | `/chunksuggest` | none (deliberate) | everyone |
 
 ⚠️ `flag`, `addmember`, `removemember` and the whole `group` subtree were **ungated until
-29 October 2026**: any player could disarm the protection on any zone whose id they
-guessed, and zone ids are derived from zone names, so they are guessable. They are gated
-now. If you are running an older jar, gate those nodes with a permissions mod or keep the
+29 October 2026**: any player could disarm a zone's protection. They are gated now;
+update the jar. If you are running an older jar, gate those nodes with a permissions mod or keep the
 server whitelisted.
 
 `tp` and `toggle` staying open is deliberate and much smaller, but worth knowing: any

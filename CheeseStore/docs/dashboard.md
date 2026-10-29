@@ -420,10 +420,9 @@ restrict it.
 
 Full sequence, failure by failure, in [the payment flow](payments.md#the-sequence).
 
-`/session-status` carries **no** rate limit and no origin check. It is a
-read of Stripe's own state followed by an idempotent delivery, so the worst a flood
-achieves is one outbound Stripe API call per request — which still counts against
-your Stripe rate limits and is worth a proxy-level limit if your store is busy.
+Put a request limit on `/store/api/session-status` at your reverse proxy. Each call
+reads the session back from Stripe, so it counts against your Stripe API quota, and the
+route is meant to be called a handful of times per purchase, not more.
 
 ### Credit purchases
 

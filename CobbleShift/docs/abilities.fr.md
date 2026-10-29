@@ -122,10 +122,9 @@ tel quel et documenté ici.
 
 ### Spectre est un piège sur un serveur public
 
-`ghost` accorde une vraie Invisibilité, rafraîchie toutes les cinq secondes tant que le
-joueur garde un Pokémon de tête de type Spectre. Sur un serveur PvP, c'est une
-invisibilité permanente à la portée de quiconque attrape un Fantominus. Laisse le
-sous-système désactivé, ou exclus ces joueurs avec `/cshift ability toggle`.
+`ghost` accorde une vraie Invisibilité. Cet effet peut donner un avantage en PvP ; le
+sous-système est désactivé par défaut. Sur un serveur PvP, laisse-le désactivé, ou exclus
+des joueurs avec `/cshift ability toggle`.
 
 Le type interagit aussi avec les transformations : les deux utilisent l'Invisibilité, et
 une annulation appelle `removeStatusEffect(StatusEffects.INVISIBILITY)` sans condition.

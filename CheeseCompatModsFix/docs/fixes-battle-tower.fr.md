@@ -286,9 +286,9 @@ encore inscriptibles.
 
 **Symptôme.** Deux bugs distincts de même forme — des BP disparaissent et rien n'arrive.
 
-Le premier est un exploit : un paquet forgé avec `quantity = Integer.MAX_VALUE` fait
-déborder `bpCost * quantity` vers un nombre négatif, donc l'achat *crédite* des BP au lieu
-d'en débiter, et peut geler le serveur sur la boucle d'insertion.
+Le premier est un exploit du Battle Tower d'origine : un client modifié peut envoyer une
+quantité hors limites, ce qui peut créditer des BP au lieu d'en débiter et geler le serveur.
+Le patch bloque les quantités hors limites.
 
 Le second a été observé en jeu : une entrée de boutique dont l'id d'item Minecraft n'est
 pas enregistré sur ce serveur. `handlePurchase` débite les BP **avant** de résoudre

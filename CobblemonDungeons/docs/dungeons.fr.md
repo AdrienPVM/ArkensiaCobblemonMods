@@ -72,8 +72,7 @@ moitié du mod tu te sers :
   n'arrive pas en 60 ticks, ou si le serveur se déclare hors ligne, la tentative est
   abandonnée et le chef est averti *Le serveur de donjon est hors ligne. Veuillez réessayer
   plus tard.* Alors seulement le compte à rebours démarre. À son terme, chaque membre reçoit un
-  `DungeonJoinPayload` portant ses données sérialisées et est transféré vers `targetServer`
-  40 ticks plus tard.
+  `DungeonJoinPayload` et est transféré vers `targetServer` 40 ticks plus tard.
 
 Un donjon créé depuis le dashboard est forcé en `SAME_SERVER`, parce que le dashboard n'a
 aucun moyen de connaître la topologie de ton proxy.
@@ -81,7 +80,9 @@ aucun moyen de connaître la topologie de ton proxy.
 ⚠️ Le mode `CROSS_SERVER` exige le plugin Velocity de `velocity-party-forwarder/` sur le
 proxy, et le mod sur le serveur principal comme sur le serveur de donjon avec
 `cobblemon.dungeons.serverRole` réglé en conséquence. Voir
-[le cycle de vie des instances](instances.fr.md) et [l'installation](installation.fr.md).
+[le cycle de vie des instances](instances.fr.md) et [l'installation](installation.fr.md). Ses
+payloads client→serveur ne sont pas validés par le serveur : ne l'utilise pas sur un
+serveur public tant que ce n'est pas corrigé.
 
 ## `locations` et `additionalLocations`
 

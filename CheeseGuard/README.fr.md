@@ -47,8 +47,8 @@ mutantes n'ont aucune seconde ligne de défense si ce répartiteur change un jou
 
 **Sur un jar construit avant le 29 octobre 2026, quatre commandes mutantes n'avaient
 aucune garde de permission** — `/cg flag`, `/cg addmember`, `/cg removemember` et tout le
-sous-arbre `/cg group` étaient appelables par n'importe quel joueur, sur n'importe quel
-identifiant de zone qu'il devinait. Corrigé ; vérifie quel jar tu fais tourner.
+sous-arbre `/cg group` étaient appelables par n'importe quel joueur. Corrigé ; mets le
+jar à jour et vérifie lequel tu fais tourner.
 [Le tableau des gardes actuelles](docs/commands.fr.md#niveaux-de-permission).
 
 ---

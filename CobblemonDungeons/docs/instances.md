@@ -147,8 +147,8 @@ through `leaveDungeon`.
 by the dashboard's force-leave. It always hides the HUD, then branches on `teleportMode`:
 
 - `SAME_SERVER` — teleport to the active slot's `returnPos`.
-- `CROSS_SERVER` — send a `DungeonJoinPayload` with an empty dungeon id carrying the
-  player's data, then transfer them to `mainServer` after 40 ticks.
+- `CROSS_SERVER` — send the return transfer (`DungeonJoinPayload`), then transfer them to
+  `mainServer` after 40 ticks.
 
 What gets carried back depends on whether the boss died. On a success and with
 `syncPlayerData` on, the full player state — inventory, Cobblemon party, PC — is
@@ -217,18 +217,20 @@ avoids the question entirely.
    dungeon server; anything else, including absent, makes it a main server. The result is
    cached on first call and logged as `Cobblemon Dungeons server role: dungeon` or
    `… : main`. Changing it needs a restart.
-2. **The join payload.** `DungeonJoinPayload` carries the dungeon id, the party id, the
-   party size, an NBT blob of player data and the tier. The client holds it across the
-   server switch and replays it on joining the next server, which is what makes a transfer
-   atomic without a database.
+2. **The join payload.** `DungeonJoinPayload` carries the transfer itself. The client
+   relays it across the server switch, which is what makes a transfer atomic without a
+   database.
 3. **The proxy plugin.** Party state is forwarded between servers over the BungeeCord
    `Forward` mechanism and the custom `cobblemon_dungeons:proxy_forward` channel. Velocity
    does not forward those on its own, hence `velocity-party-forwarder/`. See
    [installation](installation.md).
 
-With SQL enabled the PC is stripped from the payload and read from the database instead,
-because a full PC does not belong in a plugin message. Without SQL the payload is the only
-channel and carries everything.
+With SQL enabled the PC is read from the database instead of travelling with the transfer,
+because a full PC does not belong in a plugin message.
+
+⚠️ The client→server payloads of `CROSS_SERVER` mode are not validated by the server, and
+a modified client can abuse them. Don't use this mode on a public server until this is
+fixed.
 
 ### Known fragility
 

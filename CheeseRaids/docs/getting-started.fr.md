@@ -29,7 +29,7 @@ installés, et le journal de démarrage qui montre :
 
 Si l'une des deux lignes manque, arrête-toi ici et reprends
 [l'installation](installation.fr.md#vérifier-le-chargement). Il te faut aussi les droits
-d'opérateur (niveau de permission 2) et, pour l'étape 8, une équipe Pokémon capable de
+d'opérateur (niveau de permission 2) et, pour les étapes 7 et 9, une équipe Pokémon capable de
 battre un Hoopa Déchaîné niveau 80.
 
 ## 1. Choisis tes deux emplacements dans l'overworld

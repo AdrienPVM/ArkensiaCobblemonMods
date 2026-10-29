@@ -279,8 +279,8 @@ change, le visage non. [Pourquoi](champion-morphing.fr.md#la-skin-nest-pas-écri
 `cobblecap_mode` est par joueur.
 
 **Remède.** Il n'y a aucun correctif par configuration — c'est une limite de conception,
-assumée dans le source. Deux entrées à une seconde d'écart avec des modes opposés atterrissent
-toutes deux sur celui écrit en dernier.
+assumée dans le source. Des entrées qui se chevauchent peuvent atterrir sur une variante qu'elles
+n'ont pas choisie.
 [Détails](champion-morphing.fr.md#le-basculement-de-mode-de-régis-est-global). Sérialise les
 entrées, ou accepte-le comme Arkensia le fait à cinq ou dix entrées par semaine.
 

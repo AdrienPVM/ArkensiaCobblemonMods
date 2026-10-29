@@ -160,13 +160,17 @@ Sept records `CustomPayload` sous `networking/`, six dans le namespace
 
 | Payload | Sens | Contenu |
 |---|---|---|
-| `DungeonJoinPayload` | les deux sens | Identifiant de donjon, de groupe, taille du groupe, un blob NBT d'état joueur, tier. Le client le conserve pendant un changement de serveur et le rejoue à la connexion |
+| `DungeonJoinPayload` | les deux sens | Le transfert entre serveurs, dans les deux sens. Le client le relaie pendant un changement de serveur |
 | `DungeonHudPayload` | S2C | Les quatre compteurs d'objectifs avec leurs cibles, le temps restant, les vies, un drapeau de visibilité |
 | `DungeonTicketSyncPayload` | S2C | Toute la configuration des tickets en JSON, envoyée à la connexion |
 | `BungeePayload` | les deux sens | Messages de plugin au format BungeeCord, dont la requête de nombre de joueurs |
 | `ProxyForwardPayload` | S2C | Le format de transfert personnalisé que comprend le plugin Velocity |
-| `PartySyncPayload` | les deux sens | État sérialisé de l'équipe Cobblemon |
+| `PartySyncPayload` | les deux sens | Synchronisation de l'équipe Cobblemon entre serveurs |
 | `PartyDebugPayload` | les deux sens | L'aller-retour de `partydebug ping` |
+
+⚠️ Les payloads client→serveur du mode `CROSS_SERVER` ne sont pas validés par le serveur, et
+un client modifié peut en abuser. N'utilise pas ce mode sur un serveur public tant que ce
+n'est pas corrigé.
 
 Il n'y a aucun champ de version de protocole nulle part. Un client et un serveur sur des
 versions différentes produiront des erreurs de codec plutôt qu'un avertissement lisible.

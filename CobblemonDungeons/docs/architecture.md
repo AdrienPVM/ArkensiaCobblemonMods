@@ -154,13 +154,17 @@ namespace — `BungeePayload` is on the standard `bungeecord:main` channel:
 
 | Payload | Direction | Carries |
 |---|---|---|
-| `DungeonJoinPayload` | both ways | Dungeon id, party id, party size, an NBT blob of player state, tier. The client holds it across a server switch and replays it on join |
+| `DungeonJoinPayload` | both ways | The cross-server transfer, in both directions. The client relays it across a server switch |
 | `DungeonHudPayload` | S2C | The four objective counters with their targets, time left, lives, a visibility flag |
 | `DungeonTicketSyncPayload` | S2C | The whole ticket config as JSON, sent on join |
 | `BungeePayload` | both ways | BungeeCord-format plugin messages, including the player-count query |
 | `ProxyForwardPayload` | S2C | The custom forward format the Velocity plugin understands |
-| `PartySyncPayload` | both ways | Serialised Cobblemon party state |
+| `PartySyncPayload` | both ways | Cobblemon party sync between servers |
 | `PartyDebugPayload` | both ways | The `partydebug ping` round trip |
+
+⚠️ The client→server payloads of `CROSS_SERVER` mode are not validated by the server, and
+a modified client can abuse them. Don't use this mode on a public server until this is
+fixed.
 
 There is no protocol version field anywhere. A client and server on different mod versions
 will produce codec errors rather than a readable warning.

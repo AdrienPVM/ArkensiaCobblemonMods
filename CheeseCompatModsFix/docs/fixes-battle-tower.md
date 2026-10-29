@@ -274,9 +274,9 @@ restore runs while players are still online and their parties still writable.
 
 **Symptom.** Two separate bugs with the same shape — BP disappears and nothing arrives.
 
-The first is an exploit: a crafted packet with `quantity = Integer.MAX_VALUE` makes
-`bpCost * quantity` overflow to a negative number, so the purchase *credits* BP instead
-of debiting it, and can freeze the server on the insert loop.
+The first is an exploit in the stock Battle Tower: a modified client can send an
+out-of-range quantity, which can credit BP instead of debiting it and freeze the server.
+The patch blocks out-of-range quantities.
 
 The second was observed in play: a shop entry whose Minecraft item id is not registered
 on this server. `handlePurchase` debits the BP before it resolves the item, and

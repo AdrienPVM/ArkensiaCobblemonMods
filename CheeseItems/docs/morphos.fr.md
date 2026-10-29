@@ -53,6 +53,9 @@ consomme jamais lui-même. Les deux accesseurs triés existent pour le site de l
 pour le PNJ Métamorph, qui sont hors de ce mod. Les activer ne change rien au Codex en jeu :
 un joueur voit toutes les morphos qu'il possède, disponibles ou non.
 
+⚠️ Fixe un prix sur chaque morpho. Les deux prix valent `0` par défaut, et les drapeaux de
+disponibilité ne font que masquer une entrée d'une liste ; ils n'en empêchent pas l'achat.
+
 Le tri, partout où une liste triée est produite : les entrées `isNew` d'abord, la plus
 récente `createdAt` en tête parmi elles ; puis le reste par `sortOrder` croissant, avec
 `createdAt` croissant pour départager. `POST /morphos/reorder` renumérote `sortOrder` à

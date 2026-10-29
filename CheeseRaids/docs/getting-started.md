@@ -29,7 +29,7 @@ installed, and the startup log showing:
 
 If either line is missing, stop here and go through
 [installation](installation.md#verifying-it-loaded). You also need operator rights
-(permission level 2) and, for step 8, a Pokémon team capable of beating a level 80 Hoopa
+(permission level 2) and, for steps 7 and 9, a Pokémon team capable of beating a level 80 Hoopa
 Unbound.
 
 ## 1. Pick your two overworld locations

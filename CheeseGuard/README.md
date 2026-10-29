@@ -42,8 +42,7 @@ mutating routes have no second line of defence if that dispatcher ever changes.
 
 **On a jar built before 29 October 2026, four mutating commands had no permission gate**
 — `/cg flag`, `/cg addmember`, `/cg removemember` and the whole `/cg group` subtree were
-callable by any player, on any zone id they could guess. Fixed; check which jar you are
-running. [The current gate table](docs/commands.md#permission-levels).
+callable by any player. Fixed; update the jar, and check which one you are running. [The current gate table](docs/commands.md#permission-levels).
 
 ---
 

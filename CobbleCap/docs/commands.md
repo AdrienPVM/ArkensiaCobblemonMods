@@ -400,8 +400,8 @@ copy failing. When the line says `already live` and the fight did not change, re
 for `[CobbleCap] … swap aborted` or `Régis JSON copy failed`. A `ranked` request with no
 ranked snapshot yet silently falls back to the classic file.
 
-⚠️ The JSON swap is **server-global**, while the scoreboard score is per-player. Two
-players picking different modes at the same time fight whichever variant was written last.
+⚠️ The JSON swap is **server-global**, while the scoreboard score is per-player. When
+entries overlap, a player can fight a variant they did not choose.
 This is a real limitation of the design, not a bug to be worked around from the command
 side; see [champion morphing](champion-morphing.md#the-régis-mode-swap-is-global).
 

@@ -195,7 +195,8 @@ disconnected — the per-player state survives a relog on purpose.
 |---|---|---|---|
 | `raid` | single word | yes | the id of a raid currently in the `OPEN` phase |
 
-**No permission requirement.** This is the only subcommand any player can run. Like
+**No permission requirement.** `enter` is the player-facing subcommand; every other one
+needs permission level 2. Like
 `testreward`, it must be run by a player rather than by the console or a command block.
 
 It is also the fallback entry path. Normally players enter by talking to the Ho-Oh

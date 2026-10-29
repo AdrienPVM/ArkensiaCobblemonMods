@@ -52,6 +52,9 @@ consumes itself. The two sorted getters exist for the store website and for the 
 NPC, which are outside this mod. Setting them changes nothing in the in-game Codex: a
 player sees every morpho they own, available or not.
 
+⚠️ Set a price on every morpho. Both prices default to `0`, and the availability flags only
+hide an entry from a listing; they do not prevent its purchase.
+
 Sorting, wherever a sorted list is produced: `isNew` entries first, newest `createdAt`
 first among them; then the rest by `sortOrder` ascending, `createdAt` ascending as a
 tie-break. `POST /morphos/reorder` renumbers `sortOrder` from 1 in the order you send the

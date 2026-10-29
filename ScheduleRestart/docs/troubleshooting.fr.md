@@ -62,16 +62,12 @@ légitime à faire si tu veux le compte à rebours sans le dashboard, et qui est
 
 ---
 
-## Le serveur crashe au démarrage sur `NoClassDefFoundError: …CommandRegistrationCallback`
+## Le serveur refuse de démarrer : CheeseDash exige `fabric-api`
 
-```text
-java.lang.NoClassDefFoundError: net/fabricmc/fabric/api/command/v2/CommandRegistrationCallback
-	at com.schedulerestart.ScheduledRestart.onInitialize(ScheduledRestart.java:27)
-```
-
-**Cause.** Fabric API est absent. Le mod l'utilise et ne le déclare pas dans
-`fabric.mod.json` : le loader laisse donc le mod démarrer et la classe ne manque qu'au
-moment où `onInitialize` s'exécute.
+**Cause.** Fabric API est absent. ScheduleRestart l'utilise sans le déclarer, mais il exige
+CheeseDash, qui le déclare : le loader s'arrête donc avant l'initialisation de tout mod et
+désigne `fabric-api` comme dépendance manquante de CheeseDash. Tant que CheeseDash reste une
+dépendance, tu ne verras pas de `NoClassDefFoundError` venant de ScheduleRestart.
 
 **Remède.** Dépose un `fabric-api-*.jar` compilé pour 1.21.1 dans `mods/`. Le mod a été
 compilé contre `0.107.0+1.21.1` ; n'importe quelle build 1.21.1 fonctionne.

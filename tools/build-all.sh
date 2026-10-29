@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Builds every mod in the repository, in dependency order.
 #
-# Why the order matters: fifteen mods compile against a sibling mod's built jar,
+# Why the order matters: fourteen mods compile against a sibling mod's built jar,
 # picked up from `../<Mod>/build/libs/`. CheeseDash has to exist before anything
-# that depends on it, and CheeseItems before CheeseStore. Within a tier the mods
-# are independent of each other.
+# that depends on it, CheeseGuard before AetherialBridge and CheeseRaids, and
+# CheeseItems before CheeseStore. Within a tier the mods are independent of each
+# other.
 #
 # Usage:
 #   tools/build-all.sh            # build everything

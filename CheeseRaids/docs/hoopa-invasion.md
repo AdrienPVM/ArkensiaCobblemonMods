@@ -188,10 +188,8 @@ ticks.
    non-zero and CheeseStore is installed;
 5. every entry in `reward.commands` runs once per winner with `{player}` substituted.
 
-"Winner" here means every player in the instance who is online at that moment. There is no
-check that they ever arrived, let alone fought. A player who entered the rift, fell off the
-parkour fifty times and never reached the disk is rewarded identically to the one who beat
-the boss.
+"Winner" here means every player in the instance who is online at that moment. The reward
+path does not read the `arrived` flag, so it does not reflect what a player did in the raid.
 
 ### 7. Cleanup (`CLEANUP`)
 
@@ -214,7 +212,7 @@ Collected in one place, because the sequence above reads smoother than the mod p
 |---|---|
 | The herald has no dialogue | the NPC appears and glows, but nothing makes him an entry point. You must bind his dialogue to `/cheeseraids enter <id>` in EasyNPC yourself |
 | The boss fight has no raid mechanic | a plain Cobblemon battle. Several players on one disk, one battle |
-| Rewards are not gated on participation | everyone online when the boss dies is rewarded, arrived or not |
+| Rewards are not gated on participation | the reward path does not read the `arrived` flag |
 | `stop` does not eject players | manual stop leaves players in a dimension whose floor is being deleted |
 | Discord announcements are a log line | `announce.discord` sends nothing anywhere |
 | Sixteen config keys do nothing | listed in [configuration](configuration.md) |

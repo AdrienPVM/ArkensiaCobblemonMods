@@ -296,8 +296,8 @@ Dit clairement, parce que lire le source sans cette liste est déroutant :
 Au-delà du code mort :
 
 - **Le basculement de mode de Régis est global au serveur** alors que le drapeau de mode est
-  par joueur. Deux joueurs entrant avec des modes opposés affrontent tous deux celui écrit en
-  dernier. Assumé dans le source comme un risque accepté à cinq ou dix entrées par semaine.
+  par joueur. Des entrées qui se chevauchent peuvent affronter une variante qu'elles n'ont
+  pas choisie. Assumé dans le source comme un risque accepté à cinq ou dix entrées par semaine.
   [Détails](champion-morphing.fr.md#le-basculement-de-mode-de-régis-est-global).
 - **L'identifiant du champion final est codé en dur à quatre endroits** —
   `ChampionManager` lignes 548, 605 et 792, et `StatueCommand` ligne 541.

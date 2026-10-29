@@ -149,8 +149,11 @@ under a party's feet.
 
 ## A complete annotated example
 
-JSON has no comments, so the annotations below are prose in a `// …` form you must strip
-before use. This is the main config with the database switched on:
+Standard JSON has no comments, but `ConfigLoader` reads this file through `Gson.fromJson`,
+which parses leniently and skips `//` lines, so the annotations below can stay in the file.
+The mod only writes `config.json` when it is missing, so they are not erased later either.
+Strip them if another tool has to read the file. This is the main config with the database
+switched on:
 
 ```json
 {

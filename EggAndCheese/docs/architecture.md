@@ -269,8 +269,8 @@ never lets them find the egg again. See
 
 **The hunt egg is not as indestructible as it looks.** `onBreak` returning the old state
 cancels nothing; only the zero breaking delta stops survival players. A non-admin in
-creative mode, or any explosion (blast resistance `0`), removes the block without marking
-the entry `positionLost`. See
+creative mode, or an explosion, removes the block without marking the entry
+`positionLost`; protect the area, for instance with CheeseGuard's `explosions` flag. See
 [placement and discovery](placement-and-discovery.md#indestructibility).
 
 **The shipped advancement is never loaded.** `egg_found.json` sits in

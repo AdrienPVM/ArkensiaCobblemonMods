@@ -160,9 +160,11 @@ S'enregistre sous le préfixe `store`, avec deux surfaces distinctes :
   l'erreur d'une commande, donc une commande d'achat dont la commande a échoué affiche
   quand même `DELIVERED` ; `failedOrders` dans `GET /api/v1/store/stats` ne bouge
   presque jamais. [Détails](docs/payments.fr.md#léchec-qui-te-coûte-réellement-de-largent).
-- **L'UUID d'un acheteur par carte est pris sur confiance**, depuis le corps de la
-  requête de checkout. Les achats en crédits sont différents : ceux-là résolvent le
-  compte depuis une session liée.
+- **L'UUID et le pseudo d'un acheteur par carte sont pris sur confiance**, depuis le
+  corps de la requête de checkout, et le pseudo est inséré dans les commandes de
+  livraison sans validation : écris des commandes de produit qui restent sûres quel que
+  soit le pseudo. Les achats en crédits sont différents : ceux-là résolvent le compte
+  depuis une session liée.
 - **L'historique des commandes plafonne à 5 000 entrées**, les plus anciennes sont
   jetées. Les registres de Stripe sont les registres de référence.
 - **Quatre clés de configuration sont mortes** (`googleClientId`,

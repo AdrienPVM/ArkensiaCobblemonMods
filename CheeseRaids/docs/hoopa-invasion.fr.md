@@ -197,10 +197,9 @@ sons. Les étincelles continuent toutes les quatre ticks.
 5. chaque entrée de `reward.commands` s'exécute une fois par gagnant, avec `{player}`
    substitué.
 
-« Gagnant » désigne ici tout joueur de l'instance connecté à cet instant. Il n'y a aucune
-vérification qu'il soit arrivé, encore moins qu'il ait combattu. Un joueur qui est entré dans
-la faille, est tombé cinquante fois du parkour et n'a jamais atteint le disque est récompensé
-exactement comme celui qui a battu le boss.
+« Gagnant » désigne ici tout joueur de l'instance connecté à cet instant. Le chemin de
+récompense ne lit pas le drapeau `arrived`, donc la récompense ne reflète pas ce qu'un joueur a
+fait pendant le raid.
 
 ### 7. Le nettoyage (`CLEANUP`)
 
@@ -223,7 +222,7 @@ Rassemblé au même endroit, parce que la séquence ci-dessus se lit mieux que l
 |---|---|
 | Le héraut n'a pas de dialogue | le NPC apparaît et luit, mais rien n'en fait un point d'entrée. Tu dois câbler son dialogue sur `/cheeseraids enter <id>` dans EasyNPC toi-même |
 | Le combat de boss n'a pas de mécanique de raid | un combat Cobblemon ordinaire. Plusieurs joueurs sur un disque, un seul combat |
-| Les récompenses ne dépendent pas de la participation | tout joueur connecté à la mort du boss est récompensé, arrivé ou non |
+| Les récompenses ne dépendent pas de la participation | le chemin de récompense ne lit pas le drapeau `arrived` |
 | `stop` n'éjecte pas les joueurs | un arrêt manuel laisse les joueurs dans une dimension dont le sol est en train d'être supprimé |
 | Les annonces Discord sont une ligne de journal | `announce.discord` n'envoie rien nulle part |
 | Seize clés de configuration ne font rien | listées dans la [configuration](configuration.fr.md) |

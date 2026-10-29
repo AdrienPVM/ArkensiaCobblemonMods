@@ -63,8 +63,8 @@ the `state` subtree, `playerworld`, `event announce`, `event score`, `event snap
 ## A player changed a zone's flags
 
 **Cause.** On a jar built before 29 October 2026, `/cg flag`, `/cg addmember`,
-`/cg removemember` and `/cg group *` carried **no permission gate**. Any player could run
-them on any zone id, and zone ids are derived from zone names, so they are guessable.
+`/cg removemember` and the `/cg group` subtree carried **no permission gate**: any
+player could run them.
 
 **Fix.** Update the jar — those four nodes are at level 2 now. The levels are compiled
 into the Brigadier tree, so there is no config switch: on an older jar, block the nodes

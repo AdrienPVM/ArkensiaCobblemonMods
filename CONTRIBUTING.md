@@ -27,8 +27,8 @@ other open branch, and the diff hides whatever real change is inside.
 
 ## Building
 
-You need **JDK 21** and nothing else — Gradle comes with the wrapper, and every
-third-party mod dependency is resolved from Maven automatically.
+You need **JDK 21** and, for 19 of the 21 mods, nothing else — Gradle comes with the
+wrapper, and their third-party mod dependencies are resolved from Maven automatically.
 
 Each mod is an independent Gradle project:
 
@@ -75,18 +75,19 @@ coordinate carries a comment with the readable version; `localdeps/README.md` ex
 how to find an id when you need to bump one.
 
 To test against a real server, drop the built jar into your server's `mods/` folder
-along with CheeseDash and whatever the mod declares in its `depends`. Delete the old
+along with whatever the mod declares in its `depends` — CheeseDash, for most of them. Delete the old
 jar first — two versions of the same mod in `mods/` will fail to load in confusing
 ways.
 
-### A compilation error you will probably hit
+### A compilation error you may hit
 
 ```
 package com.sun.net.httpserver is not visible
 ```
 
-The mod needs the JDK's internal HTTP server exported. Its `build.gradle` should
-already contain:
+The mods that serve dashboard routes compile against the JDK's HTTP server. Today only
+CobblemonDungeons's `build.gradle.kts` exports it explicitly; the others build without
+the flag. If a mod fails with this error, add the same export to its `build.gradle`:
 
 ```gradle
 options.compilerArgs += ['--add-exports', 'jdk.httpserver/sun.net.httpserver=ALL-UNNAMED']
@@ -165,8 +166,9 @@ and please keep it that way.
 - Use the existing design-system classes (`.btn-cg`, `.cg-table`, `.section-card`,
   `.field-label`…) and the CSS variables. No raw hex colours, no inline styles.
 - `const` / `let`, never `var`. Debounce search inputs at 300 ms.
-- Edit the files at the root of `CheeseDash/`, not the copies under
-  `src/main/resources/dashboard/` — `processResources` overwrites those on every build.
+- Edit the files at the root of `CheeseDash/` (`index.html`, `preview.html`,
+  `assets/`). There is no copy of them under `src/main/resources/`: `processResources`
+  copies them into the jar's `dashboard/` folder at build time.
 - A helper used by two or more views belongs in `app.js`; one used by a single view
   belongs in that view's `view-*.js`.
 

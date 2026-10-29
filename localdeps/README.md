@@ -64,6 +64,14 @@ Loom 1.10.5 refuses to read.
 
 **CurseMaven** (`https://cursemaven.com`) — Radical Cobblemon Trainers API.
 
+**Ladysnake Maven** (`https://maven.ladysnake.org/releases`) — Cardinal Components API,
+for CheesePurse.
+
+**TerraformersMC Maven** (`https://maven.terraformersmc.com/`) — Trinkets, for
+CheeseVanity.
+
+**Maven Central** — the Kotlin standard library and the MariaDB JDBC driver.
+
 ### Why the Modrinth coordinates look like gibberish
 
 You will see dependencies written like this:
@@ -105,7 +113,9 @@ cd ../CheeseItems && ./gradlew build  # needed by CheeseStore
 # then any other mod, in any order
 ```
 
-If a build fails on a missing `cheesedash-1.0.0.jar`, you skipped the first step.
+If a build fails on missing `com.cheesedash` classes, you skipped the first step.
+`tools/build-all.sh` at the repository root walks this order for you.
 
-Those references pin version `1.0.0` in the filename, so if you bump a mod's version
-you also need to update the paths in the mods that depend on it.
+Those references are a glob over `../<Mod>/build/libs/` (`cheesedash-*.jar`, minus the
+`-sources` and `-dev` variants), so bumping a mod's version never breaks the mods that
+depend on it.

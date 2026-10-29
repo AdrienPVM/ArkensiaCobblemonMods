@@ -153,9 +153,11 @@ CommandRegistrationCallback.EVENT.register(...)
 ```
 
 issu de `net.fabricmc.fabric.api.command.v2`, et `fabric-api` n'est **pas** dans `depends`.
-Sans Fabric API, le mod se charge puis meurt sur un `NoClassDefFoundError` pendant son
-initialisation, au lieu d'être refusé avec un message lisible *requires fabric-api*. Le
-`build.gradle` déclare bien un `modImplementation` sur Fabric API : c'est donc purement un
+Aujourd'hui, ce trou est masqué par l'autre : `cheesedash` est une dépendance obligatoire, et
+CheeseDash exige lui-même `fabric-api`, donc sans Fabric API le loader refuse de démarrer
+et signale `fabric-api` comme manquant pour CheeseDash. Retire `cheesedash` de
+`depends`, en revanche, et le mod se chargerait puis mourrait sur un
+`NoClassDefFoundError` pendant son initialisation. Le `build.gradle` déclare bien un `modImplementation` sur Fabric API : c'est donc purement un
 trou dans les métadonnées d'exécution.
 
 ## Points d'extension

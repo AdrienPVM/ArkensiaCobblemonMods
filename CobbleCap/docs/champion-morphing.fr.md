@@ -222,13 +222,14 @@ n'est présent, le basculement est abandonné.
 
 ⚠️ Il y a **un seul** fichier actif, et il est global au serveur. Le mode choisi par le
 joueur est stocké par joueur sur le scoreboard `cobblecap_mode`, mais le dresseur qu'il
-affronte réellement est la variante écrite en dernier. Deux joueurs entrant dans le Conseil
-4 à une seconde d'intervalle avec des modes opposés affronteront tous les deux le choix du
-second. Le source l'assume : la conception est l'« Option B », retenue au motif qu'à cinq ou
+affronte réellement est la variante écrite en dernier. Quand des entrées se chevauchent, un
+joueur peut affronter la variante choisie par quelqu'un d'autre, donc une victoire classée
+n'a pas forcément été obtenue contre l'équipe classée. Le source l'assume : la conception est l'« Option B », retenue au motif qu'à cinq ou
 dix entrées par semaine la course est rare, et que le contrôle de no-op coalesce les
 répétitions. C'est un vrai trou de correction, pas un oubli, et le seul correctif robuste
 serait des instances de dresseur par joueur — ce que `Conseil4TrainerCloner` devait faire
-avant d'être désactivé.
+avant d'être désactivé. D'ici là, ne laisser entrer qu'un challenger à la fois supprime le
+problème.
 
 ## Le repli : un NPC Cobblemon
 

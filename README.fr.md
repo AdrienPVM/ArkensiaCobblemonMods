@@ -17,7 +17,7 @@ les faire vivre.
 
 ## Commence par CheeseDash
 
-La plupart de ces mods ne fonctionnent pas seuls. **[CheeseDash](CheeseDash/)** est le
+La plupart de ces mods ne fonctionnent pas seuls. **[CheeseDash](CheeseDash/README.fr.md)** est le
 pivot : un dashboard web auto-hébergé auquel les autres mods se branchent via un
 entrypoint Fabric personnalisé. Si tu n'installes qu'un seul mod de ce dépôt, installe
 celui-là.
@@ -30,7 +30,7 @@ Navigateur ──HTTP 44311──┐
                          ├── CheeseDash ──┬── CheeseGuard
 Navigateur ──WS   44312──┘                ├── CheeseMarket
                                           ├── CheeseStore
-                                          └── … 14 autres modules
+                                          └── … 10 autres modules
 ```
 
 ---
@@ -41,52 +41,52 @@ Navigateur ──WS   44312──┘                ├── CheeseMarket
 
 | Mod | Rôle | Nécessite |
 |-----|------|-----------|
-| **[CheeseDash](CheeseDash/)** | Dashboard web d'administration auto-hébergé (HTTP + WebSocket), authentification par session avec rôles, journal d'audit, webhooks Discord. Expose l'API de modules à laquelle tous les autres mods s'enregistrent. | — |
+| **[CheeseDash](CheeseDash/README.fr.md)** | Dashboard web d'administration auto-hébergé (HTTP + WebSocket), authentification par session avec rôles, journal d'audit, webhooks Discord. Expose l'API de modules à laquelle les autres mods s'enregistrent. | — |
 
 ### Monde et joueurs
 
 | Mod | Rôle | Nécessite |
 |-----|------|-----------|
-| **[CheeseGuard](CheeseGuard/)** | Protection de régions avec flags par zone, dimensions personnalisées avec snapshots et resets, système d'événements chronométrés complet, gestion des joueurs, outillage de chunks. Le plus gros mod du dépôt. | CheeseDash |
-| **[CheeseMusic](CheeseMusic/)** | Musique d'ambiance par zone, avec fondu au franchissement des frontières de région. | — |
-| **[CheesePatrol](CheesePatrol/)** | Patrouilles par waypoints pour les entités EasyNPC : les PNJ parcourent une boucle et s'arrêtent pour regarder les joueurs proches. | CheeseDash |
-| **[AetherialBridge](AetherialBridge/)** | Enregistre la génération d'îles flottantes d'Aetherial Islands comme type de génération de dimension CheeseGuard. L'overworld vanilla reste intact. | CheeseGuard, Aetherial Islands |
+| **[CheeseGuard](CheeseGuard/README.fr.md)** | Protection de régions avec flags par zone, dimensions personnalisées avec snapshots et resets, système d'événements chronométrés complet, gestion des joueurs, outillage de chunks. Le plus gros mod du dépôt. | CheeseDash |
+| **[CheeseMusic](CheeseMusic/README.fr.md)** | Musique d'ambiance par zone, avec fondu au franchissement des frontières de région. | CheeseGuard, ReactiveMusic sur les clients (en pratique) |
+| **[CheesePatrol](CheesePatrol/README.fr.md)** | Patrouilles par waypoints pour les entités EasyNPC : les PNJ parcourent une boucle et s'arrêtent pour regarder les joueurs proches. | CheeseDash, EasyNPC (en pratique) |
+| **[AetherialBridge](AetherialBridge/README.fr.md)** | Enregistre la génération d'îles flottantes d'Aetherial Islands comme type de génération de dimension CheeseGuard. L'overworld vanilla reste intact. | CheeseGuard, Aetherial Islands |
 
 ### Économie
 
 | Mod | Rôle | Nécessite |
 |-----|------|-----------|
-| **[CheeseMarket](CheeseMarket/)** | Boutiques côté joueur avec interface plein écran personnalisée et éditeur de mise en page dans le dashboard. | CheeseDash |
-| **[CheeseStore](CheeseStore/)** | Boutique premium web avec paiement Stripe, gestion des commandes, livraison manuelle et portefeuilles. ⚠️ Traite de vrais paiements — lis son [README](CheeseStore/README.md) et [SECURITY.md](SECURITY.md) avant toute chose. | CheeseDash, CheeseItems |
-| **[CheesePurse](CheesePurse/)** | Dépose automatiquement dans la bourse du joueur les pièces Numismatic Overhaul ramassées. | Numismatic Overhaul |
+| **[CheeseMarket](CheeseMarket/README.fr.md)** | Boutiques côté joueur avec interface plein écran personnalisée et éditeur de mise en page dans le dashboard. | CheeseDash |
+| **[CheeseStore](CheeseStore/README.fr.md)** | Boutique web avec paiement Stripe, livraison en jeu, une monnaie de crédits et un catalogue de cosmétiques jouables. ⚠️ Traite de vrais paiements — lis son [README](CheeseStore/README.fr.md) et [SECURITY.md](SECURITY.md) avant toute chose. | CheeseDash, CheeseItems |
+| **[CheesePurse](CheesePurse/README.fr.md)** | Un bouton dans l'écran d'inventaire qui balaie les pièces Numismatic Overhaul du joueur vers sa bourse, deux fois par seconde. | Numismatic Overhaul |
 
 ### Gameplay Cobblemon
 
 | Mod | Rôle | Nécessite |
 |-----|------|-----------|
-| **[CobbleCap](CobbleCap/)** | Progression du niveau maximum des Pokémon par badges, détection des champions, Hall of Fame, chronos et dioramas de statues décoratifs. | Cobblemon |
-| **[CobbleShift](CobbleShift/)** | Transforme les joueurs et les PNJ EasyNPC en Pokémon, avec des capacités passives selon le type et des attaques à distance. Dialogue avec Cobblemon par réflexion, donc se dégrade proprement en son absence. | Cobblemon (optionnel) |
-| **[CobbleCheeseScore](CobbleCheeseScore/)** | Classements multiples configurables, avec export PNG pour affichage sur carte in-game. | CheeseDash |
-| **[CobblemonDungeons](CobblemonDungeons/)** | Système de donjons configurable : instances, tickets, dresseurs, classements et historique des runs. | Cobblemon, RCTApi, CheeseDash |
-| **[CheeseExtraCommands](CheeseExtraCommands/)** | Commandes de vérification utilisées par les chaînes de quêtes PNJ : contrôle des EV, IV, espèces et variété de balls. | Cobblemon (optionnel) |
+| **[CobbleCap](CobbleCap/README.fr.md)** | Progression du niveau maximum des Pokémon par badges, détection des champions, Hall of Fame, chronos et dioramas de statues décoratifs. | Cobblemon (en pratique), Radical Cobblemon Trainers (pour les champions) |
+| **[CobbleShift](CobbleShift/README.fr.md)** | Transforme les joueurs et les PNJ EasyNPC en Pokémon, avec des capacités passives selon le type et des attaques à distance. Atteint Cobblemon par réflexion, donc se charge sans lui — mais toute recherche d'espèce échoue alors. | Cobblemon (en pratique) |
+| **[CobbleCheeseScore](CobbleCheeseScore/README.fr.md)** | Trente-quatre classements Cobblemon, chacun rendu en PNG servi sur une URL stable pour les cadres d'image en jeu. | CheeseDash, Cobblemon (en pratique) |
+| **[CobblemonDungeons](CobblemonDungeons/README.fr.md)** | Système de donjons configurable : instances, tickets, dresseurs, classements et historique des runs. | Cobblemon, RCTApi, CheeseDash |
+| **[CheeseExtraCommands](CheeseExtraCommands/README.fr.md)** | Commandes de vérification utilisées par les chaînes de quêtes PNJ : contrôle des EV, IV, espèces et variété de balls, plus le suivi du tour de l'île d'Arkensia. | Cobblemon (en pratique) |
 
 ### Événements et contenu
 
 | Mod | Rôle | Nécessite |
 |-----|------|-----------|
-| **[EggAndCheese](EggAndCheese/)** | Chasse aux œufs collectionnables générés procéduralement, avec génération par ADN immuable et aperçu 3D dans le dashboard. | CheeseDash |
-| **[CheeseRaids](CheeseRaids/)** | Framework de raids multijoueurs chronométrés : arènes procédurales, boss coopératifs et récompenses. ⚠️ Expérimental — voir son README. | CheeseDash, CheeseGuard |
-| **[CheeseKart](CheeseKart/)** | Mode course de karts construit sur des bateaux invisibles et la physique OpenBoatUtils, avec presets réglables. | CheeseDash |
-| **[CheeseItems](CheeseItems/)** | Objets de quête personnalisés avec NBT, effets et rechargement à chaud, créés intégralement depuis le dashboard. | CheeseDash |
-| **[CheeseVanity](CheeseVanity/)** | Permet aux joueurs de masquer leurs trinkets et leur armure sur leur propre modèle. | Trinkets (optionnel) |
+| **[EggAndCheese](EggAndCheese/README.fr.md)** | Chasse aux œufs collectionnables générés procéduralement, avec génération par ADN immuable et aperçu 3D dans le dashboard. | CheeseDash |
+| **[CheeseRaids](CheeseRaids/README.fr.md)** | Framework de raids multijoueurs chronométrés : arènes procédurales, boss coopératifs et récompenses. ⚠️ Expérimental — voir son README. | CheeseDash, CheeseGuard, Cobblemon (en pratique) |
+| **[CheeseKart](CheeseKart/README.fr.md)** | Mode course de karts construit sur des bateaux invisibles et la physique OpenBoatUtils, avec presets réglables. | CheeseDash, OpenBoatUtils sur les clients (fortement recommandé) |
+| **[CheeseItems](CheeseItems/README.fr.md)** | Objets de quête personnalisés avec NBT, effets et rechargement à chaud, créés intégralement depuis le dashboard, plus le catalogue de transformations Morpho. | CheeseDash |
+| **[CheeseVanity](CheeseVanity/README.fr.md)** | Permet aux joueurs de masquer leurs trinkets et leur armure sur leur propre modèle. | Trinkets (optionnel) |
 
 ### Utilitaires et correctifs
 
 | Mod | Rôle | Nécessite |
 |-----|------|-----------|
-| **[ScheduleRestart](ScheduleRestart/)** | Redémarrages et arrêts planifiés du serveur avec compte à rebours pour les joueurs. | CheeseDash |
-| **[CheeseFixQuests](CheeseFixQuests/)** | Force la progression individuelle dans FTB Quests même quand les joueurs partagent une équipe FTB Teams. Utile bien au-delà de ce serveur. | FTB Quests, FTB Teams |
-| **[CheeseCompatModsFix](CheeseCompatModsFix/)** | ⚠️ Correctifs de compatibilité dont les mixins ciblent des mods tiers. Conçus pour un modpack précis et susceptibles de casser à chaque mise à jour de ces mods. Fournis tels quels, sans support. | — |
+| **[ScheduleRestart](ScheduleRestart/README.fr.md)** | Redémarrages et arrêts planifiés du serveur avec compte à rebours pour les joueurs. | CheeseDash |
+| **[CheeseFixQuests](CheeseFixQuests/README.fr.md)** | Force la progression individuelle dans FTB Quests même quand les joueurs partagent une équipe FTB Teams. Utile bien au-delà de ce serveur. | FTB Quests, FTB Teams |
+| **[CheeseCompatModsFix](CheeseCompatModsFix/README.fr.md)** | ⚠️ Correctifs de compatibilité dont les mixins ciblent des mods tiers. Conçus pour un modpack précis et susceptibles de casser à chaque mise à jour de ces mods. Fournis tels quels, sans support. | — |
 
 ---
 
@@ -107,6 +107,10 @@ détail :
 | `architecture.md` | arborescence des packages, threading, mixins, points d'extension, et une liste franche des faiblesses connues |
 | `troubleshooting.md` | symptôme, cause, remède |
 
+`installation`, `getting-started`, `architecture` et `troubleshooting` existent pour
+chaque mod ; `commands`, `configuration` et `dashboard` seulement quand le mod a des
+commandes, un fichier de configuration ou un module de dashboard.
+
 **Tout existe aussi en anglais**, en `*.md` à côté de chaque page française. Chaque page
 porte un sélecteur de langue sur sa première ligne.
 
@@ -115,6 +119,16 @@ anciens readmes — qui décrivaient des commandes inexistantes, des arguments d
 mauvais ordre et des fonctionnalités jamais branchées. Quand un mod est fragile,
 expérimental, ou qu'il a une valeur par défaut à changer avant toute mise en service, ses
 pages le disent, plutôt que de te le laisser découvrir en production.
+
+---
+
+## Téléchargement
+
+Les jars compilés sont sur les [GitHub Releases](https://github.com/AdrienPVM/ArkensiaCobblemonMods/releases) : une release par mod, avec le
+tag `<nom du jar>-v<version>+1.21.1`. Tous les mods sont en version 1.0.0, sauf
+CheeseFixQuests (1.0.1), CheeseCompatModsFix (1.2.53) et CobblemonDungeons (1.1.147).
+La section d'installation du README de chaque mod précise si son jar va sur le serveur,
+sur les clients ou des deux côtés.
 
 ---
 
@@ -156,7 +170,12 @@ tools/build-all.sh --clean    # vider build/libs d'abord — à faire avant une 
 
 Les dépendances entre mods se résolvent par un glob sur `../<Mod>/build/libs/` :
 changer la version d'un mod ne casse donc jamais ceux qui en dépendent. Les jars sont
-nommés `<modid>-<version>+1.21.1.jar`, où `+1.21.1` est la version de Minecraft visée.
+nommés `<nom>-<version>+1.21.1.jar`, où `+1.21.1` est la version de Minecraft visée et
+`<nom>` l'identifiant du mod pour la plupart d'entre eux. Six font exception :
+`AetherialBridge`, `CheeseExtraCommands`, `CheesePatrol`, `CobbleCap` et
+`ScheduleRestart` portent le nom de leur dossier, et CobblemonDungeons produit
+`cobblemon-dungeons` (son identifiant est `cobblemon_dungeons`). Le jar de CheesePurse
+s'appelle `numismatic-cheesepurse`, son identifiant.
 
 ### Deux mods exigent des jars que tu dois fournir
 
@@ -169,8 +188,9 @@ Télécharge-les toi-même dans [`localdeps/`](localdeps/README.md). Les deux bu
 s'arrêtent immédiatement en nommant précisément ce qui manque, tu ne resteras donc
 pas dans le flou. **Les 19 autres mods n'ont besoin de rien de tout ça.**
 
-L'ordre d'installation sur un serveur suit la même logique : CheeseDash d'abord, puis
-tout ce qui en dépend.
+Sur un serveur, l'ordre n'a pas d'importance — Fabric charge tous les jars de `mods/`
+d'un coup — mais les dépendances de chaque mod doivent être présentes à côté de lui,
+CheeseDash en tête.
 
 ---
 
@@ -185,7 +205,7 @@ additionnelle pour les opérateurs de serveur.
 - le modifier, le forker et continuer à le maintenir
 - le redistribuer, modifications incluses
 - le faire tourner sur ton serveur Minecraft — **même un serveur qui reçoit des dons,
-  vend des rangs ou tient une boutique**
+  vend des rangs, tient une boutique ou est exploité comme une entreprise**
 
 **Tu ne peux pas**
 

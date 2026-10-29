@@ -111,9 +111,8 @@ documented here.
 
 ### Ghost is a trap on a public server
 
-`ghost` grants real Invisibility, refreshed every five seconds for as long as the player
-keeps a Ghost-type lead. On a PvP server that is permanent invisibility available to anyone
-who catches a Gastly. Either keep the subsystem off, or opt those players out with
+`ghost` grants real Invisibility. This effect can give an advantage in PvP; the subsystem
+is off by default. On a PvP server, either keep it off, or opt players out with
 `/cshift ability toggle`.
 
 It also interacts with transforms: both use Invisibility, and a revert calls

@@ -137,7 +137,7 @@ behaviour. Operators (level 2), however, bypass every member-exempt flag everywh
 ⚠️ Two things to get right here. The value must be exactly `true`, `false` or `inherit`:
 anything else, including `yes` and `1`, is read as `false` with a confirmation message
 that looks like success. And `/cg flag` was **ungated until 29 October 2026** — on an
-older jar, any player can run it on any zone whose id they guess. Check
+older jar, any player can run it; update the jar. Check
 [the gate table](commands.md#permission-levels) against the jar you deployed.
 
 The 31 flags, and whether members are exempt from each, are listed in

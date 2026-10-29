@@ -152,8 +152,7 @@ ferme l'onglet en pleine redirection ne le déclenche jamais.
 échec → `502 {"error":"Failed to retrieve session"}` ; Stripe non configuré → `503`.
 Un identifiant de session inconnu de Stripe n'est pas une erreur de ce côté : le corps
 d'erreur de Stripe n'a pas de `status`, donc la route répond `200 {"status":""}`. Aucun
-de ces cas ne perd le paiement, parce que le webhook arrive quand même. La route n'a
-aucune limitation de débit.
+de ces cas ne perd le paiement, parce que le webhook arrive quand même.
 
 ### 5. Le webhook — le chemin de référence
 
@@ -191,24 +190,26 @@ dont Stripe a besoin pour arrêter de réessayer.
 Dans les deux cas, le webhook répond quand même `200 {"received":true}`, donc Stripe
 ne réessaie pas : le paiement est encaissé et aucune commande n'existe dans le mod.
 **Ne supprime pas un produit tant que des paiements pour lui peuvent être en cours.**
-Le `payment_status` de la session n'est pas lu non plus — tout événement
-`checkout.session.completed`, ou toute session récupérée dont le `status` vaut
-`"complete"`, crée la commande.
+Garde aussi le compte Stripe de la boutique sur des moyens de paiement immédiats (cartes
+et portefeuilles de cartes) : **n'active pas de moyens de paiement différés** dans Stripe
+pour cette boutique, car le mod ne les gère pas.
 
 Puis `DeliveryManager.createDelivery` s'exécute. **C'est la frontière
 d'idempotence.** L'identifiant de session Stripe est l'identifiant de commande, et
 `createDelivery` renvoie `false` si une livraison avec cet identifiant existe déjà, en
 journalisant `Duplicate delivery attempt for orderId=...`. C'est ce qui empêche le
 chemin de vérification (étape 4) et le webhook (étape 5) de livrer deux fois le même
-achat — le premier arrivé gagne, le second ne fait rien. La vérification puis l'ajout
-ne sont pas atomiques pour autant (`createDelivery` n'est pas synchronisée et CheeseDash
-sert le HTTP sur un pool de quatre threads) : un appel de vérification et un webhook
-arrivant au même instant pourraient en théorie passer tous deux le contrôle et créer
-deux commandes d'achat.
+achat — le premier arrivé gagne, le second ne fait rien. Ce garde n'est pas étanche dans
+tous les cas : si tu vois un jour deux commandes d'achat portant le même `orderId`, ne
+livre à la main que ce qui manque et
+[lis l'entrée de dépannage](troubleshooting.fr.md#tout-a-été-livré-deux-fois).
 
 Une livraison créée stocke les commandes **résolues** : `{player}` est remplacé au
 moment de la création, depuis le pseudo présent dans les métadonnées Stripe. Modifier
 ensuite les commandes du produit ne change pas une livraison déjà en file.
+
+> ⚠️ Ce pseudo vient de la requête de checkout et est inséré dans les commandes **sans
+> validation**. Écris des commandes de produit qui restent sûres quel que soit le pseudo.
 
 L'enregistrement est ajouté à `config/cheesestore_deliveries.json` immédiatement, et un
 message `store_purchase` part sur le canal WebSocket `store`.
@@ -324,12 +325,9 @@ Lis cette partie comme la liste de tes responsabilités, pas de celles du mod.
 
 **Le `playerUUID` est fourni par le navigateur.** L'étape 2 prend `playerUUID` et
 `playerName` dans le corps de la requête et ne vérifie pas que la personne qui paie
-possède ce compte. La boutique résout les pseudos via `GET /store/api/players` (qui lit
-`usercache.json` plus la liste des joueurs connectés), mais rien n'empêche un POST
-fabriqué à la main de nommer l'UUID de quelqu'un d'autre. En pratique, cela veut dire
-qu'un acheteur peut offrir un achat à un compte arbitraire — généralement sans
-conséquence, mais cela veut dire aussi qu'un enregistrement de livraison ne prouve pas
-qui a payé. Les routes d'achat en crédits (`/cosmetics/buy`, `/morpho/buy`,
+possède ce compte. En pratique, un achat peut être livré à un autre compte que celui
+du payeur — généralement sans conséquence, mais cela veut dire qu'un enregistrement de
+livraison ne prouve pas qui a payé. Les routes d'achat en crédits (`/cosmetics/buy`, `/morpho/buy`,
 `/playcosmetics/{id}/buy`) sont différentes : celles-là exigent une session OAuth **et**
 un compte Minecraft lié, donc elles savent qui dépense.
 

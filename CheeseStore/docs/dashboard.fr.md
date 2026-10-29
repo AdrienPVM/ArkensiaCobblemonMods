@@ -440,11 +440,9 @@ de garder le port derrière un proxy capable de la restreindre.
 Séquence complète, échec par échec, dans
 [le flux de paiement](payments.fr.md#la-séquence).
 
-Note que `/session-status` ne porte **aucune** limitation de débit et aucune
-vérification d'origine. C'est une lecture de l'état de Stripe suivie d'une livraison
-idempotente, donc le pire qu'un flot de requêtes obtienne est un appel sortant vers
-l'API Stripe par requête — ce qui compte quand même contre tes quotas Stripe et mérite
-une limitation au niveau du proxy si ta boutique est fréquentée.
+Pose une limite de requêtes sur `/store/api/session-status` au niveau de ton reverse
+proxy. Chaque appel relit la session chez Stripe, ce qui compte dans ton quota d'API
+Stripe, et la route n'est censée être appelée que quelques fois par achat, pas davantage.
 
 ### Les achats en crédits
 

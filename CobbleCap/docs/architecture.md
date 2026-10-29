@@ -283,8 +283,8 @@ Stated plainly, because reading the source without this list is confusing:
 
 Beyond the dead code:
 
-- **The Régis mode swap is server-global** while the mode flag is per-player. Two players
-  entering with opposite modes both fight whichever was written last. Acknowledged in the
+- **The Régis mode swap is server-global** while the mode flag is per-player. Overlapping
+  entries can fight a variant they did not choose. Acknowledged in the
   source as an accepted risk at five to ten entries a week.
   [Details](champion-morphing.md#the-régis-mode-swap-is-global).
 - **The final champion id is hard-coded in four places** —

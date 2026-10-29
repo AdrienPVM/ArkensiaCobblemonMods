@@ -276,8 +276,8 @@ retrouver l'œuf. Voir
 
 **L'œuf de chasse n'est pas aussi indestructible qu'il en a l'air.** Le `onBreak` qui
 renvoie l'ancien état n'annule rien ; seule la vitesse de minage nulle arrête les joueurs
-en survie. Un non-admin en mode créatif, ou n'importe quelle explosion (résistance `0`),
-retire le bloc sans marquer l'entrée `positionLost`. Voir
+en survie. Un non-admin en mode créatif, ou une explosion, retire le bloc sans marquer
+l'entrée `positionLost` ; protège la zone, par exemple avec le flag `explosions` de CheeseGuard. Voir
 [placement et découvertes](placement-and-discovery.fr.md#indestructibilité).
 
 **L'advancement livré n'est jamais chargé.** `egg_found.json` se trouve dans

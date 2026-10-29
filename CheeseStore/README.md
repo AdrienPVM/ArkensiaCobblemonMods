@@ -150,8 +150,10 @@ Registers under the `store` prefix, with two separate surfaces:
   whose command failed still reads `DELIVERED`; `failedOrders` in
   `GET /api/v1/store/stats` almost never moves.
   [Details](docs/payments.md#the-failure-that-actually-costs-you-money).
-- **A paying buyer's UUID is taken on trust** from the checkout request body. Credit
-  purchases are different — those resolve the account from a linked session.
+- **A paying buyer's UUID and name are taken on trust** from the checkout request
+  body, and the name is inserted into the delivery commands without validation: write
+  product commands that stay safe with any name. Credit purchases are different —
+  those resolve the account from a linked session.
 - **Order history caps at 5 000 entries**, oldest dropped. Stripe's records are the
   authoritative ones.
 - **Four config keys are dead** (`googleClientId`, `googleClientSecret`,

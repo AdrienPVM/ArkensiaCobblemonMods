@@ -4,9 +4,7 @@
 
 **Please do not open a public GitHub issue for a security vulnerability.**
 
-Report it privately through
-[GitHub Security Advisories](https://github.com/AdrienPVM/ArkensiaCobblemonMods/security/advisories/new),
-or by direct message to **RoiCheese** on the
+Report it privately, by direct message to **RoiCheese** on the
 [Arkensia Discord](https://discord.gg/fYmPwMBjdB).
 
 Please include: which mod is affected, the version, what an attacker can achieve, and
@@ -50,14 +48,12 @@ CheeseDash opens two ports: **44311** (HTTP) and **44312** (WebSocket).
   does their job: `READ_ONLY` or `OPERATOR` rather than `SUPER_ADMIN`.
 - Sessions last 24 hours with a sliding expiry. Log out from shared machines.
 - ⚠️ **The login endpoint is not rate-limited.** There is a limiter — 20 failures per
-  60 seconds per IP — but `POST /api/v1/auth/login` is dispatched and returned *before*
-  the check runs (`WebDashboard.java:114`, ahead of the `isRateLimited` call on line 120),
-  and a failed login never calls `recordFailedAuth`. The limiter therefore only covers
+  60 seconds per IP — but it does not apply to `POST /api/v1/auth/login`; it only covers
   invalid `Authorization` headers on the other routes. The WebSocket on port 44312 has no
-  limiter at all either: a wrong token only closes the socket, and the client can
-  reconnect at once. A master token can be attacked at full speed, so the only thing
-  standing between an attacker and your server is the token's own entropy and your
-  firewall. Treat network-level restriction as mandatory, not advisory.
+  limiter either. Failed logins are audited (`auth.login_failed`, with the IP), but
+  nothing slows them down, so your defences are the token's own entropy (keep the
+  generated 256-bit tokens, never a memorable one) and your firewall or SSH tunnel.
+  Treat network-level restriction as mandatory, not advisory.
 
 ### CheeseStore — real payments
 
@@ -76,17 +72,21 @@ Before taking a single payment:
   reverse proxy. They are served by CheeseDash's HTTP server, on the **same port** as
   the admin dashboard (44311), so the proxy must forward only the `/store/` path and
   never `/`, `/api/` or the WebSocket port.
-- **Verify webhook signatures in production.** An unauthenticated webhook endpoint
-  lets anyone forge a "payment succeeded" event and grant themselves goods for free.
+- **Set the webhook signing secret before going live.** The webhook route refuses
+  every event with a `503` while it is empty, and rejects any event whose `Stripe-Signature`
+  does not match it. Never patch that check out: an unauthenticated webhook endpoint lets
+  anyone forge a "payment succeeded" event and grant themselves goods for free.
 - Test with Stripe test keys (`sk_test_…`) and the Stripe CLI before going live.
 - Rotate your keys immediately if they leak, from the Stripe dashboard. Rotating is
   cheap; a compromised key is not.
 
 ### Mods that patch third-party code
 
-`CheeseCompatModsFix` and `AetherialBridge` apply mixins to mods they do not own.
-These are not security boundaries, and a third-party update can change the code they
-target. Re-test after any update to the mods they touch.
+`CheeseCompatModsFix`, `CheeseFixQuests` and `AetherialBridge` apply mixins to mods
+they do not own, and `CheeseGuard`, `CobbleCap` and `CheeseVanity` each carry a few
+(into Cobblemon, Jade, JourneyMap or Trinkets). These are not security boundaries, and a
+third-party update can change the code they target. Re-test after any update to the
+mods they touch.
 
 ### General
 

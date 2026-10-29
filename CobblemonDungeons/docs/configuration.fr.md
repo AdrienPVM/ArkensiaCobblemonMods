@@ -157,9 +157,11 @@ un rechargement en pleine partie ne change pas les règles sous les pieds d'un g
 
 ## Un exemple complet annoté
 
-JSON n'admet pas de commentaires : les annotations ci-dessous sont de la prose sous une
-forme `// …` que tu dois retirer avant usage. La configuration principale avec la base
-de données activée :
+Le JSON standard n'admet pas de commentaires, mais `ConfigLoader` lit ce fichier avec
+`Gson.fromJson`, qui est permissif et ignore les lignes `//` : les annotations ci-dessous
+peuvent donc rester dans le fichier. Le mod n'écrit `config.json` que s'il est absent, elles
+ne sont donc pas effacées ensuite non plus. Retire-les si un autre outil doit lire le
+fichier. La configuration principale avec la base de données activée :
 
 ```json
 {

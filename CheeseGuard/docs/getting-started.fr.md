@@ -139,7 +139,7 @@ sont exemptés — le comportement classique d'une protection. Note que les opé
 `inherit` : toute autre valeur, `yes` et `1` compris, est lue comme `false`, avec un
 message de confirmation qui ressemble à une réussite. Et `/cg flag` était **sans garde de
 permission jusqu'au 29 octobre 2026** — sur un jar plus ancien, n'importe quel joueur peut
-la lancer sur n'importe quelle zone dont il devine l'identifiant. Compare
+la lancer ; mets le jar à jour. Compare
 [le tableau des gardes](commands.fr.md#niveaux-de-permission) avec le jar que tu as
 déployé.
 

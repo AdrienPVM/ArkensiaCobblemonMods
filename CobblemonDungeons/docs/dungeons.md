@@ -67,8 +67,8 @@ mod you are using:
   count of `targetServer` over the BungeeCord plugin channel; if the answer never comes
   within 60 ticks, or if the server reports as offline, the attempt is dropped and the
   leader is told *Dungeon server is offline. Please try again later.* Only then does the
-  countdown start. At the end of it each member receives a `DungeonJoinPayload` carrying
-  their serialised data and is transferred to `targetServer` 40 ticks later.
+  countdown start. At the end of it each member receives a `DungeonJoinPayload` and is
+  transferred to `targetServer` 40 ticks later.
 
 A dungeon created from the dashboard is forced to `SAME_SERVER`, because the dashboard has
 no way to know your proxy topology.
@@ -76,7 +76,9 @@ no way to know your proxy topology.
 ⚠️ `CROSS_SERVER` mode needs the Velocity plugin from `velocity-party-forwarder/` on the
 proxy, and the mod on both the main and the dungeon server with
 `cobblemon.dungeons.serverRole` set appropriately. See
-[the instance lifecycle](instances.md) and [installation](installation.md).
+[the instance lifecycle](instances.md) and [installation](installation.md). Its
+client→server payloads are not validated by the server: don't use this mode on a public
+server until this is fixed.
 
 ## `locations` and `additionalLocations`
 
