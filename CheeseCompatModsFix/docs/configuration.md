@@ -185,10 +185,11 @@ The `.dat` files are the only data here you cannot regenerate: each one is a pla
 party. Deleting one while a restore is still pending for that player loses whatever the
 tower had not yet restored.
 
-A fourth file is **read** and never written: `config/resourcepackoverrides.json`, which
-`CheeseCompatClient` would consult for its pack list — except that class is never
-instantiated, so nothing reads it either. See
-[the misc catalogue](fixes-misc.md#unreachable-the-client-resource-pack-activator).
+A fourth file is **read** and never written, and only on a client:
+`config/resourcepackoverrides.json`, from which `CheeseCompatClient` takes the ordered
+resource-pack list. It is synced from the server by AutoModpack, so the server stays the
+single source of truth; if it is absent, a hard-coded fallback list is used. See
+[the misc catalogue](fixes-misc.md#the-client-resource-pack-activator).
 
 ---
 

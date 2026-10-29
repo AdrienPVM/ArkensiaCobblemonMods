@@ -13,7 +13,7 @@ container; read the [catalogue pages](../README.md#the-fix-catalogue) for what i
 
 ```text
 com.cheesecompat
-├── CheeseCompatMod.java              the only entrypoint; wires every fix, owns the config
+├── CheeseCompatMod.java              the main entrypoint; wires every fix, owns the config
 ├── CheeseCompatConfig.java           three booleans, config/cheesecompatmodsfix.json
 ├── CheeseCompatMixinPlugin.java      decides which mixins apply, from isModLoaded checks
 ├── CheeseCompatClient.java           client entrypoint: activates the Arkensia resource packs

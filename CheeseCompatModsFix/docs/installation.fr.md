@@ -66,13 +66,16 @@ ne change rien.
 
 - Côté **serveur** : tout. Les 35 mixins serveur et tous les correctifs à base
   d'évènements.
-- Côté **client** : quatre mixins seulement — le correctif des aspects dans l'écran
-  d'équipe de Battle Tower, les deux classes d'icônes JourneyMap, et le cull des boutiques
-  Numismatic. Les quatre sont cosmétiques ou de performance.
+- Côté **client** : quatre mixins — le correctif des aspects dans l'écran d'équipe de
+  Battle Tower, les deux classes d'icônes JourneyMap, et le cull des boutiques Numismatic,
+  tous cosmétiques ou de performance — plus l'entrypoint `client`,
+  `CheeseCompatClient`, qui active les packs de ressources Arkensia au premier lancement.
 
-Une installation serveur seule est parfaitement valide et ne perd que ces quatre correctifs
-client. Une installation client seule ne fait presque rien d'utile, mais ne casse rien non
-plus.
+Une installation serveur seule est parfaitement valide et ne perd que les parties côté
+client. Une installation client seule obtient les quatre mixins cosmétiques et l'activateur
+de packs de ressources, et rien d'autre — ⚠️ note que cet activateur réécrit l'`options.txt`
+du joueur au premier lancement, la seule chose de ce jar qui modifie un fichier hors de
+`config/`.
 
 ---
 
@@ -166,12 +169,16 @@ build/libs/cheesecompatmodsfix-1.2.53+1.21.1.jar
 Ignore les `-sources.jar` et `-dev.jar` du même dossier ; ils ne sont pas pour un serveur.
 
 La version vient de `mod_version` dans `gradle.properties`.
+`src/main/resources/fabric.mod.json` déclare `"version": "${version}"`, que
+`processResources` étend, donc le nom du jar et la version que Fabric rapporte portent tous
+deux `1.2.53+1.21.1`.
 
-⚠️ Le **nom** du jar dit `1.2.53+1.21.1`, mais `fabric.mod.json` déclare
-`"version": "1.1.0"` en littéral, sans placeholder `${version}` que `processResources`
-pourrait étendre. Donc la version que Fabric rapporte, et celle affichée dans la liste des
-mods en jeu, est `1.1.0`. N'écris pas de contrainte de version contre
-`cheesecompatmodsfix` depuis un autre mod tant que ce n'est pas corrigé.
+⚠️ **Ne lis pas `CheeseCompatModsFix/fabric.mod.json`.** Il existe une seconde copie de ce
+fichier à la racine du mod, longue de 27 lignes, lue par rien et empaquetée nulle part. Elle
+prétend encore `"version": "1.1.0"` et décrit le mod comme ne couvrant que « Battle Tower,
+Legendary Monuments, Arc Phone toggles » — un périmètre qu'il a dépassé depuis longtemps.
+C'est un résidu d'une ancienne structure de projet et il devrait être supprimé. Le fichier
+qui compte est celui sous `src/main/resources/`.
 
 ---
 

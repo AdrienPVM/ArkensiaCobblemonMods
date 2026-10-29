@@ -5,7 +5,7 @@
 > ⚠️ Same warning as the other catalogue pages: each fix is pinned to one version of one
 > third-party mod, and nothing here is tested against any other.
 
-Eight fixes across six mods, plus one client-side feature that is currently unreachable.
+Eight fixes across six mods, plus the one client-side feature that is not a mixin.
 
 **Target mods on this page**
 
@@ -304,34 +304,53 @@ so the worst case is current behaviour.
 
 ---
 
-## Unreachable: the client resource-pack activator
+## The client resource-pack activator
 
-`CheeseCompatClient` implements `ClientModInitializer`. It is meant to solve a real
-problem — CurseForge does not apply `options.txt` from modpack overrides, so a new player
-starts with every Arkensia resource pack disabled. On `CLIENT_STARTED`, if
-`file/CacademyMons` is not already in the enabled list, it reads the ordered pack list
-from `config/resourcepackoverrides.json` (synced from the server by AutoModpack, which
-keeps the server as the single source of truth), falls back to a hard-coded list of about
-55 packs if that file is absent, rescans the packs folder, enables them, writes the
-options back and reloads resources.
+Not a fix for a third-party mod, but the one piece of client-side behaviour in this jar
+that is not a mixin, so it belongs here.
 
-**It never runs.** `fabric.mod.json` declares only a `main` entrypoint:
+**Problem.** CurseForge does not apply `options.txt` from modpack overrides, so a new
+player starts with every Arkensia resource pack disabled, and the modpack looks nothing
+like it is supposed to.
+
+**How.** `CheeseCompatClient` implements `ClientModInitializer` and is registered as the
+`client` entrypoint in `src/main/resources/fabric.mod.json`:
 
 ```json
 "entrypoints": {
-  "main": ["com.cheesecompat.CheeseCompatMod"]
+  "main": ["com.cheesecompat.CheeseCompatMod"],
+  "client": ["com.cheesecompat.CheeseCompatClient"]
 }
 ```
 
-There is no `client` entrypoint, so Fabric never instantiates `CheeseCompatClient`. The
-class compiles, ships in the jar, and is dead. Adding
-`"client": ["com.cheesecompat.CheeseCompatClient"]` would enable it — and would also
-enable a method that rewrites the player's resource pack list and triggers a full
-resource reload at startup, so that is not a change to make casually.
+On `CLIENT_STARTED` it checks whether `file/CacademyMons` is already in the enabled pack
+list, and returns immediately if it is — that single check is what makes this a one-time
+setup rather than something that fights the player's choices on every launch. Otherwise it
+reads the ordered pack list from `config/resourcepackoverrides.json` (synced from the
+server by AutoModpack, which keeps the server as the single source of truth), falls back
+to a hard-coded list of about 55 packs if that file is absent, rescans the packs folder,
+enables them through the `ResourcePackManager`, syncs the manager's state back into the
+options, writes them, and reloads resources.
 
-The client-side **mixins** on this page are unaffected: they are declared in the
-`"client"` block of `cheesecompatmodsfix.mixins.json`, which is independent of
-entrypoints.
+It logs what it did, and — more useful — what it could not do:
+
+```text
+[CheeseCompat] Arkensia resource packs not configured — activating...
+[CheeseCompat] Loaded 55 packs from resourcepackoverrides.json
+[CheeseCompat] N packs not found: [...]
+[CheeseCompat] 54 resource packs activated (of 55 requested).
+```
+
+**Status.** Active, client-side only.
+
+⚠️ This is the only code in the mod that rewrites a player's own settings file and forces
+a resource reload at startup. It is guarded by one sentinel pack name. If that pack is
+ever renamed in the modpack, the guard stops matching and every client re-runs the whole
+activation on every launch, overwriting any pack choice the player has made since. The
+sentinel is `file/CacademyMons`, hard-coded in `CheeseCompatClient`.
+
+The hard-coded fallback list is also Arkensia-specific down to individual zip filenames,
+and does nothing useful on any other modpack.
 
 ---
 

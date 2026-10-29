@@ -316,24 +316,42 @@ Personne n'a identifié quel état est réellement corrompu. Voir
 
 ## Symptôme : les packs de ressources client ne s'activent pas automatiquement
 
-**Cause.** `CheeseCompatClient` n'est jamais instancié. `fabric.mod.json` ne déclare qu'un
-entrypoint `main`, sans entrée `client`, donc l'activateur de packs de ressources est du code
-mort.
+**Cause.** `CheeseCompatClient` n'agit que si `file/CacademyMons` est **absent** de la
+liste des packs activés du client. Si cette entrée est présente — même venue d'un
+`options.txt` périmé — l'activateur rend la main immédiatement et ne change rien d'autre.
 
-**Remède.** Active les packs à la main, ou ajoute l'entrypoint et reconstruis — en sachant
-que cela allume une méthode qui réécrit la liste de packs du joueur et déclenche un
-rechargement complet des ressources au démarrage. Voir
-[le catalogue « tout le reste »](fixes-misc.fr.md#inatteignable--lactivateur-de-packs-de-ressources-client).
+**Remède.** Cherche dans le log client la ligne qu'il affiche quand il tourne vraiment :
 
-## Symptôme : la liste des mods affiche la version 1.1.0
+```text
+[CheeseCompat] Arkensia resource packs not configured — activating...
+```
 
-**Cause.** `fabric.mod.json` porte `"version": "1.1.0"` en littéral.
-`processResources` est configuré pour étendre une propriété `version` mais le fichier n'a pas
-de placeholder `${version}`, donc rien n'est substitué. Le nom du jar porte la vraie version
-(`1.2.53+1.21.1`) ; les métadonnées non.
+Si cette ligne manque, la garde a court-circuité ; retire `file/CacademyMons` de
+`options.txt` et redémarre le client. Si elle est présente mais que les packs restent
+éteints, cherche l'avertissement qui nomme ceux qu'il n'a pas trouvés :
 
-**Remède.** Cosmétique, mais n'écris pas de contrainte de version contre
-`cheesecompatmodsfix` depuis un autre mod tant que ce n'est pas corrigé.
+```text
+[CheeseCompat] N packs not found: [...]
+```
+
+Un pack absent de `resourcepacks/` ne peut pas être activé. La liste elle-même vient de
+`config/resourcepackoverrides.json`, synchronisé par AutoModpack, avec un repli codé en
+dur — voir
+[le catalogue « tout le reste »](fixes-misc.fr.md#lactivateur-de-packs-de-ressources-client).
+
+## Symptôme : `CheeseCompatModsFix/fabric.mod.json` indique la version 1.1.0
+
+**Cause.** Tu lis le mauvais fichier. Il y en a deux : celui qui est empaqueté est
+`src/main/resources/fabric.mod.json`, qui déclare `"version": "${version}"` et ressort en
+`1.2.53+1.21.1` après `processResources`. La copie de 27 lignes à la **racine du mod** n'est
+lue par rien, empaquetée nulle part, et porte encore `"version": "1.1.0"` et une description
+limitée à « Battle Tower, Legendary Monuments, Arc Phone toggles ».
+
+**Remède.** Rien n'est cassé — Fabric et la liste des mods en jeu rapportent la bonne
+version. Le fichier à la racine est un résidu d'une ancienne structure de projet et devrait
+être supprimé pour que personne d'autre ne le lise en premier. Sa description périmée est la
+moitié la plus trompeuse : elle sous-estime le périmètre du mod d'une douzaine de mods
+visés.
 
 ---
 

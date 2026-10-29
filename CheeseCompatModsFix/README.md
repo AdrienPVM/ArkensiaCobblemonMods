@@ -48,7 +48,8 @@ when the mod is missing, so installing this does not require installing the whol
 it knows about.
 
 Runs on **server and client**. The server gets all 35 server mixins and every
-event-driven fix; the client gets four cosmetic or performance mixins.
+event-driven fix; the client gets four cosmetic or performance mixins plus a `client`
+entrypoint that enables the Arkensia resource packs on first launch.
 
 ### ⚠️ Building needs two jars you must supply
 

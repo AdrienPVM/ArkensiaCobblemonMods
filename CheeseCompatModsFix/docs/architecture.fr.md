@@ -14,10 +14,10 @@ pour ce qu'il y a dedans.
 
 ```text
 com.cheesecompat
-├── CheeseCompatMod.java              l'unique entrypoint ; relie chaque correctif, possède la config
+├── CheeseCompatMod.java              l'entrypoint principal ; relie chaque correctif, possède la config
 ├── CheeseCompatConfig.java           trois booléens, config/cheesecompatmodsfix.json
 ├── CheeseCompatMixinPlugin.java      décide quels mixins s'appliquent, depuis des isModLoaded
-├── CheeseCompatClient.java           activateur de packs de ressources client — NON relié
+├── CheeseCompatClient.java           entrypoint client : active les packs de ressources Arkensia
 │
 ├── BattleTowerDisconnectFix.java     sauvegarde/restauration d'équipe à la déconnexion (512 lignes)
 ├── RadGymsFix.java                   quatre correctifs Rad Gyms, tous par réflexion (413 lignes)
@@ -319,16 +319,19 @@ tous les échanges d'objets tenus du serveur et qui n'est délibérément pas re
 
 Dites franchement, parce que les découvrir par surprise est pire.
 
-- **`fabric.mod.json` déclare `"version": "1.1.0"`.** `gradle.properties` dit
-  `mod_version=1.2.53+1.21.1`. `processResources` déclare bien une propriété `version` et
-  étend `fabric.mod.json`, mais le fichier n'a pas de placeholder `${version}`, donc
-  l'extension ne fait rien. Le jar est nommé depuis la vraie version ; la version que Fabric
-  rapporte et affiche dans la liste des mods est `1.1.0`. Tout autre mod qui écrirait une
-  contrainte de version contre `cheesecompatmodsfix` lirait le mauvais numéro.
+- **Il y a deux fichiers `fabric.mod.json`, et l'un des deux est un piège.** Le vrai est
+  `src/main/resources/fabric.mod.json` : il déclare `"version": "${version}"`, que
+  `processResources` étend, donc les métadonnées empaquetées portent bien
+  `1.2.53+1.21.1`. L'autre est à la racine du mod,
+  `CheeseCompatModsFix/fabric.mod.json`, fait 27 lignes, n'est lu par rien et empaqueté
+  nulle part, et déclare encore `"version": "1.1.0"` plus une description qui s'arrête à
+  « Battle Tower, Legendary Monuments, Arc Phone toggles » — un périmètre que le mod a
+  dépassé d'une douzaine de mods visés. C'est un résidu d'une ancienne structure de projet.
+  Quiconque l'ouvre en premier tirera de fausses conclusions à la fois sur la version et
+  sur le périmètre du mod ; il devrait être supprimé.
 - **`CheeseCompatMod` journalise sa version comme une chaîne codée en dur**, `"(v1.2.53)"`,
-  dans la ligne de démarrage. Elle doit être éditée à la main à chaque version.
-- **`CheeseCompatClient` est du code mort.** Aucun entrypoint `client` n'est déclaré.
-  L'activateur de packs de ressources ne tourne jamais.
+  dans la ligne de démarrage. Contrairement aux métadonnées, celle-là est bien manuelle et
+  doit être éditée à la main à chaque version.
 - **`DaycareDestinyKnotConsumeMixin` est du code mort.** Absent de `mixins.json`.
 - **`DungeonDimensionsMixin` est une classe vide** qui n'existe que pour porter un
   commentaire, et qui est tout de même chargée et appliquée.

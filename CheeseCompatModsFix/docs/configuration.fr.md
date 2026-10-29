@@ -181,10 +181,12 @@ Les fichiers `.dat` sont la seule donnée ici que tu ne peux pas régénérer : 
 l'équipe d'un joueur. En supprimer un alors qu'une restauration est encore en cours pour ce
 joueur perd tout ce que la tour n'avait pas encore restauré.
 
-Un quatrième fichier est **lu** et jamais écrit : `config/resourcepackoverrides.json`, que
-`CheeseCompatClient` consulterait pour sa liste de packs — sauf que cette classe n'est jamais
-instanciée, donc rien ne le lit non plus. Voir
-[le catalogue « tout le reste »](fixes-misc.fr.md#inatteignable--lactivateur-de-packs-de-ressources-client).
+Un quatrième fichier est **lu** et jamais écrit, et seulement sur un client :
+`config/resourcepackoverrides.json`, d'où `CheeseCompatClient` tire la liste ordonnée des
+packs de ressources. Il est synchronisé depuis le serveur par AutoModpack, pour que le
+serveur reste la source unique de vérité ; s'il est absent, une liste de repli codée en dur
+est employée. Voir
+[le catalogue « tout le reste »](fixes-misc.fr.md#lactivateur-de-packs-de-ressources-client).
 
 ---
 

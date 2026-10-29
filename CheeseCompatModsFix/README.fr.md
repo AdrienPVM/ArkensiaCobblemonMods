@@ -50,7 +50,8 @@ mod est absent : l'installer n'oblige donc pas à installer toute la pile qu'il 
 
 Fonctionne **côté serveur et côté client**. Le serveur reçoit les 35 mixins serveur et
 tous les correctifs à base d'évènements ; le client reçoit quatre mixins cosmétiques ou
-de performance.
+de performance, plus un entrypoint `client` qui active les packs de ressources Arkensia au
+premier lancement.
 
 ### ⚠️ Le build exige deux jars que tu dois fournir
 

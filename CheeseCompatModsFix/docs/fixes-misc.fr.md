@@ -5,8 +5,8 @@
 > ⚠️ Même avertissement que sur les autres pages du catalogue : chaque correctif est lié à
 > une version d'un mod tiers, et rien ici n'est testé contre une autre.
 
-Huit correctifs répartis sur six mods, plus une fonctionnalité côté client actuellement
-inatteignable.
+Huit correctifs répartis sur six mods, plus l'unique fonctionnalité côté client qui ne soit
+pas un mixin.
 
 **Mods visés sur cette page**
 
@@ -314,33 +314,55 @@ donc le pire cas est le comportement actuel.
 
 ---
 
-## Inatteignable : l'activateur de packs de ressources client
+## L'activateur de packs de ressources client
 
-`CheeseCompatClient` implémente `ClientModInitializer`. Il est censé résoudre un vrai
-problème — CurseForge n'applique pas l'`options.txt` des overrides de modpack, donc un
-nouveau joueur démarre avec tous les packs de ressources Arkensia désactivés. Sur
-`CLIENT_STARTED`, si `file/CacademyMons` n'est pas déjà dans la liste activée, il lit la
-liste ordonnée des packs depuis `config/resourcepackoverrides.json` (synchronisé depuis le
-serveur par AutoModpack, ce qui garde le serveur comme source unique de vérité), retombe sur
-une liste codée en dur d'une cinquantaine de packs si ce fichier est absent, rescanne le
-dossier des packs, les active, réécrit les options et recharge les ressources.
+Pas un correctif pour un mod tiers, mais la seule pièce de comportement côté client de ce
+jar qui ne soit pas un mixin : sa place est donc ici.
 
-**Il ne tourne jamais.** `fabric.mod.json` ne déclare qu'un entrypoint `main` :
+**Problème.** CurseForge n'applique pas l'`options.txt` des overrides de modpack, donc un
+nouveau joueur démarre avec tous les packs de ressources Arkensia désactivés, et le modpack
+ne ressemble en rien à ce qu'il devrait être.
+
+**Moyen.** `CheeseCompatClient` implémente `ClientModInitializer` et est enregistré comme
+entrypoint `client` dans `src/main/resources/fabric.mod.json` :
 
 ```json
 "entrypoints": {
-  "main": ["com.cheesecompat.CheeseCompatMod"]
+  "main": ["com.cheesecompat.CheeseCompatMod"],
+  "client": ["com.cheesecompat.CheeseCompatClient"]
 }
 ```
 
-Il n'y a pas d'entrypoint `client`, donc Fabric n'instancie jamais `CheeseCompatClient`. La
-classe compile, est livrée dans le jar, et est morte. Ajouter
-`"client": ["com.cheesecompat.CheeseCompatClient"]` l'activerait — et activerait aussi une
-méthode qui réécrit la liste de packs de ressources du joueur et déclenche un rechargement
-complet des ressources au démarrage, donc ce n'est pas un changement à faire à la légère.
+Sur `CLIENT_STARTED`, il vérifie si `file/CacademyMons` est déjà dans la liste des packs
+activés, et rend la main immédiatement si c'est le cas — cette unique vérification est ce
+qui en fait une mise en place unique plutôt que quelque chose qui combat les choix du joueur
+à chaque lancement. Sinon il lit la liste ordonnée des packs depuis
+`config/resourcepackoverrides.json` (synchronisé depuis le serveur par AutoModpack, ce qui
+garde le serveur comme source unique de vérité), retombe sur une liste codée en dur d'une
+cinquantaine de packs si ce fichier est absent, rescanne le dossier des packs, les active via
+le `ResourcePackManager`, resynchronise l'état du manager dans les options, les écrit, et
+recharge les ressources.
 
-Les **mixins** côté client de cette page ne sont pas concernés : ils sont déclarés dans le
-bloc `"client"` de `cheesecompatmodsfix.mixins.json`, qui est indépendant des entrypoints.
+Il journalise ce qu'il a fait et — plus utile — ce qu'il n'a pas pu faire :
+
+```text
+[CheeseCompat] Arkensia resource packs not configured — activating...
+[CheeseCompat] Loaded 55 packs from resourcepackoverrides.json
+[CheeseCompat] N packs not found: [...]
+[CheeseCompat] 54 resource packs activated (of 55 requested).
+```
+
+**État.** Actif, côté client uniquement.
+
+⚠️ C'est le seul code du mod qui réécrit le fichier de réglages d'un joueur et qui force un
+rechargement des ressources au démarrage. Il est gardé par un unique nom de pack sentinelle.
+Si ce pack est un jour renommé dans le modpack, la garde cesse de correspondre et chaque
+client rejoue toute l'activation à chaque lancement, en écrasant tout choix de pack que le
+joueur aurait fait depuis. La sentinelle est `file/CacademyMons`, codée en dur dans
+`CheeseCompatClient`.
+
+La liste de repli codée en dur est elle aussi spécifique à Arkensia jusqu'aux noms de
+fichiers zip individuels, et ne sert à rien sur un autre modpack.
 
 ---
 

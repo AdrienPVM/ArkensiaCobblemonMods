@@ -64,12 +64,15 @@ enforcement while the Battle Tower forces levels. CobbleCap's absence changes no
 **Both.** `fabric.mod.json` declares `"environment": "*"`.
 
 - On the **server**: everything. All 35 server mixins and all the event-driven fixes.
-- On the **client**: four mixins only — the Battle Tower party-screen aspect fix, the two
-  JourneyMap icon classes, and the Numismatic shop cull. All four are cosmetic or
-  performance.
+- On the **client**: four mixins — the Battle Tower party-screen aspect fix, the two
+  JourneyMap icon classes, and the Numismatic shop cull, all cosmetic or performance —
+  plus the `client` entrypoint, `CheeseCompatClient`, which enables the Arkensia resource
+  packs on first launch.
 
-A server-only install is perfectly valid and loses only those four client fixes. A
-client-only install does almost nothing useful, but does not break anything either.
+A server-only install is perfectly valid and loses only the client-side pieces. A
+client-only install gets the four cosmetic mixins and the resource-pack activator, and
+nothing else — ⚠️ note that the activator rewrites the player's `options.txt` on first
+launch, which is the one thing in this jar that changes a file outside `config/`.
 
 ---
 
@@ -160,12 +163,16 @@ build/libs/cheesecompatmodsfix-1.2.53+1.21.1.jar
 Ignore `-sources.jar` and `-dev.jar` in the same folder; they are not for a server.
 
 The version comes from `mod_version` in `gradle.properties`.
+`src/main/resources/fabric.mod.json` declares `"version": "${version}"`, which
+`processResources` expands, so the jar's filename and the version Fabric reports both read
+`1.2.53+1.21.1`.
 
-⚠️ The jar's **filename** says `1.2.53+1.21.1`, but `fabric.mod.json` declares
-`"version": "1.1.0"` as a literal, with no `${version}` placeholder for
-`processResources` to expand. So the version Fabric reports, and the one shown in the
-in-game mod list, is `1.1.0`. Do not write a version constraint against
-`cheesecompatmodsfix` from another mod until that is fixed.
+⚠️ **Do not read `CheeseCompatModsFix/fabric.mod.json`.** There is a second copy of that
+file at the mod root, 27 lines long, read by nothing and packaged nowhere. It still claims
+`"version": "1.1.0"` and describes the mod as covering only "Battle Tower, Legendary
+Monuments, Arc Phone toggles" — a periphery it outgrew long ago. It is a leftover from an
+older project layout and should be deleted. The file that matters is the one under
+`src/main/resources/`.
 
 ---
 
